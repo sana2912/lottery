@@ -1,0 +1,72 @@
+{
+  "name": "lottery-intelligence-dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "bun@1.3.13",
+  "scripts": {
+    "dev": "bun run env:decrypt:dev && dotenvx run --env-file=.env.development -- bun --bun next dev",
+    "build": "bun run env:decrypt:prod && dotenvx run --env-file=.env.production -- bun --bun next build",
+    "start": "bun run env:decrypt:prod && dotenvx run --env-file=.env.production -- bun --bun next start",
+    "lint": "bun --bun biome check . && bun --bun eslint .",
+    "format": "bun --bun biome format --write .",
+    "check": "bun --bun biome check . && bun --bun eslint . --max-warnings=0 && bun run typecheck",
+    "typecheck": "bun --bun tsc --noEmit",
+    "prisma:generate": "bunx --bun prisma generate",
+    "db:generate": "bunx --bun prisma generate",
+    "db:push": "bun run env:decrypt:dev && dotenvx run --env-file=.env.development -- bunx --bun prisma db push",
+    "db:studio": "bun run env:decrypt:dev && dotenvx run --env-file=.env.development -- bunx --bun prisma studio",
+    "env:encrypt:dev": "dotenvx encrypt --env-file=.env.development",
+    "env:encrypt:prod": "dotenvx encrypt --env-file=.env.production",
+    "env:decrypt:dev": "dotenvx decrypt --env-file=.env.development",
+    "env:decrypt:prod": "dotenvx decrypt --env-file=.env.production",
+    "prepare": "husky || true"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "biome check --write --no-errors-on-unmatched"
+    ],
+    "*.{js,cjs,mjs}": [
+      "biome check --write --no-errors-on-unmatched",
+      "eslint --fix --max-warnings=0"
+    ],
+    "*.{json,md,yaml,yml}": [
+      "biome format --write"
+    ]
+  },
+  "dependencies": {
+    "@dotenvx/dotenvx": "^1.63.0",
+    "@prisma/client": "^7.8.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "d3": "^7.9.0",
+    "elysia": "^1.4.28",
+    "lucide-react": "^1.11.0",
+    "motion": "^12.38.0",
+    "next": "^16.2.4",
+    "radix-ui": "^1.4.3",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "react-use-measure": "^2.1.7",
+    "tailwind-merge": "^3.5.0",
+    "tw-animate-css": "^1.3.8",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.13",
+    "@tailwindcss/postcss": "^4.2.4",
+    "@types/d3": "^7.4.3",
+    "@types/node": "^25.6.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "dotenv": "^17.4.2",
+    "eslint": "^9",
+    "eslint-config-next": "^16.2.4",
+    "eslint-plugin-react": "^7.37.5",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.6",
+    "prisma": "^7.8.0",
+    "shadcn": "^3.4.2",
+    "tailwindcss": "^4.1.17",
+    "typescript": "^6.0.3"
+  }
+}

@@ -1,0 +1,99 @@
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  runtime             = "bun"
+  moduleFormat       = "esm"
+  importFileExtension = "ts"
+}
+
+datasource db {
+  provider = "mongodb"
+}
+
+enum LotteryType {
+  THAI_GOVERNMENT
+}
+
+enum LotteryPrizeType {
+  FIRST
+  THREE_FRONT
+  THREE_BACK
+  TWO_DIGIT
+  NEAR_FIRST
+  OTHER
+}
+
+enum WatchlistSource {
+  MANUAL
+  PREDICTION
+  NOTEBOOK
+}
+
+model LotteryDraw {
+  id          String        @id @default(uuid(7)) @map("_id")
+  lotteryType LotteryType   @default(THAI_GOVERNMENT)
+  drawDate    DateTime
+  drawNo      String?
+  prizes      LotteryPrize[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@unique([lotteryType, drawDate])
+  @@index([drawDate])
+  @@map("lottery_draws")
+}
+
+model LotteryPrize {
+  id        String           @id @default(uuid(7)) @map("_id")
+  drawId    String
+  draw      LotteryDraw      @relation(fields: [drawId], references: [id])
+  type      LotteryPrizeType
+  position  Int?
+  number    String
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@index([drawId])
+  @@index([type, number])
+  @@map("lottery_prizes")
+}
+
+model UserWatchlistItem {
+  id        String          @id @default(uuid(7)) @map("_id")
+  number    String
+  source    WatchlistSource @default(MANUAL)
+  tags      String[]
+  note      String?
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@index([number])
+  @@map("user_watchlist_items")
+}
+
+model PredictionRun {
+  id        String             @id @default(uuid(7)) @map("_id")
+  strategy  String
+  params    Json?
+  items     PredictionResult[]
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  @@index([strategy])
+  @@map("prediction_runs")
+}
+
+model PredictionResult {
+  id        String        @id @default(uuid(7)) @map("_id")
+  runId     String
+  run       PredictionRun @relation(fields: [runId], references: [id])
+  number    String
+  score     Float
+  reasons   String[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([runId])
+  @@index([number])
+  @@map("prediction_results")
+}
