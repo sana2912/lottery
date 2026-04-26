@@ -1,5 +1,3 @@
-import { redirect } from "next/navigation";
+import { HomePage } from "@/frontend/pages/home";
 
-export default function HomePage() {
-  redirect("/dashboard");
-}
+export default HomePage;

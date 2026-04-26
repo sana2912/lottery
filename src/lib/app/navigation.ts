@@ -4,6 +4,7 @@ export const userNavigation = [
   { href: "/analytics", label: "วิเคราะห์" },
   { href: "/patterns", label: "แพตเทิร์น" },
   { href: "/prediction-lab", label: "ห้องทดลองทำนาย" },
+  { href: "/backtest", label: "ทดสอบย้อนหลัง" },
   { href: "/watchlist", label: "รายการเฝ้าดู" },
   { href: "/compare", label: "เปรียบเทียบ" },
   { href: "/calendar", label: "ปฏิทิน" },

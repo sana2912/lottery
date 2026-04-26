@@ -16,11 +16,13 @@ Agents working in this repo should read `AGENTS.md`. Any UI or UI feature work m
 
 ## App Routes
 
+- `/`
 - `/dashboard`
 - `/results`
 - `/analytics`
 - `/patterns`
 - `/prediction-lab`
+- `/backtest`
 - `/watchlist`
 - `/compare`
 - `/calendar`
