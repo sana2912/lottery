@@ -6,7 +6,7 @@ export function Card({ className, ...props }: CardProps) {
   return (
     <div
       className={cn(
-        "rounded-[var(--radius-card)] border border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] shadow-[var(--shadow-card)]",
+        "rounded-none border border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] shadow-[var(--shadow-card)]",
         className
       )}
       {...props}

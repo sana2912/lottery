@@ -14,7 +14,7 @@ export type SidebarProps = {
 export function Sidebar({ items, pathname }: SidebarProps) {
   return (
     <aside className="hidden min-h-screen w-[280px] border-r border-white/60 bg-[image:var(--color-bg-sidebar)] px-5 py-6 text-[var(--color-text-inverse)] lg:flex lg:flex-col">
-      <div className="mb-8 rounded-[var(--radius-card)] border border-[var(--color-border-inverse-softer)] bg-[var(--color-bg-dark-softer)] p-5 backdrop-blur">
+      <div className="mb-8 rounded-none border border-[var(--color-border-inverse-softer)] bg-[var(--color-bg-dark-softer)] p-5 backdrop-blur">
         <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--color-text-inverse-soft)]">
           Lottery Intelligence
         </p>
@@ -35,7 +35,7 @@ export function Sidebar({ items, pathname }: SidebarProps) {
           return (
             <Link
               className={cn(
-                "flex items-center rounded-xl px-4 py-3 text-sm font-medium transition-colors",
+                "flex items-center rounded-none px-4 py-3 text-sm font-medium transition-colors",
                 isActive
                   ? "bg-[var(--color-bg-canvas)] text-[var(--color-text-primary)] shadow-[var(--shadow-float-strong)]"
                   : "text-white/80 hover:bg-[var(--color-bg-dark-softer)] hover:text-[var(--color-text-inverse)]"

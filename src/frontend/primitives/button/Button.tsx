@@ -8,7 +8,7 @@ export function Button({ className, type = "button", variant = "primary", ...pro
   return (
     <button
       className={cn(
-        "inline-flex items-center justify-center rounded-[var(--radius-control)] border px-4 py-3 text-sm font-semibold transition-colors",
+        "inline-flex items-center justify-center rounded-none border px-4 py-3 text-sm font-semibold transition-colors",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-bg-brand-soft-strong)]",
         variant === "primary" &&
           "border-[var(--color-brand)] bg-[var(--color-brand)] text-white hover:bg-[var(--color-brand-strong)]",

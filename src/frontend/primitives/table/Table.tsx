@@ -4,7 +4,7 @@ export type TableProps = React.TableHTMLAttributes<HTMLTableElement>;
 
 export function Table({ className, ...props }: TableProps) {
   return (
-    <div className="overflow-hidden rounded-[var(--radius-card)] border border-[var(--color-border-soft)]">
+    <div className="overflow-hidden rounded-none border border-[var(--color-border-soft)]">
       <table
         className={cn("w-full border-collapse bg-[var(--color-bg-canvas)]", className)}
         {...props}

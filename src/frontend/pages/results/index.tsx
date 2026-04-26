@@ -62,11 +62,11 @@ export function ResultsPage() {
           </p>
 
           <div className="mt-8 flex flex-wrap gap-3">
-            <Button className="rounded-[var(--radius-control)] bg-[var(--color-brand)] px-4 py-[13px] text-white hover:bg-[var(--color-brand-strong)]">
+            <Button className="rounded-none bg-[var(--color-brand)] px-4 py-[13px] text-white hover:bg-[var(--color-brand-strong)]">
               ดูงวดล่าสุด
             </Button>
             <Button
-              className="rounded-[var(--radius-control)] border-[var(--color-brand-outline)] bg-white px-4 py-[13px] text-[var(--color-brand-outline)] hover:bg-[var(--color-bg-brand-soft)]"
+              className="rounded-none border-[var(--color-brand-outline)] bg-white px-4 py-[13px] text-[var(--color-brand-outline)] hover:bg-[var(--color-bg-brand-soft)]"
               variant="outline"
             >
               ตรวจ data contract
@@ -87,7 +87,7 @@ export function ResultsPage() {
           <div className="mt-8 space-y-4">
             {resultsMock.highlights.map((highlight) => (
               <div
-                className="rounded-[var(--radius-card)] border border-[var(--color-border-inverse-soft)] bg-[var(--color-bg-dark-soft)] p-4"
+                className="rounded-none border border-[var(--color-border-inverse-soft)] bg-[var(--color-bg-dark-soft)] p-4"
                 key={highlight.title}
               >
                 <p className="font-semibold">{highlight.title}</p>
@@ -112,7 +112,7 @@ export function ResultsPage() {
             actions={
               <div className="w-full max-w-sm">
                 <Input
-                  className="h-11 rounded-[var(--radius-control)] border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 py-3 shadow-[var(--shadow-micro)]"
+                  className="h-11 rounded-none border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 py-3 shadow-[var(--shadow-micro)]"
                   placeholder="ค้นหาจากวันที่ออกรางวัลหรือเลขที่ถูกรางวัล"
                 />
               </div>
@@ -124,7 +124,7 @@ export function ResultsPage() {
 
           <div className="mt-5 grid gap-3 md:grid-cols-2">
             <Select defaultValue={resultsMock.filters.defaultLotteryType}>
-              <SelectTrigger className="h-11 w-full rounded-[var(--radius-control)] border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 shadow-[var(--shadow-micro)]">
+              <SelectTrigger className="h-11 w-full rounded-none border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 shadow-[var(--shadow-micro)]">
                 <SelectValue placeholder="เลือกประเภทสลาก" />
               </SelectTrigger>
               <SelectContent>
@@ -137,7 +137,7 @@ export function ResultsPage() {
             </Select>
 
             <Select defaultValue={resultsMock.filters.defaultPrizeType}>
-              <SelectTrigger className="h-11 w-full rounded-[var(--radius-control)] border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 shadow-[var(--shadow-micro)]">
+              <SelectTrigger className="h-11 w-full rounded-none border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 shadow-[var(--shadow-micro)]">
                 <SelectValue placeholder="เลือกรางวัล" />
               </SelectTrigger>
               <SelectContent>
@@ -154,7 +154,7 @@ export function ResultsPage() {
           <div className="mt-5 flex flex-wrap gap-3">
             {resultsMock.filters.lotteryTypes.map((type) => (
               <Button
-                className="rounded-[var(--radius-control)] bg-[var(--color-bg-brand-soft)] px-3 py-2 text-xs text-[var(--color-brand)] hover:bg-[var(--color-bg-brand-soft-strong)]"
+                className="rounded-none bg-[var(--color-bg-brand-soft)] px-3 py-2 text-xs text-[var(--color-brand)] hover:bg-[var(--color-bg-brand-soft-strong)]"
                 key={type}
                 variant="ghost"
               >
@@ -164,7 +164,7 @@ export function ResultsPage() {
 
             {resultsMock.filters.prizeTypes.map((type) => (
               <Button
-                className="rounded-[var(--radius-control)] border-[var(--color-brand-outline)] bg-white px-3 py-2 text-xs text-[var(--color-brand-outline)] hover:bg-[var(--color-bg-brand-soft)]"
+                className="rounded-none border-[var(--color-brand-outline)] bg-white px-3 py-2 text-xs text-[var(--color-brand-outline)] hover:bg-[var(--color-bg-brand-soft)]"
                 key={type}
                 variant="outline"
               >
@@ -176,7 +176,7 @@ export function ResultsPage() {
           <div className="mt-6 space-y-4">
             {resultsMock.draws.map((draw) => (
               <article
-                className="rounded-[var(--radius-card)] border border-[var(--color-border-soft)] bg-[var(--color-bg-elevated)] p-5"
+                className="rounded-none border border-[var(--color-border-soft)] bg-[var(--color-bg-elevated)] p-5"
                 key={draw.id}
               >
                 <div className="flex flex-col gap-3 border-b border-[var(--color-border-soft)] pb-4 lg:flex-row lg:items-start lg:justify-between">
@@ -200,7 +200,7 @@ export function ResultsPage() {
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
                   {draw.prizes.map((prize) => (
                     <div
-                      className="rounded-[var(--radius-control)] bg-[var(--color-bg-canvas)] px-4 py-3"
+                      className="rounded-none bg-[var(--color-bg-canvas)] px-4 py-3"
                       key={`${draw.id}-${prize.label}`}
                     >
                       <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
@@ -233,11 +233,11 @@ export function ResultsPage() {
             </p>
           </div>
 
-          <div className="mt-6 rounded-[var(--radius-card)] bg-[var(--color-bg-panel-brand)] p-4">
+          <div className="mt-6 rounded-none bg-[var(--color-bg-panel-brand)] p-4">
             <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--color-brand-outline)]">
               contract ฝั่ง backend ที่วางไว้
             </p>
-            <div className="mt-3 overflow-hidden rounded-[var(--radius-card)] border border-[var(--color-border-soft)]">
+            <div className="mt-3 overflow-hidden rounded-none border border-[var(--color-border-soft)]">
               <Table>
                 <TableHeader className="bg-[var(--color-bg-subtle)]">
                   <TableRow className="border-b border-[var(--color-border-soft)] hover:bg-transparent">
@@ -278,7 +278,7 @@ export function ResultsPage() {
             <SectionHeading eyebrow="หมายเหตุสำหรับทีม" title="บันทึก mock note" />
             <div className="mt-3">
               <Textarea
-                className="min-h-32 rounded-[var(--radius-control)] border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 py-3 shadow-[var(--shadow-micro)]"
+                className="min-h-32 rounded-none border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 py-3 shadow-[var(--shadow-micro)]"
                 readOnly
                 value={resultsMock.mockNote}
               />

@@ -2,45 +2,41 @@
 
 :root {
   color-scheme: light;
-  --color-bg-app: #f3f4f8;
+  --color-bg-app: #f4f5f7;
   --color-bg-canvas: #ffffff;
-  --color-bg-elevated: #fcfcfe;
-  --color-bg-subtle: #f1f2f7;
+  --color-bg-elevated: #fbfbfc;
+  --color-bg-subtle: #eceef2;
   --color-bg-frosted: rgba(255, 255, 255, 0.85);
   --color-bg-dark: #101114;
-  --color-bg-dark-soft: rgba(255, 255, 255, 0.05);
-  --color-bg-dark-softer: rgba(255, 255, 255, 0.1);
-  --color-bg-brand-soft: rgba(133, 91, 251, 0.16);
-  --color-bg-brand-soft-strong: rgba(133, 91, 251, 0.22);
-  --color-bg-success-soft: rgba(20, 158, 97, 0.16);
-  --color-bg-hero: linear-gradient(135deg, #ffffff 0%, #f7f3ff 100%);
-  --color-bg-hero-accent: radial-gradient(
-    circle at top left,
-    rgba(133, 91, 251, 0.26),
-    transparent 38%
-  );
-  --color-bg-panel-brand: #f6f3ff;
-  --color-bg-sidebar: linear-gradient(180deg, #6f31f4 0%, #5a22cf 65%, #4f1cab 100%);
+  --color-bg-dark-soft: rgba(255, 255, 255, 0.06);
+  --color-bg-dark-softer: rgba(255, 255, 255, 0.12);
+  --color-bg-brand-soft: rgba(229, 9, 20, 0.1);
+  --color-bg-brand-soft-strong: rgba(229, 9, 20, 0.16);
+  --color-bg-success-soft: rgba(20, 158, 97, 0.14);
+  --color-bg-hero: linear-gradient(180deg, #ffffff 0%, #f4f5f7 100%);
+  --color-bg-hero-accent: linear-gradient(90deg, rgba(229, 9, 20, 0.12), transparent 52%);
+  --color-bg-panel-brand: #fff1f2;
+  --color-bg-sidebar: linear-gradient(180deg, #101114 0%, #1a1114 58%, #2a0b10 100%);
   --color-text-primary: #101114;
-  --color-text-secondary: #686b82;
-  --color-text-muted: #9497a9;
+  --color-text-secondary: #555a64;
+  --color-text-muted: #858b98;
   --color-text-success: #026b3f;
   --color-text-inverse: #ffffff;
-  --color-text-inverse-muted: rgba(255, 255, 255, 0.75);
-  --color-text-inverse-soft: rgba(255, 255, 255, 0.7);
-  --color-border-default: #dedee5;
-  --color-border-soft: #ebeaf2;
-  --color-border-inverse-soft: rgba(255, 255, 255, 0.1);
-  --color-border-inverse-softer: rgba(255, 255, 255, 0.15);
-  --color-brand: #7132f5;
-  --color-brand-strong: #5b1ecf;
-  --color-brand-outline: #5741d8;
-  --shadow-card: rgba(0, 0, 0, 0.03) 0px 4px 24px;
-  --shadow-micro: rgba(16, 24, 40, 0.04) 0px 1px 4px;
-  --shadow-float-strong: rgba(16, 24, 40, 0.18) 0px 8px 24px;
-  --radius-control: 12px;
-  --radius-card: 16px;
-  --radius-badge: 8px;
+  --color-text-inverse-muted: rgba(255, 255, 255, 0.74);
+  --color-text-inverse-soft: rgba(255, 255, 255, 0.68);
+  --color-border-default: #d7dae0;
+  --color-border-soft: #e3e5ea;
+  --color-border-inverse-soft: rgba(255, 255, 255, 0.12);
+  --color-border-inverse-softer: rgba(255, 255, 255, 0.18);
+  --color-brand: #e50914;
+  --color-brand-strong: #b90710;
+  --color-brand-outline: #7a0610;
+  --shadow-card: rgba(16, 17, 20, 0.08) 0px 8px 18px -14px;
+  --shadow-micro: rgba(16, 17, 20, 0.08) 0px 1px 0px;
+  --shadow-float-strong: rgba(16, 17, 20, 0.22) 0px 18px 36px -24px;
+  --radius-control: 0px;
+  --radius-card: 0px;
+  --radius-badge: 0px;
   --font-display:
     "IBM Plex Sans", "Helvetica Neue", Helvetica, Arial, ui-sans-serif, system-ui, sans-serif;
   --font-ui:
@@ -53,7 +49,7 @@
   --popover-foreground: var(--color-text-primary);
   --primary: var(--color-brand);
   --primary-foreground: #ffffff;
-  --secondary: rgba(148, 151, 169, 0.08);
+  --secondary: #eceef2;
   --secondary-foreground: var(--color-text-primary);
   --muted: var(--color-bg-subtle);
   --muted-foreground: var(--color-text-muted);
@@ -63,8 +59,8 @@
   --destructive-foreground: #ffffff;
   --border: var(--color-border-default);
   --input: var(--color-border-default);
-  --ring: rgba(113, 50, 245, 0.35);
-  --radius: 0.75rem;
+  --ring: rgba(229, 9, 20, 0.32);
+  --radius: 0px;
   background: var(--color-bg-app);
   color: var(--color-text-primary);
   font-family:
@@ -91,10 +87,10 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: var(--radius);
+  --radius-md: var(--radius);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-xl: var(--radius);
 }
 
 * {

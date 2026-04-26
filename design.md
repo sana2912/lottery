@@ -1,143 +1,170 @@
-# Design System Inspiration of Kraken
+# Design System Direction: Sharp Signal
 
 ## 1. Visual Theme & Atmosphere
 
-Kraken's website is a clean, trustworthy crypto exchange that uses purple as its commanding brand color. The design operates on white backgrounds with Kraken Purple (`#7132f5`, `#5741d8`, `#5b1ecf`) creating a distinctive, professional crypto identity. The proprietary Kraken-Brand font handles display headings with bold (700) weight and negative tracking, while Kraken-Product (with IBM Plex Sans fallback) serves as the UI workhorse.
+Lottery Intelligence Dashboard now uses a sharp, high-contrast product style. The new direction is sexy and straightforward: square edges, direct hierarchy, clean surfaces, dark editorial contrast, and a confident signal-red brand accent. The interface should feel analytical, composed, and decisive rather than soft, playful, or decorative.
 
 **Key Characteristics:**
 
-- Kraken Purple (`#7132f5`) as primary brand with darker variants (`#5741d8`, `#5b1ecf`)
-- Kraken-Brand (display) + Kraken-Product (UI) dual font system
-- Near-black (`#101114`) text with cool blue-gray neutral scale
-- 12px radius buttons (rounded but not pill)
-- Subtle shadows (`rgba(0,0,0,0.03) 0px 4px 24px`) — whisper-level
-- Green accent (`#149e61`) for positive/success states
+- Square geometry by default: no rounded cards, buttons, inputs, tabs, menus, or badges.
+- Signal Red (`#e50914`) as the main action and data accent.
+- Obsidian (`#101114`) for dark panels and high-contrast framing.
+- White and cool off-white surfaces with precise gray dividers.
+- Minimal shadows with sharper offsets; rely on border, contrast, and spacing first.
+- Dense but readable dashboard composition with clear labels and strong numbers.
+- No decorative blobs, orbs, pill shapes, or soft mascot-like styling.
 
 ## 2. Color Palette & Roles
 
 ### Primary
 
-- **Kraken Purple** (`#7132f5`): Primary CTA, brand accent, links
-- **Purple Dark** (`#5741d8`): Button borders, outlined variants
-- **Purple Deep** (`#5b1ecf`): Deepest purple
-- **Purple Subtle** (`rgba(133,91,251,0.16)`): Purple at 16% — subtle button backgrounds
-- **Near Black** (`#101114`): Primary text
+- **Signal Red** (`#e50914`): Primary CTA, active state, key data signal, links.
+- **Signal Red Deep** (`#b90710`): Hover and pressed state.
+- **Signal Red Ink** (`#7a0610`): Outlines, serious emphasis, dark-on-light accents.
+- **Signal Red Soft** (`rgba(229,9,20,0.1)`): Subtle active backgrounds and badges.
+- **Obsidian** (`#101114`): Primary dark surface and near-black text.
 
 ### Neutral
 
-- **Cool Gray** (`#686b82`): Primary neutral, borders at 24% opacity
-- **Silver Blue** (`#9497a9`): Secondary text, muted elements
-- **White** (`#ffffff`): Primary surface
-- **Border Gray** (`#dedee5`): Divider borders
+- **Canvas** (`#ffffff`): Primary surface.
+- **App Background** (`#f4f5f7`): Quiet dashboard background.
+- **Elevated Surface** (`#fbfbfc`): Secondary panels.
+- **Steel Text** (`#555a64`): Secondary text.
+- **Muted Text** (`#858b98`): Captions and helper copy.
+- **Divider** (`#d7dae0`): Default borders and table rules.
 
 ### Semantic
 
-- **Green** (`#149e61`): Success/positive at 16% opacity for badges
-- **Green Dark** (`#026b3f`): Badge text
+- **Green** (`#149e61`): Success/positive states only.
+- **Green Dark** (`#026b3f`): Success text.
+- **Danger Red** (`#dc2626`): Destructive actions and validation errors.
 
 ## 3. Typography Rules
 
 ### Font Families
 
-- **Display**: `Kraken-Brand`, fallbacks: `IBM Plex Sans, Helvetica, Arial`
-- **UI / Body**: `Kraken-Product`, fallbacks: `Helvetica Neue, Helvetica, Arial`
+- **Display**: `IBM Plex Sans`, `Helvetica Neue`, Helvetica, Arial, system UI.
+- **UI / Body**: `IBM Plex Sans`, `Helvetica Neue`, Helvetica, Arial, system UI.
 
 ### Hierarchy
 
-| Role            | Font           | Size | Weight  | Line Height | Letter Spacing |
-| --------------- | -------------- | ---- | ------- | ----------- | -------------- |
-| Display Hero    | Kraken-Brand   | 48px | 700     | 1.17        | -1px           |
-| Section Heading | Kraken-Brand   | 36px | 700     | 1.22        | -0.5px         |
-| Sub-heading     | Kraken-Brand   | 28px | 700     | 1.29        | -0.5px         |
-| Feature Title   | Kraken-Product | 22px | 600     | 1.20        | normal         |
-| Body            | Kraken-Product | 16px | 400     | 1.38        | normal         |
-| Body Medium     | Kraken-Product | 16px | 500     | 1.38        | normal         |
-| Button          | Kraken-Product | 16px | 500–600 | 1.38        | normal         |
-| Caption         | Kraken-Product | 14px | 400–700 | 1.43–1.71   | normal         |
-| Small           | Kraken-Product | 12px | 400–500 | 1.33        | normal         |
-| Micro           | Kraken-Product | 7px  | 500     | 1.00        | uppercase      |
+| Role            | Size | Weight  | Line Height | Letter Spacing |
+| --------------- | ---- | ------- | ----------- | -------------- |
+| Display Hero    | 48px | 750     | 1.08        | 0              |
+| Section Heading | 36px | 750     | 1.14        | 0              |
+| Sub-heading     | 28px | 700     | 1.20        | 0              |
+| Feature Title   | 22px | 650     | 1.20        | 0              |
+| Body            | 16px | 400     | 1.50        | 0              |
+| Body Medium     | 16px | 550     | 1.50        | 0              |
+| Button          | 14px | 700     | 1.20        | 0              |
+| Caption         | 14px | 400-700 | 1.45        | 0              |
+| Small           | 12px | 500-700 | 1.35        | 0              |
+| Micro           | 11px | 700     | 1.00        | 0.08em         |
 
-## 4. Component Stylings
+## 4. Component Styling
+
+### Geometry
+
+- Controls, cards, badges, tabs, dropdowns, tables, preview panels, and sidebars use `0px` radius.
+- Use square corners even for icon buttons and compact chips.
+- Avoid pill buttons and rounded status chips.
+- Preserve circular geometry only when representing a literal avatar, radial data point, or chart marker.
 
 ### Buttons
 
-**Primary Purple**
+**Primary Signal**
 
-- Background: `#7132f5`
+- Background: `#e50914`
 - Text: `#ffffff`
-- Padding: 13px 16px
-- Radius: 12px
+- Border: `1px solid #e50914`
+- Padding: `12px 16px`
+- Radius: `0px`
 
-**Purple Outlined**
-
-- Background: `#ffffff`
-- Text: `#5741d8`
-- Border: `1px solid #5741d8`
-- Radius: 12px
-
-**Purple Subtle**
-
-- Background: `rgba(133,91,251,0.16)`
-- Text: `#7132f5`
-- Padding: 8px
-- Radius: 12px
-
-**White Button**
+**Outlined**
 
 - Background: `#ffffff`
-- Text: `#101114`
-- Radius: 10px
-- Shadow: `rgba(0,0,0,0.03) 0px 4px 24px`
+- Text: `#7a0610`
+- Border: `1px solid #7a0610`
+- Radius: `0px`
 
-**Secondary Gray**
+**Subtle**
 
-- Background: `rgba(148,151,169,0.08)`
+- Background: `rgba(229,9,20,0.1)`
+- Text: `#b90710`
+- Border: `1px solid transparent`
+- Radius: `0px`
+
+**Secondary**
+
+- Background: `#f0f1f4`
 - Text: `#101114`
-- Radius: 12px
+- Border: `1px solid #d7dae0`
+- Radius: `0px`
+
+### Cards And Panels
+
+- Background: `#ffffff` or `#fbfbfc`
+- Border: `1px solid #d7dae0`
+- Radius: `0px`
+- Shadow: keep minimal; prefer `rgba(16,17,20,0.08) 0px 8px 18px -14px`.
 
 ### Badges
 
-- Success: `rgba(20,158,97,0.16)` bg, `#026b3f` text, 6px radius
-- Neutral: `rgba(104,107,130,0.12)` bg, `#484b5e` text, 8px radius
+- Success: `rgba(20,158,97,0.14)` background, `#026b3f` text, `0px` radius.
+- Neutral: `#eceef2` background, `#555a64` text, `0px` radius.
+- Brand: `rgba(229,9,20,0.1)` background, `#7a0610` text, `0px` radius.
 
 ## 5. Layout Principles
 
-### Spacing: 1px, 2px, 3px, 4px, 5px, 6px, 8px, 10px, 12px, 13px, 15px, 16px, 20px, 24px, 25px
+### Spacing
 
-### Border Radius: 3px, 6px, 8px, 10px, 12px, 16px, 9999px, 50%
+Use compact, deliberate spacing: `1px`, `2px`, `4px`, `6px`, `8px`, `10px`, `12px`, `16px`, `20px`, `24px`, `32px`, `40px`.
+
+### Border Radius
+
+Default radius is `0px`. Do not introduce rounded corners for product UI unless a specific data visualization requires a circular marker.
 
 ## 6. Depth & Elevation
 
-- Subtle: `rgba(0,0,0,0.03) 0px 4px 24px`
-- Micro: `rgba(16,24,40,0.04) 0px 1px 4px`
+- Card: `rgba(16,17,20,0.08) 0px 8px 18px -14px`
+- Micro: `rgba(16,17,20,0.08) 0px 1px 0px`
+- Floating: `rgba(16,17,20,0.22) 0px 18px 36px -24px`
 
-## 7. Do's and Don'ts
+## 7. Do's And Don'ts
 
 ### Do
 
-- Use Kraken Purple (#7132f5) for CTAs and links
-- Apply 12px radius on all buttons
-- Use Kraken-Brand for headings, Kraken-Product for body
+- Use square edges everywhere.
+- Use Signal Red for clear action and emphasis.
+- Use strong type, clean tables, and tight visual rhythm.
+- Let borders and contrast define structure.
+- Keep UI copy direct and practical.
 
 ### Don't
 
-- Don't use pill buttons — 12px is the max radius for buttons
-- Don't use other purples outside the defined scale
+- Do not use rounded cards, pill buttons, bubble chips, or soft decorative panels.
+- Do not use purple as the primary brand color.
+- Do not use decorative gradient orbs, bokeh, or overly soft shadows.
+- Do not make the interface feel like a marketing landing page when the task is dashboard/workflow UI.
 
 ## 8. Responsive Behavior
 
-Breakpoints: 375px, 425px, 640px, 768px, 1024px, 1280px, 1536px
+Breakpoints: `375px`, `425px`, `640px`, `768px`, `1024px`, `1280px`, `1536px`.
+
+On mobile, keep square controls full-width when needed, preserve readable spacing, and avoid stacking dense panels in ways that hide primary actions.
 
 ## 9. Agent Prompt Guide
 
 ### Quick Color Reference
 
-- Brand: Kraken Purple (`#7132f5`)
-- Dark variant: `#5741d8`
-- Text: Near Black (`#101114`)
-- Secondary text: `#9497a9`
-- Background: White (`#ffffff`)
+- Brand: Signal Red (`#e50914`)
+- Brand Hover: Signal Red Deep (`#b90710`)
+- Brand Outline: Signal Red Ink (`#7a0610`)
+- Text: Obsidian (`#101114`)
+- Secondary Text: Steel (`#555a64`)
+- Background: App Gray (`#f4f5f7`)
+- Surface: White (`#ffffff`)
 
-### Example Component Prompts
+### Example Component Prompt
 
-- "Create hero: white background. Kraken-Brand 48px weight 700, letter-spacing -1px. Purple CTA (#7132f5, 12px radius, 13px 16px padding)."
+- "Create a sharp dashboard panel: white background, 1px #d7dae0 border, 0px radius, direct heading, Signal Red CTA, no decorative rounding."

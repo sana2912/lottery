@@ -1357,3 +1357,5 @@ Advance:
 - Method version history
 - Backtest report ต่อ strategy
 - FAQ เรื่องความน่าจะเป็นและข้อจำกัด
+
+"Bayesian + Recency Weight + Gap Z-score + Ensemble"
