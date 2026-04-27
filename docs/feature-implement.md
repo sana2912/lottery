@@ -41,15 +41,20 @@
 - Results เริ่มแยก field สำหรับ API-ready contract แล้ว เช่น `drawDateIso`, `lotteryType`, `status`, `statusLabel`, `prizeType`
 - Dashboard มี contract สำหรับ `latestDraw`, `metrics`, `signals`, `predictionSummary`, `contractRows`
 - มี shared helper สำหรับ query string และ API request แล้วใน `src/util/api/query.ts` และ `src/lib/api/http.ts`
+- เริ่ม Phase 1A แล้วด้วย shared query/filter contracts ใน `src/schema/api/query.ts` และ `src/schema/app/query.schema.ts`
+- เพิ่ม contract และ Zod schema รอบแรกสำหรับ analytics, backtest, compare, calendar
+- เพิ่ม backend-only DTO mapper สำหรับ analytics, backtest, compare, calendar โดยยังไม่ implement computation จริง
+- เริ่ม Phase 1B แล้วด้วย test-ready contract fixtures ใน `src/schema/mock` ที่ไหลผ่าน DTO mapper และ Zod parse
+- เริ่ม Phase 1C แล้วด้วย reusable UI foundation ได้แก่ `FilterToolbar`, `EmptyState`, และ `LoadingSkeleton`
 - Copy สำคัญยังสื่อสารแบบ analysis ไม่ใช่ guarantee
 
 สิ่งที่ต้องทำให้จบก่อนขยับ stage:
 
-- เพิ่ม shared query context เช่น `lotteryType`, `prizeType`, `windowSize`, `startDate`, `endDate`
-- สร้าง contract กลางสำหรับ `DrawRangeQuery`, `LotteryQuery`, `PaginationQuery` หรือชื่อเทียบเท่า
+- ตรวจและใช้งาน shared query context เช่น `lotteryType`, `prizeType`, `windowSize`, `startDate`, `endDate` กับ endpoints ชุดแรก
+- เติม contract ที่ยังขาดสำหรับ dashboard/prediction/watchlist ให้สอดคล้องกับ shared query/filter shape เมื่อเริ่มแตะ feature นั้น
 - ใช้ shared query/http helpers กับ endpoints ใหม่แทนการ parse query หรือประกอบ URL เองในแต่ละ router/page
-- แยก mock read model ที่หลายหน้าใช้ซ้ำออกจาก page-local JSON เมื่อเริ่มมีข้อมูลซ้ำ
-- เพิ่ม reusable UI ที่ทุก stage จะใช้ซ้ำ เช่น `FilterToolbar`, `EmptyState`, `LoadingSkeleton`
+- ย้าย page-local mock ที่เริ่มถูกใช้ซ้ำให้มาอิง shared fixtures ใน `src/schema/mock`
+- นำ reusable UI foundation ไปใช้ใน Results, Analytics, Prediction, Backtest และ Compare เมื่อเริ่มแตะหน้านั้น
 
 Definition of Done ของ Stage 0:
 
