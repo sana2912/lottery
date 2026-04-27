@@ -1575,3 +1575,42 @@ Advance:
 - FAQ เรื่องความน่าจะเป็นและข้อจำกัด
 
 "Bayesian + Recency Weight + Gap Z-score + Ensemble"
+
+## Progress Log
+
+### Phase 2A: Draw API foundation
+
+Status: implemented, pending project check by user.
+
+Scope shipped:
+
+- Expanded draw API contract and app validation schema for list/detail responses.
+- Implemented backend-only draw DTO mapping from Prisma-shaped draw/prize records to API transport shapes.
+- Implemented `drawService.getDraws()` and `drawService.getDrawById()`.
+- Implemented `GET /api/draws` and `GET /api/draws/:id`.
+- Added first-pass query support for `lotteryType`, `year`, `month`, `q`, `prizeType`, `page`, and `pageSize`.
+
+Deferred:
+
+- Results page is not wired to `/api/draws` yet.
+- Prisma indexes are not changed in this batch because the existing schema already has `@@unique([lotteryType, drawDate])`, `@@index([drawDate])`, and prize indexes for `[drawId]` and `[type, number]`.
+- Shared Prisma client ownership should be revisited in a follow-up batch if more services start querying the database.
+
+### Phase 2B: Results page and draw detail contract
+
+Status: implemented, pending project check by user.
+
+Scope shipped:
+
+- Added a backend Prisma client helper in `src/api/service/prisma.ts` so the later PostgreSQL adapter migration has one service-layer integration point.
+- Updated `drawService` to use the shared backend Prisma helper.
+- Connected Results page to the `/api/draws` response contract with fallback to the validated mock read model while the database adapter migration is pending.
+- Added an empty state for API-backed Results responses with no draw records.
+- Added a draw detail page route at `/results/[id]`.
+- Added a Results detail page that reads `/api/draws/:id` and falls back to the validated mock draw contract when the API/database is unavailable.
+
+Deferred:
+
+- Database runtime wiring remains pending because the project will move from MongoDB direct connection to PostgreSQL with a Prisma driver adapter.
+- The Results page still keeps mock fallback behavior until the PostgreSQL adapter and seed data are ready.
+- Search/filter controls are visually present but not yet bound to URL query params.

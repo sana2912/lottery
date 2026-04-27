@@ -1,4 +1,6 @@
-﻿import { SlidingNumber } from "@/frontend/components/animate-ui/primitives/texts/sliding-number";
+import Link from "next/link";
+import { EmptyState } from "@/frontend/components";
+import { SlidingNumber } from "@/frontend/components/animate-ui/primitives/texts/sliding-number";
 import resultsMockJson from "@/frontend/pages/results/results.mock.json";
 import {
   Badge,
@@ -19,9 +21,72 @@ import {
   TableRow,
   Textarea
 } from "@/frontend/primitives";
+import { apiGet } from "@/lib/api/http";
+import { apiRoutes } from "@/lib/api/routes";
+import { type DrawListResponse, drawListResponseSchema } from "@/schema/app/draw.schema";
 import { type ResultsReadModel, resultsReadModelSchema } from "@/schema/app/results.schema";
 
 const resultsMock = resultsReadModelSchema.parse(resultsMockJson);
+
+async function getResultsModel(): Promise<ResultsReadModel> {
+  try {
+    const response = await apiGet<DrawListResponse>(apiRoutes.draws, {
+      cache: "no-store",
+      schema: drawListResponseSchema
+    });
+
+    return resultsReadModelSchema.parse(toResultsModel(response));
+  } catch {
+    return resultsMock;
+  }
+}
+
+function toResultsModel(response: DrawListResponse): ResultsReadModel {
+  const latestDraw = response.draws[0];
+  const prizeCount = response.draws.reduce((total, draw) => total + draw.prizes.length, 0);
+
+  return {
+    ...resultsMock,
+    draws: response.draws.map((draw) => ({
+      coverage: draw.coverage,
+      drawDate: draw.drawDate,
+      drawDateIso: draw.drawDateIso,
+      drawNo: draw.drawNo,
+      id: draw.id,
+      lotteryType: draw.lotteryType,
+      prizes: draw.prizes.map((prize) => ({
+        label: prize.label,
+        prizeType: prize.type,
+        value: prize.number
+      })),
+      status: draw.status,
+      statusLabel: draw.statusLabel
+    })),
+    generatedAt: response.generatedAt,
+    mockNote:
+      response.draws.length > 0
+        ? "This page is using the /api/draws contract. If the database is empty or unavailable, the UI falls back to the checked mock read model."
+        : "The /api/draws contract returned no draws. Seed historical draws before enabling analytics.",
+    source: response.source,
+    stats: [
+      {
+        hint: "Latest draw returned by the draw service contract.",
+        label: "Latest draw",
+        value: latestDraw?.drawDate ?? "-"
+      },
+      {
+        hint: "Draw count from the current API query.",
+        label: "Draw records",
+        value: String(response.pagination.total)
+      },
+      {
+        hint: "Prize rows returned in the current page.",
+        label: "Prize records",
+        value: String(prizeCount)
+      }
+    ]
+  };
+}
 
 function StatCard({ stat }: { stat: ResultsReadModel["stats"][number] }) {
   const isNumericValue = /^\d+$/.test(stat.value);
@@ -47,19 +112,21 @@ function StatCard({ stat }: { stat: ResultsReadModel["stats"][number] }) {
   );
 }
 
-export function ResultsPage() {
+export async function ResultsPage() {
+  const resultsModel = await getResultsModel();
+
   return (
     <main className="space-y-6">
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(320px,0.8fr)]">
         <Card className="overflow-hidden bg-[image:var(--color-bg-hero-accent),var(--color-bg-hero)] p-6 md:p-8">
           <p className="text-[11px] font-bold uppercase tracking-normal text-[var(--color-brand-outline)]">
-            {resultsMock.hero.eyebrow}
+            {resultsModel.hero.eyebrow}
           </p>
           <h1 className="mt-4 max-w-3xl text-4xl font-bold tracking-normal text-[var(--color-text-primary)] md:text-5xl">
-            {resultsMock.hero.title}
+            {resultsModel.hero.title}
           </h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--color-text-secondary)]">
-            {resultsMock.hero.description}
+            {resultsModel.hero.description}
           </p>
 
           <div className="mt-8 flex flex-wrap gap-3">
@@ -78,15 +145,15 @@ export function ResultsPage() {
         <Card className="flex flex-col justify-between bg-[var(--color-bg-dark)] p-6 text-[var(--color-text-inverse)]">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-normal text-[var(--color-text-inverse-soft)]">
-              {resultsMock.hero.coverageLabel}
+              {resultsModel.hero.coverageLabel}
             </p>
             <p className="mt-4 text-3xl font-bold tracking-normal">
-              {resultsMock.hero.coverageValue}
+              {resultsModel.hero.coverageValue}
             </p>
           </div>
 
           <div className="mt-8 space-y-4">
-            {resultsMock.highlights.map((highlight) => (
+            {resultsModel.highlights.map((highlight) => (
               <div
                 className="rounded-none border border-[var(--color-border-inverse-soft)] bg-[var(--color-bg-dark-soft)] p-4"
                 key={highlight.title}
@@ -102,7 +169,7 @@ export function ResultsPage() {
       </section>
 
       <section className="grid gap-4 md:grid-cols-3">
-        {resultsMock.stats.map((stat) => (
+        {resultsModel.stats.map((stat) => (
           <StatCard key={stat.label} stat={stat} />
         ))}
       </section>
@@ -124,12 +191,12 @@ export function ResultsPage() {
           />
 
           <div className="mt-5 grid gap-3 md:grid-cols-2">
-            <Select defaultValue={resultsMock.filters.defaultLotteryType}>
+            <Select defaultValue={resultsModel.filters.defaultLotteryType}>
               <SelectTrigger className="h-11 w-full rounded-none border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 shadow-[var(--shadow-micro)]">
                 <SelectValue placeholder="เลือกประเภทสลาก" />
               </SelectTrigger>
               <SelectContent>
-                {resultsMock.filters.lotteryTypes.map((type) => (
+                {resultsModel.filters.lotteryTypes.map((type) => (
                   <SelectItem key={type} value={type}>
                     {type}
                   </SelectItem>
@@ -137,13 +204,13 @@ export function ResultsPage() {
               </SelectContent>
             </Select>
 
-            <Select defaultValue={resultsMock.filters.defaultPrizeType}>
+            <Select defaultValue={resultsModel.filters.defaultPrizeType}>
               <SelectTrigger className="h-11 w-full rounded-none border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 shadow-[var(--shadow-micro)]">
                 <SelectValue placeholder="เลือกรางวัล" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="รางวัลทั้งหมด">รางวัลทั้งหมด</SelectItem>
-                {resultsMock.filters.prizeTypes.map((type) => (
+                {resultsModel.filters.prizeTypes.map((type) => (
                   <SelectItem key={type} value={type}>
                     {type}
                   </SelectItem>
@@ -153,7 +220,7 @@ export function ResultsPage() {
           </div>
 
           <div className="mt-5 flex flex-wrap gap-3">
-            {resultsMock.filters.lotteryTypes.map((type) => (
+            {resultsModel.filters.lotteryTypes.map((type) => (
               <Button
                 className="rounded-none bg-[var(--color-bg-brand-soft)] px-3 py-2 text-xs text-[var(--color-brand)] hover:bg-[var(--color-bg-brand-soft-strong)]"
                 key={type}
@@ -163,7 +230,7 @@ export function ResultsPage() {
               </Button>
             ))}
 
-            {resultsMock.filters.prizeTypes.map((type) => (
+            {resultsModel.filters.prizeTypes.map((type) => (
               <Button
                 className="rounded-none border-[var(--color-brand-outline)] bg-[var(--color-bg-canvas)] px-3 py-2 text-xs text-[var(--color-brand-outline)] hover:bg-[var(--color-bg-brand-soft)]"
                 key={type}
@@ -175,7 +242,14 @@ export function ResultsPage() {
           </div>
 
           <div className="mt-6 space-y-4">
-            {resultsMock.draws.map((draw) => (
+            {resultsModel.draws.length === 0 ? (
+              <EmptyState
+                description="The draw API returned an empty result set for the current filters."
+                title="No draw records"
+              />
+            ) : null}
+
+            {resultsModel.draws.map((draw) => (
               <article
                 className="rounded-none border border-[var(--color-border-soft)] bg-[var(--color-bg-elevated)] p-5"
                 key={draw.id}
@@ -195,6 +269,9 @@ export function ResultsPage() {
                       {draw.statusLabel}
                     </Badge>
                     <Badge variant="neutral">{draw.coverage}</Badge>
+                    <Button asChild size="sm" variant="outline">
+                      <Link href={`/results/${draw.id}`}>Detail</Link>
+                    </Button>
                   </div>
                 </div>
 
@@ -254,7 +331,7 @@ export function ResultsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {resultsMock.contractRows.map((row) => (
+                  {resultsModel.contractRows.map((row) => (
                     <TableRow
                       className="border-b border-[var(--color-border-soft)] hover:bg-[var(--color-bg-subtle)]/50"
                       key={row.field}
@@ -281,7 +358,7 @@ export function ResultsPage() {
               <Textarea
                 className="min-h-32 rounded-none border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 py-3 shadow-[var(--shadow-micro)]"
                 readOnly
-                value={resultsMock.mockNote}
+                value={resultsModel.mockNote}
               />
             </div>
           </div>
