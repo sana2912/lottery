@@ -111,6 +111,55 @@ Keep code modular and respect these boundaries:
 - `src/schema/app`: App Zod schemas and inferred TypeScript types.
 - `prisma`: Prisma config and schema.
 
+## Documentation Source Of Truth
+
+Treat the two planning docs with different roles:
+
+- `docs/mvp-user-pages-implementation-plan.md` is the main requirement document. Use it as the source of truth for product scope, feature requirements, field dictionaries, and long-term MVP direction.
+- `docs/feature-implement.md` is the progress and stage document. Use it to track current implementation status, stage gates, what has already been shipped, and what is deferred.
+
+Do not use `docs/feature-implement.md` as the primary requirements spec when it conflicts with `docs/mvp-user-pages-implementation-plan.md`. If implementation progress changes requirements, update both docs in the same change and keep the distinction above intact.
+
+## Folder Ownership
+
+Keep functions and logic in the folder that matches their consumer:
+
+| Folder | What belongs here | Primary consumer |
+| --- | --- | --- |
+| `src/app` | Route entrypoints, thin wiring only | Next.js routing/runtime |
+| `src/frontend/pages` | Route-level page composition and page-specific view logic | App routes |
+| `src/frontend/components` | Reusable composed UI components | Multiple pages/components |
+| `src/frontend/primitives` | Low-level UI primitives only | Composed UI and pages |
+| `src/frontend/chart-primitives` | Shared chart foundations and D3 building blocks | Analytics/chart surfaces |
+| `src/frontend/hooks` | Frontend hooks used by UI | Frontend components/pages |
+| `src/api/router` | API route definitions and request wiring | API runtime |
+| `src/api/service` | Business logic and data access orchestration | API routers and DTOs |
+| `src/api/model/dto` | Backend-only response mapping/serialization | API services and routers |
+| `src/schema/api` | Public API contract types | API and consumer code |
+| `src/schema/app` | Zod validation schemas and inferred app types | Frontend forms/queries and API validation |
+| `src/lib/api` | Frontend-facing API client helpers, fetch wrappers, and typed request helpers | Frontend API consumers |
+| `src/lib/app` | Shared app/runtime helpers | Frontend app code |
+| `src/util/api` | Backend/API-route utilities such as query parsing, normalization, pagination parsing, and request parameter helpers | API routes and backend request handling |
+| `src/util/app` | Small app utilities | Frontend app code |
+| `prisma` | Schema and database configuration only | Prisma CLI and API services |
+
+Do not register, call, or re-export function implementations across these boundaries if doing so would move logic into the wrong layer. Keep route code thin, keep business logic in services, keep serialization in DTOs, keep validation in `src/schema/app`, and keep transport types in `src/schema/api`.
+
+- Frontend files must not import from `src/api/*` or `src/util/api/*`.
+- API/service/DTO code must not import from `src/frontend/*`.
+
+## API Contracts, App Schemas, And DTOs
+
+Keep shared contracts and backend serialization separate:
+
+- `src/schema/api` is the public API contract layer. Put API response/request TypeScript interfaces and transport-facing types here.
+- `src/schema/app` is the Zod validation layer. Put app-facing schemas, form/query/body validation schemas, and inferred app types here. Frontend code may import from this layer to validate URL query params, forms, and request payloads before calling API endpoints.
+- `src/api/model/dto` is backend-only serialization/mapping code. Use it to map Prisma/domain/service objects into `src/schema/api` response shapes, normalize dates/enums/labels, and hide internal fields.
+- `src/lib/api` is the only place for frontend-facing API client/fetch helpers. Keep client request wrappers, typed fetch helpers, and frontend response parsing helpers here.
+- `src/util/api` is backend/API-route utility code only. Keep query parsing, normalization, pagination parsing, and request-parameter helpers here.
+
+Do not import `src/api/model/dto` from frontend code or route-level page modules. Do not make DTO files the shared Zod schema source. If an API router needs request validation, reuse the relevant Zod schema from `src/schema/app`; if it needs response serialization, call a mapper in `src/api/model/dto`.
+
 ## API
 
 The API uses Elysia mounted through the Next.js App Router:
@@ -236,6 +285,20 @@ args = ["shadcn@latest", "mcp"]
 - Use TypeScript types and Zod schemas at module boundaries.
 - Keep API-facing interfaces in `src/schema/api`.
 - Keep app-facing validation schemas in `src/schema/app`.
+- Keep backend response mapping in `src/api/model/dto`, returning types from `src/schema/api`.
+- Whenever adding or changing a feature, update `docs/feature-implement.md` in the same change to keep the current stage, feature plan, contracts, and deferred work aligned with the implementation. If no documentation update is needed, state the reason in the final response.
+
+## State Management
+
+Choose the smallest state tool that matches the state ownership:
+
+- Server/API data -> TanStack Query when client-side cache, refetching, optimistic updates, or mutation state are actually needed. Prefer server/service read models first for simple server-rendered data.
+- Global UI state -> Zustand for cross-route or cross-component UI state that cannot live in URL state or a local parent component.
+- Form state -> React Hook Form for non-trivial forms with validation, dirty state, reset behavior, or nested fields.
+- Shareable filter state -> URL query params for filters/search/ranges that should be bookmarkable, reload-safe, and shareable, such as `lotteryType`, `prizeType`, `windowSize`, `startDate`, `endDate`, `year`, `month`, and `q`.
+- Local tiny state -> `useState` for component-local UI state such as menu open/close, dialog visibility, temporary input, and tab state that does not need to survive reloads.
+
+Default project bias: keep read-heavy dashboard data in API/service read models, keep filters in URL query params, and avoid introducing a global client store until a real cross-route workflow requires it.
 
 ## Verification
 

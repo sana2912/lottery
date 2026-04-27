@@ -9,8 +9,10 @@
 สิ่งที่มีแล้ว:
 
 - Route หลักมีครบตาม MVP navigation แล้ว ได้แก่ Dashboard, Results, Analytics, Patterns, Prediction Lab, Backtest, Watchlist, Compare, Calendar และ Methodology
+- `DashboardPage` มี mock read model และ UI รอบแรกที่ parse ผ่าน Zod schema แล้ว
 - `ResultsPage` มี mock UI ที่ค่อนข้างสมบูรณ์แล้ว และใช้ primitive/component ของโปรเจกต์จริง
-- หน้าอื่นยังเป็น `PagePlaceholder`
+- `Dashboard` และ `Results` มี contract แยกใน `src/schema/api` และ Zod schema ใน `src/schema/app`
+- หน้า user-facing อื่นยังเป็น `PagePlaceholder`
 - Sidebar และ AppShell พร้อมรองรับ user-facing dashboard layout
 - API scaffold มี `/api/draws`, `/api/analytics`, `/api/predictions`, `/api/watchlist`
 - Prisma schema มีแกนหลัก `LotteryDraw`, `LotteryPrize`, `UserWatchlistItem`, `PredictionRun`, `PredictionResult`
@@ -22,8 +24,186 @@
 - ยังไม่มี service logic สำหรับ query ข้อมูลจริง
 - ยังไม่มี data ingestion หรือ seed data จริง
 - ยังไม่มี analytics read model เช่น `digit_stats`, `number_stats`, `strategy/backtest`
-- API DTO และ app Zod schema ยังเป็น minimal contract
+- API DTO และ app Zod schema มีเฉพาะบางหน้า ยังต้องขยายให้ครบตาม stage
 - Prediction และ Backtest ยังไม่มี engine กลางให้หลายหน้า reuse
+
+## Stage Management
+
+โปรเจกต์นี้ไม่ควร implement ตามหน้า 1-10 ตรง ๆ เพราะหลายหน้าพึ่ง foundation เดียวกัน เช่น Results เป็นฐานของ Analytics, Analytics เป็นฐานของ Prediction, และ Prediction เป็นฐานของ Backtest/Compare ดังนั้นให้ใช้ stage แบบ foundation gate ก่อน แล้วค่อยขยาย feature
+
+### Current Stage
+
+ตอนนี้อยู่ที่ `Stage 0: Contract Freeze`
+
+สิ่งที่เสร็จแล้ว:
+
+- Dashboard และ Results มี mock read model ที่ validate ด้วย Zod ตอน render
+- Results เริ่มแยก field สำหรับ API-ready contract แล้ว เช่น `drawDateIso`, `lotteryType`, `status`, `statusLabel`, `prizeType`
+- Dashboard มี contract สำหรับ `latestDraw`, `metrics`, `signals`, `predictionSummary`, `contractRows`
+- มี shared helper สำหรับ query string และ API request แล้วใน `src/util/api/query.ts` และ `src/lib/api/http.ts`
+- Copy สำคัญยังสื่อสารแบบ analysis ไม่ใช่ guarantee
+
+สิ่งที่ต้องทำให้จบก่อนขยับ stage:
+
+- เพิ่ม shared query context เช่น `lotteryType`, `prizeType`, `windowSize`, `startDate`, `endDate`
+- สร้าง contract กลางสำหรับ `DrawRangeQuery`, `LotteryQuery`, `PaginationQuery` หรือชื่อเทียบเท่า
+- ใช้ shared query/http helpers กับ endpoints ใหม่แทนการ parse query หรือประกอบ URL เองในแต่ละ router/page
+- แยก mock read model ที่หลายหน้าใช้ซ้ำออกจาก page-local JSON เมื่อเริ่มมีข้อมูลซ้ำ
+- เพิ่ม reusable UI ที่ทุก stage จะใช้ซ้ำ เช่น `FilterToolbar`, `EmptyState`, `LoadingSkeleton`
+
+Definition of Done ของ Stage 0:
+
+- Mock ทุกชุดที่เป็น read model ต้อง parse ผ่าน Zod
+- API interface ใน `src/schema/api` และ app schema ใน `src/schema/app` ต้องมี field หลักตรงกัน
+- Page files ห้ามมี business logic หรือการคำนวณสถิติจริง
+- `bun run check` ต้องผ่าน
+
+### Stage 1: Results As Source Of Truth
+
+เป้าหมาย:
+
+- ทำให้ Results เป็นฐานข้อมูลย้อนหลังที่หน้าอื่นเชื่อถือได้
+- ต่อ API เส้นแรกให้ทำงานผ่าน service layer โดยไม่ทำให้ UI contract เปลี่ยน
+
+งานหลัก:
+
+- Implement `drawService.getDraws()` และ `drawService.getDrawById()`
+- Implement `GET /api/draws` และ `GET /api/draws/:id`
+- Map Prisma `LotteryDraw` + `LotteryPrize` เป็น `ResultsReadModel`
+- รองรับ filter ขั้นต่ำ: `lotteryType`, `year`, `month`, `q`, `prizeType`
+- ทำ search โดยรักษาเลขเป็น string เสมอ เพื่อไม่ให้ leading zero หาย
+
+Definition of Done:
+
+- Results ใช้ mock หรือ API ผ่าน contract เดียวกัน
+- `status` เป็น machine-readable เช่น `complete`, `partial`, `imported`
+- `statusLabel` เป็นข้อความที่ UI ใช้แสดง
+- `bun run check` ผ่าน
+
+### Stage 2: Analytics Engine
+
+เป้าหมาย:
+
+- สร้าง computation กลางก่อนทำ Analytics, Dashboard, Prediction, Compare
+
+งานหลัก:
+
+- สร้าง utility แตก `LotteryPrize.number` เป็น digit events
+- Implement `analyticsService.getDigitStats()`
+- Implement `analyticsService.getNumberStats()`
+- Implement `GET /api/analytics/digits` และ `GET /api/analytics/numbers`
+- ทำ chart primitives ให้รับ data จริงแทน placeholder
+
+Definition of Done:
+
+- Stats ทุกตัวมี context เช่น `lotteryType`, `prizeType`, `windowSize`, `computedAt`
+- มี fixture หรือ test case สำหรับเลขที่มีศูนย์นำหน้า เช่น `007`, `09`
+- Dashboard hot/cold/overdue ใช้ service เดียวกับ Analytics
+
+### Stage 3: Dashboard And Analytics UI
+
+เป้าหมาย:
+
+- เปลี่ยน Dashboard และ Analytics จาก mock-only ไปใช้ analytics read model จริง
+
+งานหลัก:
+
+- Dashboard ใช้ `drawService.getLatestDraw()` และ analytics summary
+- Analytics page แสดง digit stats, position stats, last seen, missing draw count
+- เพิ่ม empty/loading state สำหรับ table และ chart
+- Mobile layout ต้อง explicit สำหรับ filters และ table overflow
+
+Definition of Done:
+
+- Page ไม่คำนวณ stats เอง
+- UI ใช้ primitives/components ที่มีอยู่
+- Chart/table อ่านได้ทั้ง desktop และ mobile
+
+### Stage 4: Explainable Prediction
+
+เป้าหมาย:
+
+- ทำ Prediction Lab แบบอธิบายได้ โดยยังไม่ทำ ML หนักหรือคำกล่าวอ้างเกินจริง
+
+งานหลัก:
+
+- สร้าง strategy registry แบบ static ก่อน เช่น `hotTrend`, `coldRebound`, `balanced`
+- Implement `predictionService.scoreNumber()` และ `predictionService.generate()`
+- Implement `POST /api/predictions`
+- ทุก result ต้องมี `score`, `scoreBreakdown`, `reasons`, `inputWindow`, `version`
+
+Definition of Done:
+
+- ไม่มี copy แนว guarantee
+- ทุก score มี explanation
+- ใช้ analytics engine เดิม ไม่ duplicate logic ใน Prediction page
+
+### Stage 5: Watchlist Workflow
+
+เป้าหมาย:
+
+- ทำให้ product เริ่มมี workflow ส่วนตัวของผู้ใช้
+
+งานหลัก:
+
+- Implement watchlist CRUD: `GET`, `POST`, `PATCH`, `DELETE`
+- Enrich watchlist item ด้วย `number_stats`
+- Save number จาก Prediction, Compare หรือ Analytics เข้า Watchlist
+- ถ้ายังไม่มี auth ให้ระบุชัดว่าเป็น global/local MVP
+
+Definition of Done:
+
+- Mutation อยู่ใน API/service
+- Watchlist item มี `number`, `numberLength`, `lotteryType`, `tags`, `note`, `source`
+- UI มี empty state และ archived/muted state ถ้ารองรับ archive
+
+### Stage 6: Backtest Before Trusting Strategies
+
+เป้าหมาย:
+
+- ตรวจ strategy ด้วย walk-forward backtest ก่อนขยาย prediction ให้ซับซ้อน
+
+งานหลัก:
+
+- Implement `POST /api/backtests`
+- เก็บ `BacktestRun` และ `BacktestResult`
+- Metric ขั้นต่ำ: `hitRate`, `longestMissStreak`, `averageHitRank`, `coverage`
+- ใช้ strategy version และ params เดียวกับ Prediction
+
+Definition of Done:
+
+- ป้องกัน data leakage โดยใช้เฉพาะงวดก่อนหน้าของงวดที่กำลังทดสอบ
+- แสดงข้อจำกัดและ sample size ชัดเจน
+- มี random baseline หรืออย่างน้อยระบุว่ายังไม่มี baseline
+
+### Stage 7: Compare, Calendar, Methodology Polish
+
+เป้าหมาย:
+
+- ขยาย feature ที่ reuse engine เดิม และเพิ่ม trust layer ให้ product
+
+งานหลัก:
+
+- Compare ใช้ `predictionService.scoreNumber()` และ `analyticsService.getNumberStats()`
+- Calendar ใช้ draw schedule helper และ monthly analytics
+- Methodology อธิบายสูตร ข้อจำกัด และ glossary
+- Link จากทุกหน้าที่มี score หรือคำศัพท์สถิติไป Methodology
+
+Definition of Done:
+
+- ไม่มี logic ใหม่ที่ควรอยู่ใน analytics/prediction service ถูกเขียนซ้ำใน page
+- Copy สอดคล้อง responsible prediction
+- `bun run check` ผ่าน
+
+### Deferred Until After MVP
+
+สิ่งต่อไปนี้ควรเลื่อนไปหลัง MVP เว้นแต่ผู้ใช้ขอชัดเจน:
+
+- Auth และ multi-user personalization
+- Official source sync/import UI
+- Fuzzy search, command palette, search index แยก
+- Bayesian confidence, Monte Carlo, clustering, Prophet, LightGBM/XGBoost, LSTM
+- ROI simulation หรือ payout/risk financial modeling
 
 ## หลักการ implement
 
@@ -44,6 +224,33 @@
 
 6. สื่อสารว่าเป็น analysis ไม่ใช่ guarantee  
    Lottery เป็นเหตุการณ์สุ่ม ผลย้อนหลังช่วยอธิบาย pattern ในข้อมูล แต่ไม่สามารถการันตีผลอนาคตได้
+
+### Contract, Schema, และ DTO ownership
+
+เพื่อไม่ให้ API contract, frontend validation, และ backend mapper ซ้ำบทบาทกัน ให้ใช้ ownership ต่อไปนี้:
+
+- `src/schema/api`: public API contract เป็น TypeScript interface/type ของ request หรือ response ที่ endpoint เปิดเผย
+- `src/schema/app`: Zod validation schema สำหรับ app/frontend, URL query params, form state, request body และ inferred app types
+- `src/api/model/dto`: backend-only mapper/serializer สำหรับแปลง Prisma/domain/service result เป็น shape จาก `src/schema/api`
+
+Flow ที่ควรใช้:
+
+```text
+Frontend form/query
+  -> validate with src/schema/app
+  -> call /api/...
+  -> API router validates request with src/schema/app when needed
+  -> service handles business logic
+  -> dto maps service/domain result
+  -> return src/schema/api shape
+```
+
+ข้อห้าม:
+
+- Page หรือ frontend component ห้าม import จาก `src/api/model/dto`
+- DTO file ไม่ควรเป็น shared Zod schema source
+- ห้ามให้ frontend ผูกกับ Prisma-ish field หรือ backend mapper โดยตรง
+- ถ้า response ต้อง normalize date, enum, label หรือซ่อน internal field ให้ทำใน DTO mapper
 
 ## Glossary สถิติแบบง่าย
 
@@ -1017,7 +1224,9 @@ section นี้อธิบาย feature ในมุมผู้ใช้แ
 
 วิธีทำ MVP:
 
-- สร้าง `DashboardSummaryDto`
+- มี contract รอบแรกแล้วใน `src/schema/api/dashboard.ts` และ `src/schema/app/dashboard.schema.ts`
+- มี mock read model ใน `src/frontend/pages/dashboard/dashboard.mock.json`
+- ขั้นถัดไปคือ map contract นี้เข้ากับ service จริง
 - `drawService.getLatestDraw()`
 - `analyticsService.getHotColdSummary()`
 - `analyticsService.getOverdueNumbers()`
@@ -1052,7 +1261,9 @@ Advance:
 
 วิธีทำ MVP:
 
-- ต่อ `ResultsPage` จาก mock เป็น API
+- มี contract รอบแรกแล้วใน `src/schema/api/results.ts` และ `src/schema/app/results.schema.ts`
+- `ResultsPage` ใช้ mock read model ที่ parse ผ่าน Zod แล้ว
+- ขั้นถัดไปคือ map mock contract เดิมเข้ากับ API จริง
 - `GET /api/draws?year=&month=&q=&lotteryType=`
 - `GET /api/draws/:id`
 - สร้าง detail route ภายหลัง เช่น `/results/[drawId]`
