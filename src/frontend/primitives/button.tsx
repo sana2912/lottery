@@ -1,4 +1,4 @@
-import { cva, type VariantProps } from "class-variance-authority";
+﻿import { cva, type VariantProps } from "class-variance-authority";
 import { Slot } from "radix-ui";
 import type * as React from "react";
 
@@ -9,13 +9,20 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        default:
+          "bg-primary text-primary-foreground shadow-[var(--shadow-micro)] hover:bg-[var(--primary-hover)]",
+        primary:
+          "bg-primary text-primary-foreground shadow-[var(--shadow-micro)] hover:bg-[var(--primary-hover)]",
         destructive:
           "bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:bg-destructive/60 dark:focus-visible:ring-destructive/40",
+        danger:
+          "bg-[var(--danger)] text-white hover:bg-[var(--danger)]/90 focus-visible:ring-[var(--danger)]/20",
         outline:
-          "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+          "border border-input bg-background shadow-xs hover:bg-[var(--muted-soft)] hover:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
+        secondary:
+          "bg-[var(--secondary)] text-white shadow-[var(--shadow-micro)] hover:bg-[var(--secondary)]/90",
+        ghost:
+          "hover:bg-[var(--muted-soft)] hover:text-foreground dark:hover:bg-[var(--muted-soft)]",
         link: "text-primary underline-offset-4 hover:underline"
       },
       size: {

@@ -18,13 +18,15 @@ bun run env:decrypt:dev
 bun run env:decrypt:prod
 ```
 
-Runtime commands decrypt their target env file automatically:
+Runtime commands inject encrypted dotenvx values in memory and do not rewrite env files to plaintext:
 
 ```bash
 bun run dev
 bun run build
 bun run start
 ```
+
+Use `env:decrypt:*` only when you explicitly need a temporary plaintext env file for local inspection or editing. Re-encrypt before sharing changes.
 
 ## Pre-Commit
 

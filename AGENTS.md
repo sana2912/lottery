@@ -45,13 +45,15 @@ bun run env:decrypt:dev
 bun run env:decrypt:prod
 ```
 
-Runtime scripts decrypt before running, so developers should not need to manually decrypt first:
+Runtime scripts inject encrypted values in memory with dotenvx and must not rewrite env files to plaintext:
 
 ```bash
 bun run dev
 bun run build
 bun run start
 ```
+
+Use `env:decrypt:*` only when a developer explicitly needs a local plaintext env file for inspection or editing. Re-encrypt before sharing changes.
 
 Do not add real secrets to documentation, examples, final responses, or committed files. If adding new required env vars, update `.env.development`, `.env.production`, and `.env.example` with safe placeholders.
 

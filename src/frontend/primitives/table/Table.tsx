@@ -1,10 +1,10 @@
-import { cn } from "@/lib/app/cn";
+﻿import { cn } from "@/lib/app/cn";
 
 export type TableProps = React.TableHTMLAttributes<HTMLTableElement>;
 
 export function Table({ className, ...props }: TableProps) {
   return (
-    <div className="overflow-hidden rounded-none border border-[var(--color-border-soft)]">
+    <div className="overflow-hidden rounded-none border border-[var(--color-border-soft)] shadow-[var(--shadow-card)]">
       <table
         className={cn("w-full border-collapse bg-[var(--color-bg-canvas)]", className)}
         {...props}

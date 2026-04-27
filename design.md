@@ -1,170 +1,288 @@
-# Design System Direction: Sharp Signal
+# Design System Direction: Smart Lottery Intelligence
 
-## 1. Visual Theme & Atmosphere
+## Product Mood
 
-Lottery Intelligence Dashboard now uses a sharp, high-contrast product style. The new direction is sexy and straightforward: square edges, direct hierarchy, clean surfaces, dark editorial contrast, and a confident signal-red brand accent. The interface should feel analytical, composed, and decisive rather than soft, playful, or decorative.
+Lottery Intelligence Dashboard is a data-driven lottery analytics product. It should feel like an analytics platform, finance dashboard, and personal number notebook. The product must be trustworthy, clean, modern, and calm. It must not look like a gambling, hype, or scam-style lottery site.
 
-**Key Characteristics:**
+The interface communicates analysis, signal strength, historical tendency, score, and uncertainty. It must never imply guaranteed winning.
 
-- Square geometry by default: no rounded cards, buttons, inputs, tabs, menus, or badges.
-- Signal Red (`#e50914`) as the main action and data accent.
-- Obsidian (`#101114`) for dark panels and high-contrast framing.
-- White and cool off-white surfaces with precise gray dividers.
-- Minimal shadows with sharper offsets; rely on border, contrast, and spacing first.
-- Dense but readable dashboard composition with clear labels and strong numbers.
-- No decorative blobs, orbs, pill shapes, or soft mascot-like styling.
+## Palette
 
-## 2. Color Palette & Roles
+Use indigo and slate as the base. Use teal, amber, purple, and semantic colors for insight states. Avoid red/gold-heavy themes.
 
-### Primary
+### Core Light Theme
 
-- **Signal Red** (`#e50914`): Primary CTA, active state, key data signal, links.
-- **Signal Red Deep** (`#b90710`): Hover and pressed state.
-- **Signal Red Ink** (`#7a0610`): Outlines, serious emphasis, dark-on-light accents.
-- **Signal Red Soft** (`rgba(229,9,20,0.1)`): Subtle active backgrounds and badges.
-- **Obsidian** (`#101114`): Primary dark surface and near-black text.
+```css
+:root {
+  --background: #f8fafc;
+  --foreground: #0f172a;
 
-### Neutral
+  --card: #ffffff;
+  --card-foreground: #0f172a;
 
-- **Canvas** (`#ffffff`): Primary surface.
-- **App Background** (`#f4f5f7`): Quiet dashboard background.
-- **Elevated Surface** (`#fbfbfc`): Secondary panels.
-- **Steel Text** (`#555a64`): Secondary text.
-- **Muted Text** (`#858b98`): Captions and helper copy.
-- **Divider** (`#d7dae0`): Default borders and table rules.
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --primary-soft: #eef2ff;
 
-### Semantic
+  --secondary: #0f766e;
+  --secondary-soft: #ccfbf1;
 
-- **Green** (`#149e61`): Success/positive states only.
-- **Green Dark** (`#026b3f`): Success text.
-- **Danger Red** (`#dc2626`): Destructive actions and validation errors.
+  --accent: #f59e0b;
+  --accent-soft: #fef3c7;
 
-## 3. Typography Rules
+  --border: #e2e8f0;
+  --muted: #64748b;
+  --muted-soft: #f1f5f9;
 
-### Font Families
+  --success: #16a34a;
+  --success-soft: #dcfce7;
 
-- **Display**: `IBM Plex Sans`, `Helvetica Neue`, Helvetica, Arial, system UI.
-- **UI / Body**: `IBM Plex Sans`, `Helvetica Neue`, Helvetica, Arial, system UI.
+  --warning: #d97706;
+  --warning-soft: #fef3c7;
 
-### Hierarchy
+  --danger: #dc2626;
+  --danger-soft: #fee2e2;
 
-| Role            | Size | Weight  | Line Height | Letter Spacing |
-| --------------- | ---- | ------- | ----------- | -------------- |
-| Display Hero    | 48px | 750     | 1.08        | 0              |
-| Section Heading | 36px | 750     | 1.14        | 0              |
-| Sub-heading     | 28px | 700     | 1.20        | 0              |
-| Feature Title   | 22px | 650     | 1.20        | 0              |
-| Body            | 16px | 400     | 1.50        | 0              |
-| Body Medium     | 16px | 550     | 1.50        | 0              |
-| Button          | 14px | 700     | 1.20        | 0              |
-| Caption         | 14px | 400-700 | 1.45        | 0              |
-| Small           | 12px | 500-700 | 1.35        | 0              |
-| Micro           | 11px | 700     | 1.00        | 0.08em         |
+  --info: #2563eb;
+  --info-soft: #dbeafe;
+}
+```
 
-## 4. Component Styling
+### Text Tokens
 
-### Geometry
+```css
+--text-title: #0f172a;
+--text-body: #334155;
+--text-muted: #64748b;
+--text-subtle: #94a3b8;
+--text-inverse: #ffffff;
+```
 
-- Controls, cards, badges, tabs, dropdowns, tables, preview panels, and sidebars use `0px` radius.
-- Use square corners even for icon buttons and compact chips.
-- Avoid pill buttons and rounded status chips.
-- Preserve circular geometry only when representing a literal avatar, radial data point, or chart marker.
+### Semantic Product Tokens
+
+```css
+--hot: #ef4444;
+--hot-soft: #fee2e2;
+
+--cold: #38bdf8;
+--cold-soft: #e0f2fe;
+
+--overdue: #f59e0b;
+--overdue-soft: #fef3c7;
+
+--trend-up: #16a34a;
+--trend-down: #dc2626;
+--trend-flat: #64748b;
+
+--prediction: #7c3aed;
+--prediction-soft: #f3e8ff;
+
+--backtest: #0f766e;
+--backtest-soft: #ccfbf1;
+
+--watchlist: #f97316;
+--watchlist-soft: #ffedd5;
+
+--methodology: #475569;
+--methodology-soft: #f1f5f9;
+```
+
+### Dark Theme Draft
+
+```css
+.dark {
+  --background: #020617;
+  --foreground: #f8fafc;
+
+  --card: #0f172a;
+  --card-foreground: #f8fafc;
+
+  --primary: #818cf8;
+  --primary-hover: #a5b4fc;
+  --primary-soft: #1e1b4b;
+
+  --secondary: #2dd4bf;
+  --secondary-soft: #134e4a;
+
+  --accent: #fbbf24;
+  --accent-soft: #451a03;
+
+  --border: #1e293b;
+  --muted: #94a3b8;
+  --muted-soft: #1e293b;
+}
+```
+
+## Typography
+
+- Use `IBM Plex Sans`, `Helvetica Neue`, Helvetica, Arial, and system UI fallbacks.
+- Use strong but not sensational headings.
+- Labels should be concise and scannable.
+- Prize numbers may use monospace where clarity helps.
+- Avoid oversized marketing type inside dashboard panels.
+
+## Component Direction
+
+### Cards
+
+- Use white cards on the slate app background.
+- Use no border radius, subtle border, and soft shadow.
+- Prefer structured, calm panels over decorative cards.
+- Metric cards should show label, value, optional hint/trend, and optional semantic accent.
 
 ### Buttons
 
-**Primary Signal**
-
-- Background: `#e50914`
-- Text: `#ffffff`
-- Border: `1px solid #e50914`
-- Padding: `12px 16px`
-- Radius: `0px`
-
-**Outlined**
-
-- Background: `#ffffff`
-- Text: `#7a0610`
-- Border: `1px solid #7a0610`
-- Radius: `0px`
-
-**Subtle**
-
-- Background: `rgba(229,9,20,0.1)`
-- Text: `#b90710`
-- Border: `1px solid transparent`
-- Radius: `0px`
-
-**Secondary**
-
-- Background: `#f0f1f4`
-- Text: `#101114`
-- Border: `1px solid #d7dae0`
-- Radius: `0px`
-
-### Cards And Panels
-
-- Background: `#ffffff` or `#fbfbfc`
-- Border: `1px solid #d7dae0`
-- Radius: `0px`
-- Shadow: keep minimal; prefer `rgba(16,17,20,0.08) 0px 8px 18px -14px`.
+- Primary CTA uses indigo.
+- Secondary actions use teal when tied to analysis workflow.
+- Ghost and outline variants stay neutral.
+- Danger is reserved for destructive actions only.
+- Buttons should be clear and medium-density with square corners.
 
 ### Badges
 
-- Success: `rgba(20,158,97,0.14)` background, `#026b3f` text, `0px` radius.
-- Neutral: `#eceef2` background, `#555a64` text, `0px` radius.
-- Brand: `rgba(229,9,20,0.1)` background, `#7a0610` text, `0px` radius.
+Support semantic variants:
 
-## 5. Layout Principles
+- `hot`, `cold`, `overdue`
+- `prediction`, `backtest`, `watchlist`
+- `success`, `warning`, `danger`, `muted`
 
-### Spacing
+Badges should be soft chips with readable contrast. Avoid loud casino-like colors.
 
-Use compact, deliberate spacing: `1px`, `2px`, `4px`, `6px`, `8px`, `10px`, `12px`, `16px`, `20px`, `24px`, `32px`, `40px`.
+### Inputs And Filters
 
-### Border Radius
+- Inputs are clean and large enough for search/filter workflows.
+- Use slate borders, white surfaces, and clear focus rings.
+- Filters should wrap or collapse cleanly on mobile.
 
-Default radius is `0px`. Do not introduce rounded corners for product UI unless a specific data visualization requires a circular marker.
+### Tabs And Segmented Controls
 
-## 6. Depth & Elevation
+- Use muted-soft backgrounds.
+- Active tab uses white surface, indigo text, subtle shadow or border.
+- Keep tab labels concise.
 
-- Card: `rgba(16,17,20,0.08) 0px 8px 18px -14px`
-- Micro: `rgba(16,17,20,0.08) 0px 1px 0px`
-- Floating: `rgba(16,17,20,0.22) 0px 18px 36px -24px`
+### Tables
 
-## 7. Do's And Don'ts
+- Use readable spacing.
+- Headers use muted text and muted-soft background.
+- Rows may use subtle hover.
+- Numeric columns should align clearly.
 
-### Do
+### Skeletons
 
-- Use square edges everywhere.
-- Use Signal Red for clear action and emphasis.
-- Use strong type, clean tables, and tight visual rhythm.
-- Let borders and contrast define structure.
-- Keep UI copy direct and practical.
+- Use soft muted blocks with square corners.
+- Do not use plain "Loading..." text as the only loading state.
 
-### Don't
+### Empty States
 
-- Do not use rounded cards, pill buttons, bubble chips, or soft decorative panels.
-- Do not use purple as the primary brand color.
-- Do not use decorative gradient orbs, bokeh, or overly soft shadows.
-- Do not make the interface feel like a marketing landing page when the task is dashboard/workflow UI.
+- Use friendly, product-like copy.
+- Explain what is missing and provide one clear next action.
+- Avoid blame or dead-end states.
 
-## 8. Responsive Behavior
+## Page Usage Rules
 
-Breakpoints: `375px`, `425px`, `640px`, `768px`, `1024px`, `1280px`, `1536px`.
+### Dashboard
 
-On mobile, keep square controls full-width when needed, preserve readable spacing, and avoid stacking dense panels in ways that hide primary actions.
+- Use white cards on slate background.
+- Main CTA uses primary indigo.
+- Latest draw card may use primary-soft.
+- Hot, cold, and overdue cards use their semantic colors.
 
-## 9. Agent Prompt Guide
+### Results
 
-### Quick Color Reference
+- Should feel like the source of truth.
+- Use mostly neutral cards.
+- Verified badge uses success.
+- Partial or imported badge uses warning.
+- Prize numbers should be clear, large, and may use monospace.
 
-- Brand: Signal Red (`#e50914`)
-- Brand Hover: Signal Red Deep (`#b90710`)
-- Brand Outline: Signal Red Ink (`#7a0610`)
-- Text: Obsidian (`#101114`)
-- Secondary Text: Steel (`#555a64`)
-- Background: App Gray (`#f4f5f7`)
-- Surface: White (`#ffffff`)
+### Analytics
 
-### Example Component Prompt
+- Bar charts use primary.
+- Heatmaps use a primary-soft to primary scale.
+- Labels use muted text.
 
-- "Create a sharp dashboard panel: white background, 1px #d7dae0 border, 0px radius, direct heading, Signal Red CTA, no decorative rounding."
+### Patterns
+
+- Slightly more playful than Analytics, but still trustworthy.
+- Odd/even, high/low, double, and sequence patterns should use chips or badges.
+- Pattern insight is descriptive, not predictive.
+
+### Prediction Lab
+
+- Use prediction purple as the feature accent.
+- Avoid wording like "guaranteed", "sure win", or "AI knows".
+- Use wording like "signal", "score", "historical tendency", and "reason".
+- Score breakdown colors:
+  - Hot: hot red
+  - Overdue: overdue amber
+  - Position: primary indigo
+  - Pattern: prediction purple
+  - Pair: secondary teal
+- Every prediction result must have explanation space.
+
+### Backtest
+
+- Use backtest teal as accent.
+- Hit uses success.
+- Miss uses danger.
+- Random baseline uses muted.
+- Longest miss streak uses warning.
+- Layout should feel serious and audit-friendly.
+
+### Watchlist
+
+- Use watchlist orange as accent.
+- Tags use soft chips.
+- Notes use muted-soft backgrounds.
+- Archived items should appear muted and low-emphasis.
+
+### Compare
+
+- Use neutral table/card bases.
+- Use colored metric bars.
+- Strongest signal can have a soft success border.
+- Avoid aggressive "winner/loser" language.
+
+### Calendar
+
+- Countdown card uses primary and accent.
+- Next draw should be visually highlighted.
+- Past draws are muted.
+- Monthly insights use teal and indigo soft colors.
+- Always show sample-size or uncertainty copy for monthly insights.
+
+### Methodology
+
+- Prioritize readability.
+- Use warning-soft callouts for "not a guarantee".
+- Use muted-soft formula and example blocks.
+- Links use primary.
+
+## Copywriting Rules
+
+Prefer:
+
+- analysis
+- signal
+- score
+- historical data
+- trend
+- confidence
+- reason
+
+Avoid:
+
+- guaranteed
+- แม่นแน่นอน
+- เลขล็อก
+- ต้องซื้อ
+- sure win
+
+Thai/English mixed copy is okay, but keep it clear, calm, and product-like.
+
+## Responsive Rules
+
+- Cards stack cleanly on mobile.
+- Filters wrap or collapse instead of overflowing.
+- Text must fit inside controls and metric cards.
+- Preserve chart/table readability with horizontal scrolling when needed.

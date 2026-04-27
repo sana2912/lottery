@@ -54,7 +54,7 @@ Agents working in this repo should read `AGENTS.md`. Any UI or UI feature work m
 
 - Environment files are split into `.env.development` and `.env.production`.
 - Private dotenvx keys belong in `.env.keys`; this file is ignored by git.
-- `bun run dev`, `bun run build`, and `bun run start` decrypt the matching env file before running.
+- `bun run dev`, `bun run build`, and `bun run start` inject encrypted dotenvx values in memory without rewriting env files to plaintext.
 - Use `bun run env:encrypt:dev` and `bun run env:encrypt:prod` before sharing encrypted env changes.
 
 ## Code Quality

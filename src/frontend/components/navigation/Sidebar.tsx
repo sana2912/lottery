@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { cn } from "@/lib/app/cn";
 
 export type SidebarItem = {
@@ -19,12 +19,13 @@ export function Sidebar({ items, pathname }: SidebarProps) {
           Lottery Intelligence
         </p>
         <h1 className="mt-3 text-2xl font-bold leading-tight">
-          ผลสลากย้อนหลัง
+          เธเธฅเธชเธฅเธฒเธเธขเนเธญเธเธซเธฅเธฑเธ
           <br />
-          ในหน้าจอที่พร้อมใช้งาน
+          เนเธเธซเธเนเธฒเธเธญเธ—เธตเนเธเธฃเนเธญเธกเนเธเนเธเธฒเธ
         </h1>
         <p className="mt-3 text-sm leading-6 text-[var(--color-text-inverse-muted)]">
-          shell แบบ mock-driven สำหรับยืนยัน shape ของข้อมูลก่อนต่อเข้ากับ API จริง
+          shell เนเธเธ mock-driven เธชเธณเธซเธฃเธฑเธเธขเธทเธเธขเธฑเธ shape
+          เธเธญเธเธเนเธญเธกเธนเธฅเธเนเธญเธเธ•เนเธญเน€เธเนเธฒเธเธฑเธ API เธเธฃเธดเธ
         </p>
       </div>
 

@@ -1,4 +1,4 @@
-import { SlidingNumber } from "@/frontend/components/animate-ui/primitives/texts/sliding-number";
+﻿import { SlidingNumber } from "@/frontend/components/animate-ui/primitives/texts/sliding-number";
 import resultsMock from "@/frontend/pages/results/results.mock.json";
 import {
   Badge,
@@ -63,13 +63,13 @@ export function ResultsPage() {
 
           <div className="mt-8 flex flex-wrap gap-3">
             <Button className="rounded-none bg-[var(--color-brand)] px-4 py-[13px] text-white hover:bg-[var(--color-brand-strong)]">
-              ดูงวดล่าสุด
+              เธ”เธนเธเธงเธ”เธฅเนเธฒเธชเธธเธ”
             </Button>
             <Button
               className="rounded-none border-[var(--color-brand-outline)] bg-white px-4 py-[13px] text-[var(--color-brand-outline)] hover:bg-[var(--color-bg-brand-soft)]"
               variant="outline"
             >
-              ตรวจ data contract
+              เธ•เธฃเธงเธ data contract
             </Button>
           </div>
         </Card>
@@ -113,19 +113,19 @@ export function ResultsPage() {
               <div className="w-full max-w-sm">
                 <Input
                   className="h-11 rounded-none border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 py-3 shadow-[var(--shadow-micro)]"
-                  placeholder="ค้นหาจากวันที่ออกรางวัลหรือเลขที่ถูกรางวัล"
+                  placeholder="เธเนเธเธซเธฒเธเธฒเธเธงเธฑเธเธ—เธตเนเธญเธญเธเธฃเธฒเธเธงเธฑเธฅเธซเธฃเธทเธญเน€เธฅเธเธ—เธตเนเธ–เธนเธเธฃเธฒเธเธงเธฑเธฅ"
                 />
               </div>
             }
             className="border-b border-[var(--color-border-soft)] pb-5"
-            eyebrow="ค้นหาและกรอง"
-            title="สรุปงวดย้อนหลังล่าสุด"
+            eyebrow="เธเนเธเธซเธฒเนเธฅเธฐเธเธฃเธญเธ"
+            title="เธชเธฃเธธเธเธเธงเธ”เธขเนเธญเธเธซเธฅเธฑเธเธฅเนเธฒเธชเธธเธ”"
           />
 
           <div className="mt-5 grid gap-3 md:grid-cols-2">
             <Select defaultValue={resultsMock.filters.defaultLotteryType}>
               <SelectTrigger className="h-11 w-full rounded-none border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 shadow-[var(--shadow-micro)]">
-                <SelectValue placeholder="เลือกประเภทสลาก" />
+                <SelectValue placeholder="เน€เธฅเธทเธญเธเธเธฃเธฐเน€เธ เธ—เธชเธฅเธฒเธ" />
               </SelectTrigger>
               <SelectContent>
                 {resultsMock.filters.lotteryTypes.map((type) => (
@@ -138,10 +138,12 @@ export function ResultsPage() {
 
             <Select defaultValue={resultsMock.filters.defaultPrizeType}>
               <SelectTrigger className="h-11 w-full rounded-none border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 shadow-[var(--shadow-micro)]">
-                <SelectValue placeholder="เลือกรางวัล" />
+                <SelectValue placeholder="เน€เธฅเธทเธญเธเธฃเธฒเธเธงเธฑเธฅ" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="รางวัลทั้งหมด">รางวัลทั้งหมด</SelectItem>
+                <SelectItem value="เธฃเธฒเธเธงเธฑเธฅเธ—เธฑเนเธเธซเธกเธ”">
+                  เธฃเธฒเธเธงเธฑเธฅเธ—เธฑเนเธเธซเธกเธ”
+                </SelectItem>
                 {resultsMock.filters.prizeTypes.map((type) => (
                   <SelectItem key={type} value={type}>
                     {type}
@@ -185,12 +187,12 @@ export function ResultsPage() {
                       {draw.drawDate}
                     </p>
                     <h3 className="mt-1 text-xl font-bold tracking-[-0.02em] text-[var(--color-text-primary)]">
-                      งวดที่ {draw.drawNo}
+                      เธเธงเธ”เธ—เธตเน {draw.drawNo}
                     </h3>
                   </div>
 
                   <div className="flex flex-wrap gap-2">
-                    <Badge variant={draw.status === "ครบถ้วน" ? "success" : "brand"}>
+                    <Badge variant={draw.status === "เธเธฃเธเธ–เนเธงเธ" ? "success" : "brand"}>
                       {draw.status}
                     </Badge>
                     <Badge variant="neutral">{draw.coverage}</Badge>
@@ -219,23 +221,27 @@ export function ResultsPage() {
 
         <Card className="p-6">
           <SectionHeading
-            eyebrow="ทำไมต้องเริ่มที่หน้านี้"
-            title="หน้า Results เป็นตัวกำหนด shape ของข้อมูล seed"
+            eyebrow="เธ—เธณเนเธกเธ•เนเธญเธเน€เธฃเธดเนเธกเธ—เธตเนเธซเธเนเธฒเธเธตเน"
+            title="เธซเธเนเธฒ Results เน€เธเนเธเธ•เธฑเธงเธเธณเธซเธเธ” shape เธเธญเธเธเนเธญเธกเธนเธฅ seed"
           />
           <div className="mt-5 space-y-4 text-sm leading-7 text-[var(--color-text-secondary)]">
             <p>
-              UI ชุดนี้บังคับให้เราตกลง read model ของงวดก่อนเริ่ม ingestion จริง ทั้งวันที่ออกรางวัล เลขงวด
-              กลุ่มรางวัล และสถานะความครบถ้วนของข้อมูล
+              UI เธเธธเธ”เธเธตเนเธเธฑเธเธเธฑเธเนเธซเนเน€เธฃเธฒเธ•เธเธฅเธ read model
+              เธเธญเธเธเธงเธ”เธเนเธญเธเน€เธฃเธดเนเธก ingestion เธเธฃเธดเธ
+              เธ—เธฑเนเธเธงเธฑเธเธ—เธตเนเธญเธญเธเธฃเธฒเธเธงเธฑเธฅ เน€เธฅเธเธเธงเธ”
+              เธเธฅเธธเนเธกเธฃเธฒเธเธงเธฑเธฅ
+              เนเธฅเธฐเธชเธ–เธฒเธเธฐเธเธงเธฒเธกเธเธฃเธเธ–เนเธงเธเธเธญเธเธเนเธญเธกเธนเธฅ
             </p>
             <p>
-              เมื่อ shape นี้นิ่งแล้ว เราจะต่อ `/api/draws` และ map ข้อมูลจาก Prisma เข้าสู่ contract
-              เดิมได้โดยมีความเสี่ยงในการรื้อน้อยลง
+              เน€เธกเธทเนเธญ shape เธเธตเนเธเธดเนเธเนเธฅเนเธง เน€เธฃเธฒเธเธฐเธ•เนเธญ `/api/draws`
+              เนเธฅเธฐ map เธเนเธญเธกเธนเธฅเธเธฒเธ Prisma เน€เธเนเธฒเธชเธนเน contract
+              เน€เธ”เธดเธกเนเธ”เนเนเธ”เธขเธกเธตเธเธงเธฒเธกเน€เธชเธตเนเธขเธเนเธเธเธฒเธฃเธฃเธทเนเธญเธเนเธญเธขเธฅเธ
             </p>
           </div>
 
           <div className="mt-6 rounded-none bg-[var(--color-bg-panel-brand)] p-4">
             <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--color-brand-outline)]">
-              contract ฝั่ง backend ที่วางไว้
+              contract เธเธฑเนเธ backend เธ—เธตเนเธงเธฒเธเนเธงเน
             </p>
             <div className="mt-3 overflow-hidden rounded-none border border-[var(--color-border-soft)]">
               <Table>
@@ -275,7 +281,10 @@ export function ResultsPage() {
           </div>
 
           <div className="mt-6">
-            <SectionHeading eyebrow="หมายเหตุสำหรับทีม" title="บันทึก mock note" />
+            <SectionHeading
+              eyebrow="เธซเธกเธฒเธขเน€เธซเธ•เธธเธชเธณเธซเธฃเธฑเธเธ—เธตเธก"
+              title="เธเธฑเธเธ—เธถเธ mock note"
+            />
             <div className="mt-3">
               <Textarea
                 className="min-h-32 rounded-none border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 py-3 shadow-[var(--shadow-micro)]"
