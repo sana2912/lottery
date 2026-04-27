@@ -1614,3 +1614,22 @@ Deferred:
 - Database runtime wiring remains pending because the project will move from MongoDB direct connection to PostgreSQL with a Prisma driver adapter.
 - The Results page still keeps mock fallback behavior until the PostgreSQL adapter and seed data are ready.
 - Search/filter controls are visually present but not yet bound to URL query params.
+
+### Phase 2C: Local PostgreSQL adapter setup
+
+Status: implemented, pending local install/generate/migrate by user.
+
+Scope shipped:
+
+- Added `docker-compose.local.yml` for a local `postgres:latest` container.
+- Switched Prisma datasource provider from MongoDB to PostgreSQL.
+- Added PostgreSQL UUID column annotations while preserving UUID v7 defaults.
+- Updated the backend Prisma helper to instantiate `PrismaClient` with `@prisma/adapter-pg`.
+- Updated `.env.development` `DATABASE_URL` to the local PostgreSQL connection string.
+- Added package metadata for `@prisma/adapter-pg`, `pg`, and `@types/pg`.
+- Added `db:migrate` script for local Prisma migrations through dotenvx.
+
+Deferred:
+
+- `bun install`, Prisma generate, migration, and Docker startup are intentionally left for the user to run locally.
+- Generated Prisma client files are not updated until `bun run db:generate` runs.

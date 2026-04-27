@@ -7,7 +7,7 @@ generator client {
 }
 
 datasource db {
-  provider = "mongodb"
+  provider = "postgresql"
 }
 
 enum LotteryType {
@@ -30,7 +30,7 @@ enum WatchlistSource {
 }
 
 model LotteryDraw {
-  id          String        @id @default(uuid(7)) @map("_id")
+  id          String        @id @default(uuid(7)) @map("_id") @db.Uuid
   lotteryType LotteryType   @default(THAI_GOVERNMENT)
   drawDate    DateTime
   drawNo      String?
@@ -44,8 +44,8 @@ model LotteryDraw {
 }
 
 model LotteryPrize {
-  id        String           @id @default(uuid(7)) @map("_id")
-  drawId    String
+  id        String           @id @default(uuid(7)) @map("_id") @db.Uuid
+  drawId    String           @db.Uuid
   draw      LotteryDraw      @relation(fields: [drawId], references: [id])
   type      LotteryPrizeType
   position  Int?
@@ -59,7 +59,7 @@ model LotteryPrize {
 }
 
 model UserWatchlistItem {
-  id        String          @id @default(uuid(7)) @map("_id")
+  id        String          @id @default(uuid(7)) @map("_id") @db.Uuid
   number    String
   source    WatchlistSource @default(MANUAL)
   tags      String[]
@@ -72,7 +72,7 @@ model UserWatchlistItem {
 }
 
 model PredictionRun {
-  id        String             @id @default(uuid(7)) @map("_id")
+  id        String             @id @default(uuid(7)) @map("_id") @db.Uuid
   strategy  String
   params    Json?
   items     PredictionResult[]
@@ -84,8 +84,8 @@ model PredictionRun {
 }
 
 model PredictionResult {
-  id        String        @id @default(uuid(7)) @map("_id")
-  runId     String
+  id        String        @id @default(uuid(7)) @map("_id") @db.Uuid
+  runId     String        @db.Uuid
   run       PredictionRun @relation(fields: [runId], references: [id])
   number    String
   score     Float
