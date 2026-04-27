@@ -163,6 +163,22 @@ Shared class helper:
 import { cn } from "@/lib/app/cn";
 ```
 
+## Frontend Implementation Rules
+
+Frontend work must preserve the project design system and module boundaries:
+
+- Read `design.md` before changing any user-facing UI.
+- Keep the UI square. Use `rounded-none` for surfaces, controls, badges, chart frames, menus, and placeholders. Do not introduce rounded radius tokens or rounded utility classes.
+- Treat `src/frontend/primitives` as the single source of truth for low-level UI. Do not create duplicate primitive implementations in nested folders or page files.
+- Build route-level composition in `src/frontend/pages`; keep reusable product UI in `src/frontend/components`; keep route entry points in `src/app` thin.
+- Use semantic tokens from `src/frontend/styles/globals.css` for colors, shadows, borders, typography, and backgrounds. Avoid hardcoded Tailwind color utilities such as `text-sky-*`, `text-purple-*`, `bg-blue-*`, or raw hex colors in components.
+- Use normal letter spacing. Do not add negative tracking.
+- Keep Thai and English copy valid UTF-8. Do not commit mojibake or replacement characters.
+- Use `lucide-react` icons for common UI controls when an icon exists.
+- Make mobile behavior explicit for user-facing navigation, filters, tables, and toolbars. Prefer accessible controls with labels, `aria-expanded`, `aria-controls`, and keyboard-safe focus styles.
+- For chart surfaces, use `src/frontend/chart-primitives` as reusable foundations. Do not hand-roll chart layout inside route pages when a chart primitive can own the structure.
+- Keep placeholders lightweight until real feature behavior is requested. Do not add prediction algorithms, admin flows, or data mutation behavior as part of UI cleanup.
+
 ## Animate UI And shadcn
 
 Animate UI is consumed through the shadcn registry workflow.

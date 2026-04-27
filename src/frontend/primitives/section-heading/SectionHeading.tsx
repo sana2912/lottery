@@ -22,11 +22,11 @@ export function SectionHeading({
     >
       <div className="min-w-0">
         {eyebrow ? (
-          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--color-text-muted)]">
+          <p className="text-[11px] font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
             {eyebrow}
           </p>
         ) : null}
-        <h2 className="mt-2 text-2xl font-bold tracking-[-0.03em] text-[var(--color-text-primary)]">
+        <h2 className="mt-2 text-2xl font-bold tracking-normal text-[var(--color-text-primary)]">
           {title}
         </h2>
         {description ? (

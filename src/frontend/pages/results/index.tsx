@@ -1,5 +1,5 @@
 ﻿import { SlidingNumber } from "@/frontend/components/animate-ui/primitives/texts/sliding-number";
-import resultsMock from "@/frontend/pages/results/results.mock.json";
+import resultsMockJson from "@/frontend/pages/results/results.mock.json";
 import {
   Badge,
   Button,
@@ -19,16 +19,17 @@ import {
   TableRow,
   Textarea
 } from "@/frontend/primitives";
+import { type ResultsReadModel, resultsReadModelSchema } from "@/schema/app/results.schema";
 
-type ResultsMock = typeof resultsMock;
+const resultsMock = resultsReadModelSchema.parse(resultsMockJson);
 
-function StatCard({ stat }: { stat: ResultsMock["stats"][number] }) {
+function StatCard({ stat }: { stat: ResultsReadModel["stats"][number] }) {
   const isNumericValue = /^\d+$/.test(stat.value);
 
   return (
     <Card className="p-5">
       <p className="text-sm font-medium text-[var(--color-text-secondary)]">{stat.label}</p>
-      <p className="mt-3 text-2xl font-bold tracking-[-0.02em] text-[var(--color-text-primary)]">
+      <p className="mt-3 text-2xl font-bold tracking-normal text-[var(--color-text-primary)]">
         {isNumericValue ? (
           <SlidingNumber
             className="inline-flex"
@@ -51,10 +52,10 @@ export function ResultsPage() {
     <main className="space-y-6">
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(320px,0.8fr)]">
         <Card className="overflow-hidden bg-[image:var(--color-bg-hero-accent),var(--color-bg-hero)] p-6 md:p-8">
-          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--color-brand-outline)]">
+          <p className="text-[11px] font-bold uppercase tracking-normal text-[var(--color-brand-outline)]">
             {resultsMock.hero.eyebrow}
           </p>
-          <h1 className="mt-4 max-w-3xl text-4xl font-bold tracking-[-0.04em] text-[var(--color-text-primary)] md:text-5xl">
+          <h1 className="mt-4 max-w-3xl text-4xl font-bold tracking-normal text-[var(--color-text-primary)] md:text-5xl">
             {resultsMock.hero.title}
           </h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--color-text-secondary)]">
@@ -62,24 +63,24 @@ export function ResultsPage() {
           </p>
 
           <div className="mt-8 flex flex-wrap gap-3">
-            <Button className="rounded-none bg-[var(--color-brand)] px-4 py-[13px] text-white hover:bg-[var(--color-brand-strong)]">
-              เธ”เธนเธเธงเธ”เธฅเนเธฒเธชเธธเธ”
+            <Button className="rounded-none bg-[var(--color-brand)] px-4 py-[13px] text-[var(--primary-foreground)] hover:bg-[var(--color-brand-strong)]">
+              ดูงวดล่าสุด
             </Button>
             <Button
-              className="rounded-none border-[var(--color-brand-outline)] bg-white px-4 py-[13px] text-[var(--color-brand-outline)] hover:bg-[var(--color-bg-brand-soft)]"
+              className="rounded-none border-[var(--color-brand-outline)] bg-[var(--color-bg-canvas)] px-4 py-[13px] text-[var(--color-brand-outline)] hover:bg-[var(--color-bg-brand-soft)]"
               variant="outline"
             >
-              เธ•เธฃเธงเธ data contract
+              ตรวจ data contract
             </Button>
           </div>
         </Card>
 
         <Card className="flex flex-col justify-between bg-[var(--color-bg-dark)] p-6 text-[var(--color-text-inverse)]">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-white/55">
+            <p className="text-[11px] font-bold uppercase tracking-normal text-[var(--color-text-inverse-soft)]">
               {resultsMock.hero.coverageLabel}
             </p>
-            <p className="mt-4 text-3xl font-bold tracking-[-0.03em]">
+            <p className="mt-4 text-3xl font-bold tracking-normal">
               {resultsMock.hero.coverageValue}
             </p>
           </div>
@@ -113,19 +114,19 @@ export function ResultsPage() {
               <div className="w-full max-w-sm">
                 <Input
                   className="h-11 rounded-none border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 py-3 shadow-[var(--shadow-micro)]"
-                  placeholder="เธเนเธเธซเธฒเธเธฒเธเธงเธฑเธเธ—เธตเนเธญเธญเธเธฃเธฒเธเธงเธฑเธฅเธซเธฃเธทเธญเน€เธฅเธเธ—เธตเนเธ–เธนเธเธฃเธฒเธเธงเธฑเธฅ"
+                  placeholder="ค้นหาจากวันที่ออกรางวัลหรือเลขที่ถูกรางวัล"
                 />
               </div>
             }
             className="border-b border-[var(--color-border-soft)] pb-5"
-            eyebrow="เธเนเธเธซเธฒเนเธฅเธฐเธเธฃเธญเธ"
-            title="เธชเธฃเธธเธเธเธงเธ”เธขเนเธญเธเธซเธฅเธฑเธเธฅเนเธฒเธชเธธเธ”"
+            eyebrow="ค้นหาและกรอง"
+            title="สรุปงวดย้อนหลังล่าสุด"
           />
 
           <div className="mt-5 grid gap-3 md:grid-cols-2">
             <Select defaultValue={resultsMock.filters.defaultLotteryType}>
               <SelectTrigger className="h-11 w-full rounded-none border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 shadow-[var(--shadow-micro)]">
-                <SelectValue placeholder="เน€เธฅเธทเธญเธเธเธฃเธฐเน€เธ เธ—เธชเธฅเธฒเธ" />
+                <SelectValue placeholder="เลือกประเภทสลาก" />
               </SelectTrigger>
               <SelectContent>
                 {resultsMock.filters.lotteryTypes.map((type) => (
@@ -138,12 +139,10 @@ export function ResultsPage() {
 
             <Select defaultValue={resultsMock.filters.defaultPrizeType}>
               <SelectTrigger className="h-11 w-full rounded-none border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 shadow-[var(--shadow-micro)]">
-                <SelectValue placeholder="เน€เธฅเธทเธญเธเธฃเธฒเธเธงเธฑเธฅ" />
+                <SelectValue placeholder="เลือกรางวัล" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="เธฃเธฒเธเธงเธฑเธฅเธ—เธฑเนเธเธซเธกเธ”">
-                  เธฃเธฒเธเธงเธฑเธฅเธ—เธฑเนเธเธซเธกเธ”
-                </SelectItem>
+                <SelectItem value="รางวัลทั้งหมด">รางวัลทั้งหมด</SelectItem>
                 {resultsMock.filters.prizeTypes.map((type) => (
                   <SelectItem key={type} value={type}>
                     {type}
@@ -166,7 +165,7 @@ export function ResultsPage() {
 
             {resultsMock.filters.prizeTypes.map((type) => (
               <Button
-                className="rounded-none border-[var(--color-brand-outline)] bg-white px-3 py-2 text-xs text-[var(--color-brand-outline)] hover:bg-[var(--color-bg-brand-soft)]"
+                className="rounded-none border-[var(--color-brand-outline)] bg-[var(--color-bg-canvas)] px-3 py-2 text-xs text-[var(--color-brand-outline)] hover:bg-[var(--color-bg-brand-soft)]"
                 key={type}
                 variant="outline"
               >
@@ -186,14 +185,14 @@ export function ResultsPage() {
                     <p className="text-sm font-semibold text-[var(--color-brand-outline)]">
                       {draw.drawDate}
                     </p>
-                    <h3 className="mt-1 text-xl font-bold tracking-[-0.02em] text-[var(--color-text-primary)]">
-                      เธเธงเธ”เธ—เธตเน {draw.drawNo}
+                    <h3 className="mt-1 text-xl font-bold tracking-normal text-[var(--color-text-primary)]">
+                      งวดที่ {draw.drawNo}
                     </h3>
                   </div>
 
                   <div className="flex flex-wrap gap-2">
-                    <Badge variant={draw.status === "เธเธฃเธเธ–เนเธงเธ" ? "success" : "brand"}>
-                      {draw.status}
+                    <Badge variant={draw.status === "complete" ? "success" : "warning"}>
+                      {draw.statusLabel}
                     </Badge>
                     <Badge variant="neutral">{draw.coverage}</Badge>
                   </div>
@@ -205,7 +204,7 @@ export function ResultsPage() {
                       className="rounded-none bg-[var(--color-bg-canvas)] px-4 py-3"
                       key={`${draw.id}-${prize.label}`}
                     >
-                      <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
+                      <p className="text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
                         {prize.label}
                       </p>
                       <p className="mt-2 text-lg font-semibold text-[var(--color-text-primary)]">
@@ -221,39 +220,35 @@ export function ResultsPage() {
 
         <Card className="p-6">
           <SectionHeading
-            eyebrow="เธ—เธณเนเธกเธ•เนเธญเธเน€เธฃเธดเนเธกเธ—เธตเนเธซเธเนเธฒเธเธตเน"
-            title="เธซเธเนเธฒ Results เน€เธเนเธเธ•เธฑเธงเธเธณเธซเธเธ” shape เธเธญเธเธเนเธญเธกเธนเธฅ seed"
+            eyebrow="ทำไมต้องเริ่มที่หน้านี้"
+            title="หน้า Results เป็นตัวกำหนด shape ของข้อมูล seed"
           />
           <div className="mt-5 space-y-4 text-sm leading-7 text-[var(--color-text-secondary)]">
             <p>
-              UI เธเธธเธ”เธเธตเนเธเธฑเธเธเธฑเธเนเธซเนเน€เธฃเธฒเธ•เธเธฅเธ read model
-              เธเธญเธเธเธงเธ”เธเนเธญเธเน€เธฃเธดเนเธก ingestion เธเธฃเธดเธ
-              เธ—เธฑเนเธเธงเธฑเธเธ—เธตเนเธญเธญเธเธฃเธฒเธเธงเธฑเธฅ เน€เธฅเธเธเธงเธ”
-              เธเธฅเธธเนเธกเธฃเธฒเธเธงเธฑเธฅ
-              เนเธฅเธฐเธชเธ–เธฒเธเธฐเธเธงเธฒเธกเธเธฃเธเธ–เนเธงเธเธเธญเธเธเนเธญเธกเธนเธฅ
+              UI ชุดนี้บังคับให้เราตกลง read model ของงวดก่อนเริ่ม ingestion จริง ทั้งวันที่ออกรางวัล เลขงวด
+              กลุ่มรางวัล และสถานะความครบถ้วนของข้อมูล
             </p>
             <p>
-              เน€เธกเธทเนเธญ shape เธเธตเนเธเธดเนเธเนเธฅเนเธง เน€เธฃเธฒเธเธฐเธ•เนเธญ `/api/draws`
-              เนเธฅเธฐ map เธเนเธญเธกเธนเธฅเธเธฒเธ Prisma เน€เธเนเธฒเธชเธนเน contract
-              เน€เธ”เธดเธกเนเธ”เนเนเธ”เธขเธกเธตเธเธงเธฒเธกเน€เธชเธตเนเธขเธเนเธเธเธฒเธฃเธฃเธทเนเธญเธเนเธญเธขเธฅเธ
+              เมื่อ shape นี้นิ่งแล้ว เราจะต่อ `/api/draws` และ map ข้อมูลจาก Prisma เข้าสู่ contract
+              เดิมได้โดยมีความเสี่ยงในการรื้อน้อยลง
             </p>
           </div>
 
           <div className="mt-6 rounded-none bg-[var(--color-bg-panel-brand)] p-4">
-            <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--color-brand-outline)]">
-              contract เธเธฑเนเธ backend เธ—เธตเนเธงเธฒเธเนเธงเน
+            <p className="text-xs font-bold uppercase tracking-normal text-[var(--color-brand-outline)]">
+              contract ฝั่ง backend ที่วางไว้
             </p>
             <div className="mt-3 overflow-hidden rounded-none border border-[var(--color-border-soft)]">
               <Table>
                 <TableHeader className="bg-[var(--color-bg-subtle)]">
                   <TableRow className="border-b border-[var(--color-border-soft)] hover:bg-transparent">
-                    <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
+                    <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
                       field
                     </TableHead>
-                    <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
+                    <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
                       source
                     </TableHead>
-                    <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
+                    <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
                       purpose
                     </TableHead>
                   </TableRow>
@@ -281,10 +276,7 @@ export function ResultsPage() {
           </div>
 
           <div className="mt-6">
-            <SectionHeading
-              eyebrow="เธซเธกเธฒเธขเน€เธซเธ•เธธเธชเธณเธซเธฃเธฑเธเธ—เธตเธก"
-              title="เธเธฑเธเธ—เธถเธ mock note"
-            />
+            <SectionHeading eyebrow="หมายเหตุสำหรับทีม" title="บันทึก mock note" />
             <div className="mt-3">
               <Textarea
                 className="min-h-32 rounded-none border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 py-3 shadow-[var(--shadow-micro)]"

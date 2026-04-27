@@ -14,13 +14,13 @@ const buttonVariants = cva(
         primary:
           "bg-primary text-primary-foreground shadow-[var(--shadow-micro)] hover:bg-[var(--primary-hover)]",
         destructive:
-          "bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:bg-destructive/60 dark:focus-visible:ring-destructive/40",
+          "bg-destructive text-[var(--destructive-foreground)] hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:bg-destructive/60 dark:focus-visible:ring-destructive/40",
         danger:
-          "bg-[var(--danger)] text-white hover:bg-[var(--danger)]/90 focus-visible:ring-[var(--danger)]/20",
+          "bg-[var(--danger)] text-[var(--destructive-foreground)] hover:bg-[var(--danger)]/90 focus-visible:ring-[var(--danger)]/20",
         outline:
           "border border-input bg-background shadow-xs hover:bg-[var(--muted-soft)] hover:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
         secondary:
-          "bg-[var(--secondary)] text-white shadow-[var(--shadow-micro)] hover:bg-[var(--secondary)]/90",
+          "bg-[var(--secondary)] text-[var(--secondary-foreground)] shadow-[var(--shadow-micro)] hover:bg-[var(--secondary)]/90",
         ghost:
           "hover:bg-[var(--muted-soft)] hover:text-foreground dark:hover:bg-[var(--muted-soft)]",
         link: "text-primary underline-offset-4 hover:underline"

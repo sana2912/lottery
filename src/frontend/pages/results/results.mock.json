@@ -1,4 +1,6 @@
 {
+  "generatedAt": "2026-04-27T00:00:00.000Z",
+  "source": "mock",
   "hero": {
     "eyebrow": "ผลสลากย้อนหลัง",
     "title": "คลังข้อมูลหวยรัฐบาลไทยในหน้าจอที่พร้อมใช้ทดสอบงานจริง",
@@ -47,40 +49,49 @@
     {
       "id": "draw-2026-04-16",
       "drawDate": "16 เมษายน 2026",
+      "drawDateIso": "2026-04-16",
       "drawNo": "16/2026",
-      "status": "ครบถ้วน",
+      "lotteryType": "THAI_GOVERNMENT",
+      "status": "complete",
+      "statusLabel": "ครบถ้วน",
       "coverage": "มีข้อมูลครบทุกรางวัลที่ระบบติดตาม",
       "prizes": [
-        { "label": "รางวัลที่ 1", "value": "482395" },
-        { "label": "เลขหน้า 3 ตัว", "value": "129, 764" },
-        { "label": "เลขท้าย 3 ตัว", "value": "511, 908" },
-        { "label": "เลขท้าย 2 ตัว", "value": "47" }
+        { "label": "รางวัลที่ 1", "value": "482395", "prizeType": "FIRST" },
+        { "label": "เลขหน้า 3 ตัว", "value": "129, 764", "prizeType": "THREE_FRONT" },
+        { "label": "เลขท้าย 3 ตัว", "value": "511, 908", "prizeType": "THREE_BACK" },
+        { "label": "เลขท้าย 2 ตัว", "value": "47", "prizeType": "TWO_DIGIT" }
       ]
     },
     {
       "id": "draw-2026-04-01",
       "drawDate": "1 เมษายน 2026",
+      "drawDateIso": "2026-04-01",
       "drawNo": "15/2026",
-      "status": "ครบถ้วน",
+      "lotteryType": "THAI_GOVERNMENT",
+      "status": "complete",
+      "statusLabel": "ครบถ้วน",
       "coverage": "ข้อมูลข้างเคียงรางวัลที่ 1 ยังรอ normalize",
       "prizes": [
-        { "label": "รางวัลที่ 1", "value": "105673" },
-        { "label": "เลขหน้า 3 ตัว", "value": "204, 581" },
-        { "label": "เลขท้าย 3 ตัว", "value": "336, 790" },
-        { "label": "เลขท้าย 2 ตัว", "value": "18" }
+        { "label": "รางวัลที่ 1", "value": "105673", "prizeType": "FIRST" },
+        { "label": "เลขหน้า 3 ตัว", "value": "204, 581", "prizeType": "THREE_FRONT" },
+        { "label": "เลขท้าย 3 ตัว", "value": "336, 790", "prizeType": "THREE_BACK" },
+        { "label": "เลขท้าย 2 ตัว", "value": "18", "prizeType": "TWO_DIGIT" }
       ]
     },
     {
       "id": "draw-2026-03-16",
       "drawDate": "16 มีนาคม 2026",
+      "drawDateIso": "2026-03-16",
       "drawNo": "14/2026",
-      "status": "บางส่วน",
+      "lotteryType": "THAI_GOVERNMENT",
+      "status": "partial",
+      "statusLabel": "บางส่วน",
       "coverage": "เลขท้าย 2 ตัวตรวจแล้ว แต่เลขหน้า/ท้าย 3 ตัวยังรอ QA",
       "prizes": [
-        { "label": "รางวัลที่ 1", "value": "774281" },
-        { "label": "เลขหน้า 3 ตัว", "value": "093, 661" },
-        { "label": "เลขท้าย 3 ตัว", "value": "244, 580" },
-        { "label": "เลขท้าย 2 ตัว", "value": "52" }
+        { "label": "รางวัลที่ 1", "value": "774281", "prizeType": "FIRST" },
+        { "label": "เลขหน้า 3 ตัว", "value": "093, 661", "prizeType": "THREE_FRONT" },
+        { "label": "เลขท้าย 3 ตัว", "value": "244, 580", "prizeType": "THREE_BACK" },
+        { "label": "เลขท้าย 2 ตัว", "value": "52", "prizeType": "TWO_DIGIT" }
       ]
     }
   ],
@@ -96,14 +107,29 @@
       "purpose": "ใช้เป็นหัวหลักของงวดและตัวกรองตามวันออกรางวัล"
     },
     {
+      "field": "drawDateIso",
+      "source": "LotteryDraw.drawDate",
+      "purpose": "วันที่แบบ ISO สำหรับ sort, filter และเชื่อมกับ API โดยไม่พึ่งข้อความที่แสดงผล"
+    },
+    {
       "field": "drawNo",
       "source": "LotteryDraw.drawNo",
       "purpose": "ใช้แสดงเลขงวดและอ้างอิงในรายการผลย้อนหลัง"
     },
     {
+      "field": "status",
+      "source": "computed",
+      "purpose": "สถานะ machine-readable เช่น complete หรือ partial สำหรับเลือก badge และ filter"
+    },
+    {
       "field": "prizes[]",
       "source": "LotteryPrize[]",
       "purpose": "รวมผลรางวัลเป็นกลุ่มพร้อมแสดงใน card ของแต่ละงวด"
+    },
+    {
+      "field": "prizes[].prizeType",
+      "source": "LotteryPrize.type",
+      "purpose": "ชนิดรางวัลแบบ enum สำหรับ map กับ Prisma และตัวกรอง"
     },
     {
       "field": "coverage",

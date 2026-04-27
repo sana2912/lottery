@@ -34,7 +34,7 @@ export function MetricCard({ label, value, hint, tone = "default", trend }: Metr
           </span>
         ) : null}
       </div>
-      <p className="mt-3 text-2xl font-bold tracking-[0] text-[var(--text-title)]">{value}</p>
+      <p className="mt-3 text-2xl font-bold tracking-normal text-[var(--text-title)]">{value}</p>
       {hint ? <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">{hint}</p> : null}
     </article>
   );

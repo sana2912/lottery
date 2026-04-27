@@ -8,31 +8,37 @@ The interface communicates analysis, signal strength, historical tendency, score
 
 ## Palette
 
-Use indigo and slate as the base. Use teal, amber, purple, and semantic colors for insight states. Avoid red/gold-heavy themes.
+Use a warm stone base with minimal orange as the brand color. Teal, amber, purple, and semantic colors support insight states. Avoid red/gold-heavy casino themes, excessive gradients, or loud lottery styling.
 
 ### Core Light Theme
 
 ```css
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  color-scheme: light;
+
+  --background: #fafaf9;
+  --foreground: #1c1917;
 
   --card: #ffffff;
-  --card-foreground: #0f172a;
+  --card-foreground: #1c1917;
 
-  --primary: #4f46e5;
-  --primary-hover: #4338ca;
-  --primary-soft: #eef2ff;
+  --primary: #f97316;
+  --primary-hover: #ea580c;
+  --primary-soft: #fff7ed;
+  --primary-foreground: #ffffff;
 
   --secondary: #0f766e;
   --secondary-soft: #ccfbf1;
+  --secondary-foreground: #ffffff;
 
-  --accent: #f59e0b;
-  --accent-soft: #fef3c7;
+  --accent: #fb923c;
+  --accent-soft: #ffedd5;
+  --accent-foreground: #7c2d12;
 
-  --border: #e2e8f0;
-  --muted: #64748b;
-  --muted-soft: #f1f5f9;
+  --border: #e7e5e4;
+  --muted: #78716c;
+  --muted-soft: #f5f5f4;
+  --muted-foreground: #78716c;
 
   --success: #16a34a;
   --success-soft: #dcfce7;
@@ -51,10 +57,10 @@ Use indigo and slate as the base. Use teal, amber, purple, and semantic colors f
 ### Text Tokens
 
 ```css
---text-title: #0f172a;
---text-body: #334155;
---text-muted: #64748b;
---text-subtle: #94a3b8;
+--text-title: #1c1917;
+--text-body: #44403c;
+--text-muted: #78716c;
+--text-subtle: #a8a29e;
 --text-inverse: #ffffff;
 ```
 
@@ -67,15 +73,15 @@ Use indigo and slate as the base. Use teal, amber, purple, and semantic colors f
 --cold: #38bdf8;
 --cold-soft: #e0f2fe;
 
---overdue: #f59e0b;
---overdue-soft: #fef3c7;
+--overdue: #f97316;
+--overdue-soft: #fff7ed;
 
 --trend-up: #16a34a;
 --trend-down: #dc2626;
---trend-flat: #64748b;
+--trend-flat: #78716c;
 
---prediction: #7c3aed;
---prediction-soft: #f3e8ff;
+--prediction: #9333ea;
+--prediction-soft: #faf5ff;
 
 --backtest: #0f766e;
 --backtest-soft: #ccfbf1;
@@ -83,33 +89,146 @@ Use indigo and slate as the base. Use teal, amber, purple, and semantic colors f
 --watchlist: #f97316;
 --watchlist-soft: #ffedd5;
 
---methodology: #475569;
---methodology-soft: #f1f5f9;
+--methodology: #57534e;
+--methodology-soft: #f5f5f4;
 ```
 
-### Dark Theme Draft
+### App Alias Tokens
+
+Use the app aliases in composed UI when they improve readability or match an existing component pattern.
+
+```css
+--color-bg-app: var(--background);
+--color-bg-canvas: var(--card);
+--color-bg-elevated: #ffffff;
+--color-bg-subtle: var(--muted-soft);
+--color-bg-frosted: rgba(255, 255, 255, 0.86);
+
+--color-bg-dark: #1c1917;
+--color-bg-dark-soft: rgba(255, 255, 255, 0.08);
+--color-bg-dark-softer: rgba(255, 255, 255, 0.14);
+
+--color-bg-brand-soft: var(--primary-soft);
+--color-bg-brand-soft-strong: #ffedd5;
+--color-bg-success-soft: var(--success-soft);
+
+--color-bg-hero: linear-gradient(180deg, #ffffff 0%, #fff7ed 100%);
+--color-bg-hero-accent: linear-gradient(
+  90deg,
+  rgba(249, 115, 22, 0.13),
+  transparent 52%
+);
+--color-bg-hero-scrim: rgba(255, 255, 255, 0.9);
+--color-bg-hero-scrim-soft: rgba(255, 255, 255, 0.68);
+
+--color-bg-panel-brand: var(--primary-soft);
+--color-bg-sidebar: linear-gradient(180deg, #1c1917 0%, #292524 100%);
+
+--color-text-primary: var(--text-title);
+--color-text-secondary: var(--text-body);
+--color-text-muted: var(--text-muted);
+--color-text-success: #166534;
+--color-text-inverse: var(--text-inverse);
+--color-text-inverse-muted: rgba(255, 255, 255, 0.78);
+--color-text-inverse-soft: rgba(255, 255, 255, 0.66);
+
+--color-border-default: var(--border);
+--color-border-soft: #f0eeeb;
+--color-border-inverse-soft: rgba(255, 255, 255, 0.12);
+--color-border-inverse-softer: rgba(255, 255, 255, 0.18);
+
+--color-brand: var(--primary);
+--color-brand-strong: var(--primary-hover);
+--color-brand-outline: #c2410c;
+```
+
+### Shape, Shadow, And Font Tokens
+
+```css
+--shadow-card: 0 12px 32px rgba(28, 25, 23, 0.06);
+--shadow-micro: 0 1px 2px rgba(28, 25, 23, 0.06);
+--shadow-float-strong: 0 18px 48px rgba(28, 25, 23, 0.14);
+
+--radius: 0rem;
+
+--font-display:
+  "IBM Plex Sans", "Helvetica Neue", Helvetica, Arial, ui-sans-serif,
+  system-ui, sans-serif;
+--font-ui:
+  "IBM Plex Sans", "Helvetica Neue", Helvetica, Arial, ui-sans-serif,
+  system-ui, sans-serif;
+```
+
+### Dark Theme
 
 ```css
 .dark {
-  --background: #020617;
-  --foreground: #f8fafc;
+  color-scheme: dark;
 
-  --card: #0f172a;
-  --card-foreground: #f8fafc;
+  --background: #0c0a09;
+  --foreground: #fafaf9;
 
-  --primary: #818cf8;
-  --primary-hover: #a5b4fc;
-  --primary-soft: #1e1b4b;
+  --card: #1c1917;
+  --card-foreground: #fafaf9;
+
+  --primary: #fb923c;
+  --primary-hover: #fdba74;
+  --primary-soft: #431407;
+  --primary-foreground: #1c1917;
 
   --secondary: #2dd4bf;
   --secondary-soft: #134e4a;
 
   --accent: #fbbf24;
   --accent-soft: #451a03;
+  --accent-foreground: #fef3c7;
 
-  --border: #1e293b;
-  --muted: #94a3b8;
-  --muted-soft: #1e293b;
+  --border: #292524;
+  --muted: #a8a29e;
+  --muted-soft: #1c1917;
+  --muted-foreground: #a8a29e;
+
+  --success: #22c55e;
+  --success-soft: #052e16;
+
+  --warning: #f59e0b;
+  --warning-soft: #451a03;
+
+  --danger: #f87171;
+  --danger-soft: #450a0a;
+
+  --info: #60a5fa;
+  --info-soft: #172554;
+
+  --text-title: #fafaf9;
+  --text-body: #d6d3d1;
+  --text-muted: #a8a29e;
+  --text-subtle: #78716c;
+
+  --hot: #f87171;
+  --hot-soft: #450a0a;
+
+  --cold: #7dd3fc;
+  --cold-soft: #082f49;
+
+  --overdue: #fb923c;
+  --overdue-soft: #431407;
+
+  --trend-up: #22c55e;
+  --trend-down: #f87171;
+  --trend-flat: #a8a29e;
+
+  --prediction: #c084fc;
+  --prediction-soft: #3b0764;
+
+  --backtest: #2dd4bf;
+  --backtest-soft: #134e4a;
+
+  --watchlist: #fb923c;
+  --watchlist-soft: #431407;
+
+  --methodology: #a8a29e;
+  --methodology-soft: #1c1917;
 }
 ```
 
@@ -117,6 +236,7 @@ Use indigo and slate as the base. Use teal, amber, purple, and semantic colors f
 
 - Use `IBM Plex Sans`, `Helvetica Neue`, Helvetica, Arial, and system UI fallbacks.
 - Use strong but not sensational headings.
+- Use normal letter spacing. Do not use negative tracking.
 - Labels should be concise and scannable.
 - Prize numbers may use monospace where clarity helps.
 - Avoid oversized marketing type inside dashboard panels.
@@ -125,18 +245,18 @@ Use indigo and slate as the base. Use teal, amber, purple, and semantic colors f
 
 ### Cards
 
-- Use white cards on the slate app background.
-- Use no border radius, subtle border, and soft shadow.
+- Use white cards on the warm stone app background in light mode.
+- Use square corners with `rounded-none`, subtle stone borders, and `--shadow-card`.
 - Prefer structured, calm panels over decorative cards.
 - Metric cards should show label, value, optional hint/trend, and optional semantic accent.
 
 ### Buttons
 
-- Primary CTA uses indigo.
+- Primary CTA uses minimal orange.
 - Secondary actions use teal when tied to analysis workflow.
 - Ghost and outline variants stay neutral.
 - Danger is reserved for destructive actions only.
-- Buttons should be clear and medium-density with square corners.
+- Buttons should be clear, medium-density, and square.
 
 ### Badges
 
@@ -146,18 +266,18 @@ Support semantic variants:
 - `prediction`, `backtest`, `watchlist`
 - `success`, `warning`, `danger`, `muted`
 
-Badges should be soft chips with readable contrast. Avoid loud casino-like colors.
+Badges should be square soft labels with readable contrast. Avoid loud casino-like colors.
 
 ### Inputs And Filters
 
 - Inputs are clean and large enough for search/filter workflows.
-- Use slate borders, white surfaces, and clear focus rings.
+- Use stone borders, white surfaces, and orange focus rings.
 - Filters should wrap or collapse cleanly on mobile.
 
 ### Tabs And Segmented Controls
 
 - Use muted-soft backgrounds.
-- Active tab uses white surface, indigo text, subtle shadow or border.
+- Active tab uses white surface, brand text, subtle shadow or border.
 - Keep tab labels concise.
 
 ### Tables
@@ -182,8 +302,8 @@ Badges should be soft chips with readable contrast. Avoid loud casino-like color
 
 ### Dashboard
 
-- Use white cards on slate background.
-- Main CTA uses primary indigo.
+- Use white cards on the warm stone background.
+- Main CTA uses primary orange.
 - Latest draw card may use primary-soft.
 - Hot, cold, and overdue cards use their semantic colors.
 
@@ -215,7 +335,7 @@ Badges should be soft chips with readable contrast. Avoid loud casino-like color
 - Score breakdown colors:
   - Hot: hot red
   - Overdue: overdue amber
-  - Position: primary indigo
+  - Position: primary orange
   - Pattern: prediction purple
   - Pair: secondary teal
 - Every prediction result must have explanation space.
@@ -248,7 +368,7 @@ Badges should be soft chips with readable contrast. Avoid loud casino-like color
 - Countdown card uses primary and accent.
 - Next draw should be visually highlighted.
 - Past draws are muted.
-- Monthly insights use teal and indigo soft colors.
+- Monthly insights use teal and orange soft colors.
 - Always show sample-size or uncertainty copy for monthly insights.
 
 ### Methodology

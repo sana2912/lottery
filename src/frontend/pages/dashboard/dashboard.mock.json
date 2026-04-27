@@ -1,0 +1,137 @@
+{
+  "generatedAt": "2026-04-27T00:00:00.000Z",
+  "source": "mock",
+  "hero": {
+    "eyebrow": "Dashboard contract",
+    "title": "ภาพรวมสัญญาณจากข้อมูลงวดล่าสุด",
+    "description": "หน้ารวมนี้ใช้ read model เดียวสำหรับงวดล่าสุด สัญญาณ hot/cold/overdue และ summary ของ prediction เพื่อให้ต่อ API จริงได้โดยไม่กระจาย shape ซ้ำใน page",
+    "primaryActionLabel": "ดูผลย้อนหลัง",
+    "primaryActionHref": "/results"
+  },
+  "metrics": [
+    {
+      "label": "งวดในชุดข้อมูล",
+      "value": "24",
+      "hint": "จำนวนงวด mock ที่พร้อมใช้ทดสอบ contract",
+      "tone": "default",
+      "trend": "mock"
+    },
+    {
+      "label": "เลข hot",
+      "value": "47",
+      "hint": "เลขท้าย 2 ตัวที่มีความถี่สูงใน sample mock",
+      "tone": "hot",
+      "trend": "+12%"
+    },
+    {
+      "label": "เลข cold",
+      "value": "03",
+      "hint": "เลขที่ยังพบต่ำกว่าค่าเฉลี่ยในช่วงข้อมูลเดียวกัน",
+      "tone": "cold",
+      "trend": "-8%"
+    },
+    {
+      "label": "overdue",
+      "value": "91",
+      "hint": "เลขที่หายไปนานเมื่อเทียบกับ sample mock",
+      "tone": "overdue",
+      "trend": "9 งวด"
+    }
+  ],
+  "latestDraw": {
+    "id": "draw-2026-04-16",
+    "drawDate": "16 เมษายน 2026",
+    "drawDateIso": "2026-04-16",
+    "drawNo": "16/2026",
+    "lotteryType": "THAI_GOVERNMENT",
+    "statusLabel": "ครบถ้วน",
+    "primaryPrize": {
+      "label": "รางวัลที่ 1",
+      "value": "482395"
+    },
+    "secondaryPrizes": [
+      {
+        "label": "เลขหน้า 3 ตัว",
+        "value": "129, 764"
+      },
+      {
+        "label": "เลขท้าย 3 ตัว",
+        "value": "511, 908"
+      },
+      {
+        "label": "เลขท้าย 2 ตัว",
+        "value": "47"
+      }
+    ]
+  },
+  "signals": [
+    {
+      "id": "signal-hot-47",
+      "label": "Hot signal",
+      "number": "47",
+      "score": 82,
+      "tone": "hot",
+      "reason": "ออกซ้ำในกลุ่มเลขท้าย 2 ตัวมากกว่าค่าเฉลี่ยของ sample"
+    },
+    {
+      "id": "signal-overdue-91",
+      "label": "Overdue signal",
+      "number": "91",
+      "score": 68,
+      "tone": "overdue",
+      "reason": "หายไปนานกว่ากรอบปกติของข้อมูล mock ชุดนี้"
+    },
+    {
+      "id": "signal-cold-03",
+      "label": "Cold signal",
+      "number": "03",
+      "score": 34,
+      "tone": "cold",
+      "reason": "พบต่ำกว่ากลุ่มเลขอื่นในช่วงข้อมูลเดียวกัน"
+    }
+  ],
+  "predictionSummary": {
+    "title": "Prediction summary mock",
+    "generatedAt": "2026-04-27T00:00:00.000Z",
+    "candidates": [
+      {
+        "number": "47",
+        "score": 82,
+        "reasons": ["hot trend", "position support", "recent pair signal"]
+      },
+      {
+        "number": "91",
+        "score": 68,
+        "reasons": ["overdue gap", "pair support"]
+      },
+      {
+        "number": "24",
+        "score": 61,
+        "reasons": ["stable frequency", "pattern support"]
+      }
+    ],
+    "disclaimer": "ผลลัพธ์นี้เป็นการวิเคราะห์จากข้อมูลย้อนหลัง ไม่ใช่การการันตีผลรางวัลในอนาคต"
+  },
+  "contractRows": [
+    {
+      "field": "latestDraw",
+      "source": "LotteryDraw + LotteryPrize",
+      "purpose": "แสดงงวดล่าสุดและกลุ่มรางวัลหลักของ dashboard"
+    },
+    {
+      "field": "metrics[]",
+      "source": "computed analytics",
+      "purpose": "สรุปจำนวนงวดและสัญญาณที่ควรมองเห็นทันที"
+    },
+    {
+      "field": "signals[]",
+      "source": "analytics read model",
+      "purpose": "ใช้ร่วมกับ Analytics, Compare และ Prediction Lab"
+    },
+    {
+      "field": "predictionSummary",
+      "source": "prediction service",
+      "purpose": "แสดง candidate พร้อม score และเหตุผลโดยไม่ใส่อัลกอริทึมใน page"
+    }
+  ]
+}

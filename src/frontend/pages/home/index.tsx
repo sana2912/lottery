@@ -45,7 +45,7 @@ function ProductPreview() {
       <div className="absolute inset-0 rounded-none border border-[var(--color-border-soft)] bg-[var(--color-bg-canvas)] shadow-[var(--shadow-card)]" />
       <div className="absolute left-8 top-8 w-[330px] rounded-none border border-[var(--color-border-soft)] bg-[var(--color-bg-elevated)] p-5 shadow-[var(--shadow-card)]">
         <div className="flex items-center justify-between">
-          <span className="text-[11px] font-bold uppercase tracking-[0] text-[var(--color-text-muted)]">
+          <span className="text-[11px] font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
             {preview.status}
           </span>
           <span className="rounded-none bg-[var(--color-bg-success-soft)] px-3 py-2 text-xs font-semibold text-[var(--color-text-success)]">
@@ -55,7 +55,7 @@ function ProductPreview() {
         <p className="mt-5 text-sm font-medium text-[var(--color-text-secondary)]">
           {preview.latestDrawLabel}
         </p>
-        <p className="mt-1 text-2xl font-bold tracking-[0] text-[var(--color-text-primary)]">
+        <p className="mt-1 text-2xl font-bold tracking-normal text-[var(--color-text-primary)]">
           {preview.latestDraw}
         </p>
         <div className="mt-5 grid grid-cols-[120px_minmax(0,1fr)] gap-4">
@@ -63,7 +63,7 @@ function ProductPreview() {
             <p className="text-xs font-semibold text-[var(--color-brand-outline)]">
               {preview.highlightLabel}
             </p>
-            <p className="mt-2 text-4xl font-bold tracking-[0] text-[var(--color-brand)]">
+            <p className="mt-2 text-4xl font-bold tracking-normal text-[var(--color-brand)]">
               {preview.highlightNumber}
             </p>
           </div>
@@ -71,7 +71,7 @@ function ProductPreview() {
             <p className="text-xs font-semibold text-[var(--color-text-muted)]">
               {preview.scoreLabel}
             </p>
-            <p className="mt-2 text-4xl font-bold tracking-[0] text-[var(--color-text-primary)]">
+            <p className="mt-2 text-4xl font-bold tracking-normal text-[var(--color-text-primary)]">
               {preview.score}
             </p>
           </div>
@@ -98,7 +98,7 @@ function ProductPreview() {
           <span className="text-sm text-[var(--color-text-secondary)]">
             {preview.watchlistLabel}
           </span>
-          <span className="text-xl font-bold tracking-[0] text-[var(--color-text-primary)]">
+          <span className="text-xl font-bold tracking-normal text-[var(--color-text-primary)]">
             {preview.watchlistCount}
           </span>
         </div>
@@ -113,10 +113,10 @@ export function HomePage() {
       <header className="sticky top-0 z-20 border-b border-[var(--color-border-soft)] bg-[var(--color-bg-frosted)] px-4 py-4 backdrop-blur md:px-6 lg:px-8">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
           <Link className="flex items-center gap-3" href="/">
-            <span className="flex size-10 items-center justify-center rounded-none bg-[var(--color-brand)] text-white shadow-[var(--shadow-micro)]">
+            <span className="flex size-10 items-center justify-center rounded-none bg-[var(--color-brand)] text-[var(--primary-foreground)] shadow-[var(--shadow-micro)]">
               <Sparkles className="size-5" />
             </span>
-            <span className="text-base font-bold tracking-[0] text-[var(--color-text-primary)]">
+            <span className="text-base font-bold tracking-normal text-[var(--color-text-primary)]">
               {homeMock.navigation.brand}
             </span>
           </Link>
@@ -135,7 +135,7 @@ export function HomePage() {
 
           <Button
             asChild
-            className="rounded-none bg-[var(--color-brand)] px-4 py-[13px] text-white hover:bg-[var(--color-brand-strong)]"
+            className="rounded-none bg-[var(--color-brand)] px-4 py-[13px] text-[var(--primary-foreground)] hover:bg-[var(--color-brand-strong)]"
           >
             <Link href={homeMock.navigation.cta.href}>{homeMock.navigation.cta.label}</Link>
           </Button>
@@ -144,12 +144,12 @@ export function HomePage() {
 
       <section className="relative overflow-hidden border-b border-[var(--color-border-soft)] bg-[var(--color-bg-canvas)]">
         <ProductPreview />
-        <div className="absolute inset-0 bg-[rgba(255,255,255,0.9)] lg:bg-[rgba(255,255,255,0.68)]" />
+        <div className="absolute inset-0 bg-[var(--color-bg-hero-scrim)] lg:bg-[var(--color-bg-hero-scrim-soft)]" />
 
         <div className="relative mx-auto max-w-7xl px-4 py-14 md:px-6 md:py-[72px] lg:px-8 lg:py-24">
           <div className="max-w-3xl">
             <Badge variant="brand">{homeMock.hero.eyebrow}</Badge>
-            <h1 className="mt-6 text-4xl font-bold leading-[1.1] tracking-[0] text-[var(--color-text-primary)] md:text-5xl">
+            <h1 className="mt-6 text-4xl font-bold leading-[1.1] tracking-normal text-[var(--color-text-primary)] md:text-5xl">
               {homeMock.hero.title}
             </h1>
             <p className="mt-5 max-w-2xl text-base leading-7 text-[var(--color-text-secondary)] md:text-lg">
@@ -159,7 +159,7 @@ export function HomePage() {
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Button
                 asChild
-                className="rounded-none bg-[var(--color-brand)] px-4 py-[13px] text-white hover:bg-[var(--color-brand-strong)]"
+                className="rounded-none bg-[var(--color-brand)] px-4 py-[13px] text-[var(--primary-foreground)] hover:bg-[var(--color-brand-strong)]"
               >
                 <Link href={homeMock.hero.primaryAction.href}>
                   {homeMock.hero.primaryAction.label}
@@ -187,7 +187,7 @@ export function HomePage() {
                 <p className="text-sm font-medium text-[var(--color-text-secondary)]">
                   {metric.label}
                 </p>
-                <p className="mt-3 text-3xl font-bold tracking-[0] text-[var(--color-text-primary)]">
+                <p className="mt-3 text-3xl font-bold tracking-normal text-[var(--color-text-primary)]">
                   {metric.value}
                 </p>
                 <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">
@@ -203,10 +203,10 @@ export function HomePage() {
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0] text-[var(--color-text-muted)]">
+              <p className="text-[11px] font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
                 {homeMock.featureSection.eyebrow}
               </p>
-              <h2 className="mt-2 text-3xl font-bold tracking-[0] text-[var(--color-text-primary)]">
+              <h2 className="mt-2 text-3xl font-bold tracking-normal text-[var(--color-text-primary)]">
                 {homeMock.featureSection.title}
               </h2>
             </div>
@@ -237,7 +237,7 @@ export function HomePage() {
                     </span>
                     <Badge variant="neutral">{feature.status}</Badge>
                   </div>
-                  <h3 className="mt-5 text-xl font-semibold tracking-[0] text-[var(--color-text-primary)]">
+                  <h3 className="mt-5 text-xl font-semibold tracking-normal text-[var(--color-text-primary)]">
                     {feature.title}
                   </h3>
                   <p className="mt-3 flex-1 text-sm leading-6 text-[var(--color-text-secondary)]">
@@ -262,10 +262,10 @@ export function HomePage() {
                 className="rounded-none border border-[var(--color-border-soft)] bg-[var(--color-bg-elevated)] p-5"
                 key={item.step}
               >
-                <p className="text-xs font-bold uppercase tracking-[0] text-[var(--color-brand-outline)]">
+                <p className="text-xs font-bold uppercase tracking-normal text-[var(--color-brand-outline)]">
                   {item.step}
                 </p>
-                <h3 className="mt-4 text-lg font-semibold tracking-[0] text-[var(--color-text-primary)]">
+                <h3 className="mt-4 text-lg font-semibold tracking-normal text-[var(--color-text-primary)]">
                   {item.title}
                 </h3>
                 <p className="mt-3 text-sm leading-6 text-[var(--color-text-secondary)]">
@@ -279,10 +279,10 @@ export function HomePage() {
             <div className="flex size-11 items-center justify-center rounded-none bg-[var(--color-bg-dark-softer)]">
               <ShieldCheck className="size-5" />
             </div>
-            <p className="mt-5 text-[11px] font-bold uppercase tracking-[0] text-[var(--color-text-inverse-muted)]">
+            <p className="mt-5 text-[11px] font-bold uppercase tracking-normal text-[var(--color-text-inverse-muted)]">
               {homeMock.trustPanel.label}
             </p>
-            <h2 className="mt-3 text-2xl font-bold tracking-[0]">{homeMock.trustPanel.title}</h2>
+            <h2 className="mt-3 text-2xl font-bold tracking-normal">{homeMock.trustPanel.title}</h2>
             <p className="mt-4 text-sm leading-7 text-[var(--color-text-inverse-soft)]">
               {homeMock.trustPanel.description}
             </p>
