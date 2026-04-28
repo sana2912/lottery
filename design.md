@@ -6,9 +6,18 @@ Lottery Intelligence Dashboard is a data-driven lottery analytics product. It sh
 
 The interface communicates analysis, signal strength, historical tendency, score, and uncertainty. It must never imply guaranteed winning.
 
+The visual system may use a restrained linear-glass treatment. This should feel like a thin analytical surface layer over a structured dashboard, not like a glossy neon concept UI.
+
 ## Palette
 
 Use a warm stone base with minimal orange as the brand color. Teal, amber, purple, and semantic colors support insight states. Avoid red/gold-heavy casino themes, excessive gradients, or loud lottery styling.
+
+For glass treatment:
+- favor soft white or smoke-tinted translucent surfaces
+- use thin highlight borders and restrained backdrop blur
+- use linear gradients more than radial glow
+- keep contrast strong enough for dense dashboard reading
+- do not turn every panel into heavy frosted glass
 
 ### Core Light Theme
 
@@ -103,6 +112,10 @@ Use the app aliases in composed UI when they improve readability or match an exi
 --color-bg-elevated: #ffffff;
 --color-bg-subtle: var(--muted-soft);
 --color-bg-frosted: rgba(255, 255, 255, 0.86);
+--color-bg-glass: rgba(255, 255, 255, 0.72);
+--color-bg-glass-strong: rgba(255, 255, 255, 0.82);
+--color-bg-glass-dark: rgba(28, 25, 23, 0.72);
+--color-bg-glass-dark-strong: rgba(28, 25, 23, 0.82);
 
 --color-bg-dark: #1c1917;
 --color-bg-dark-soft: rgba(255, 255, 255, 0.08);
@@ -134,6 +147,8 @@ Use the app aliases in composed UI when they improve readability or match an exi
 
 --color-border-default: var(--border);
 --color-border-soft: #f0eeeb;
+--color-border-glass: rgba(255, 255, 255, 0.58);
+--color-border-glass-strong: rgba(255, 255, 255, 0.82);
 --color-border-inverse-soft: rgba(255, 255, 255, 0.12);
 --color-border-inverse-softer: rgba(255, 255, 255, 0.18);
 
@@ -148,6 +163,8 @@ Use the app aliases in composed UI when they improve readability or match an exi
 --shadow-card: 0 12px 32px rgba(28, 25, 23, 0.06);
 --shadow-micro: 0 1px 2px rgba(28, 25, 23, 0.06);
 --shadow-float-strong: 0 18px 48px rgba(28, 25, 23, 0.14);
+--shadow-glass: 0 12px 30px rgba(28, 25, 23, 0.08);
+--shadow-glass-strong: 0 20px 48px rgba(28, 25, 23, 0.12);
 
 --radius: 0rem;
 
@@ -249,6 +266,9 @@ Use the app aliases in composed UI when they improve readability or match an exi
 - Use square corners with `rounded-none`, subtle stone borders, and `--shadow-card`.
 - Prefer structured, calm panels over decorative cards.
 - Metric cards should show label, value, optional hint/trend, and optional semantic accent.
+- Linear-glass is allowed for primary panels, shell surfaces, and key summary cards:
+  use thin translucency, subtle linear highlight, and restrained blur.
+- Keep dense data tables and compact stat containers readable first; if glass reduces contrast, prefer solid elevated surfaces.
 
 ### Buttons
 
@@ -257,6 +277,7 @@ Use the app aliases in composed UI when they improve readability or match an exi
 - Ghost and outline variants stay neutral.
 - Danger is reserved for destructive actions only.
 - Buttons should be clear, medium-density, and square.
+- Outline and ghost buttons may use light glass tint instead of flat white when sitting on layered shell backgrounds.
 
 ### Badges
 
@@ -273,6 +294,7 @@ Badges should be square soft labels with readable contrast. Avoid loud casino-li
 - Inputs are clean and large enough for search/filter workflows.
 - Use stone borders, white surfaces, and orange focus rings.
 - Filters should wrap or collapse cleanly on mobile.
+- Inputs may use a subtle frosted surface, but text contrast and focus state must remain stronger than the blur effect.
 
 ### Tabs And Segmented Controls
 
@@ -306,6 +328,7 @@ Badges should be square soft labels with readable contrast. Avoid loud casino-li
 - Main CTA uses primary orange.
 - Latest draw card may use primary-soft.
 - Hot, cold, and overdue cards use their semantic colors.
+- Hero and shell-adjacent cards can use the clearest linear-glass treatment in the app, as long as metrics stay immediately scannable.
 
 ### Results
 
@@ -377,6 +400,7 @@ Badges should be square soft labels with readable contrast. Avoid loud casino-li
 - Use warning-soft callouts for "not a guarantee".
 - Use muted-soft formula and example blocks.
 - Links use primary.
+- Prefer solid or lightly frosted reading blocks over decorative glass if long-form readability would suffer.
 
 ## Copywriting Rules
 

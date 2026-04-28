@@ -7,22 +7,22 @@
       { "label": "Prediction Lab", "href": "/prediction-lab" },
       { "label": "Methodology", "href": "/methodology" }
     ],
-    "cta": { "label": "เปิด Dashboard", "href": "/dashboard" }
+    "cta": { "label": "Open Dashboard", "href": "/dashboard" }
   },
   "hero": {
     "eyebrow": "Mock-first user dashboard",
-    "title": "Lottery intelligence ที่แยกทุก feature เป็นหน้าชัดเจน พร้อมต่อข้อมูลย้อนหลังจริง",
-    "description": "หน้า home นี้ดึง copy, feature list, metrics และ product preview จาก JSON เพื่อให้ทีมปรับ mock content ได้เร็ว โดยยังรักษา UI contract สำหรับ API-ready MVP",
-    "primaryAction": { "label": "เริ่มจาก Dashboard", "href": "/dashboard" },
-    "secondaryAction": { "label": "ดูผลย้อนหลัง", "href": "/results" },
+    "title": "Lottery intelligence with clear feature routes, consistent read models, and API-ready UI contracts",
+    "description": "This home page pulls copy, feature summaries, metrics, and product preview content from JSON so the team can revise the mock product surface quickly while keeping the UI aligned with the production MVP shape.",
+    "primaryAction": { "label": "Start with Dashboard", "href": "/dashboard" },
+    "secondaryAction": { "label": "Review Results", "href": "/results" },
     "preview": {
-      "status": "ข้อมูล mock ล่าสุด",
-      "readyLabel": "พร้อมแสดงผล",
-      "latestDrawLabel": "งวดล่าสุด",
-      "latestDraw": "16 เมษายน 2026",
-      "highlightLabel": "เลขเด่น",
+      "status": "Latest mock snapshot",
+      "readyLabel": "Ready to review",
+      "latestDrawLabel": "Latest draw",
+      "latestDraw": "16 April 2026",
+      "highlightLabel": "Top signal",
       "highlightNumber": "47",
-      "scoreLabel": "score",
+      "scoreLabel": "Score",
       "score": "82",
       "trendLabel": "Hot trend",
       "trendValues": [42, 58, 63, 71, 82],
@@ -34,12 +34,12 @@
     {
       "label": "MVP feature pages",
       "value": "10",
-      "hint": "หนึ่ง route ต่อหนึ่ง feature หลัก"
+      "hint": "One route per primary product surface."
     },
     {
       "label": "Mock draw coverage",
       "value": "1,250",
-      "hint": "จำนวนงวดจำลองสำหรับหน้าสถิติและ backtest"
+      "hint": "Simulated draw count used by analytics and backtest surfaces."
     },
     {
       "label": "API-ready modules",
@@ -49,17 +49,17 @@
   ],
   "featureSection": {
     "eyebrow": "Feature routes",
-    "title": "หนึ่งหน้า หนึ่ง feature หลัก",
-    "actionLabel": "ดูแนวคิดการคำนวณ",
+    "title": "One route per primary user workflow",
+    "actionLabel": "Review methodology",
     "actionHref": "/methodology",
-    "itemActionLabel": "เปิดหน้า"
+    "itemActionLabel": "Open page"
   },
   "features": [
     {
       "id": "dashboard",
       "title": "Dashboard",
       "href": "/dashboard",
-      "description": "งวดล่าสุด เลขเด่น hot/cold overdue trend และ prediction summary",
+      "description": "Latest draw, top signals, hot/cold/overdue movement, and prediction summary in one overview surface.",
       "status": "Overview",
       "icon": "dashboard"
     },
@@ -67,7 +67,7 @@
       "id": "results",
       "title": "Results",
       "href": "/results",
-      "description": "ผลย้อนหลัง filter ตามปี เดือน งวด และค้นหาเลข 2/3/6 ตัว",
+      "description": "Historical results with filters for draw history, grouped prizes, and number lookup workflows.",
       "status": "Mock UI",
       "icon": "results"
     },
@@ -75,7 +75,7 @@
       "id": "analytics",
       "title": "Analytics",
       "href": "/analytics",
-      "description": "ความถี่เลข 0-9 แยกตำแหน่ง ออกล่าสุด และจำนวนงวดที่หายไป",
+      "description": "Digit and number frequency, position bias, last-seen timing, and missing-draw counts.",
       "status": "Stats",
       "icon": "analytics"
     },
@@ -83,7 +83,7 @@
       "id": "patterns",
       "title": "Patterns",
       "href": "/patterns",
-      "description": "คู่คี่ สูงต่ำ ผลรวม เลขเบิ้ล เลขเรียง เลขกลับ และ seasonality",
+      "description": "Odd/even, high/low, double, sequence, mirrored-number, and seasonal pattern views.",
       "status": "Signals",
       "icon": "patterns"
     },
@@ -91,7 +91,7 @@
       "id": "prediction",
       "title": "Prediction Lab",
       "href": "/prediction-lab",
-      "description": "generate เลขจากสูตร mock พร้อม score เหตุผล และ save เข้า watchlist",
+      "description": "Generate candidate numbers with score breakdowns, reasons, and save-to-watchlist flow.",
       "status": "Scoring",
       "icon": "prediction"
     },
@@ -99,7 +99,7 @@
       "id": "backtest",
       "title": "Backtest",
       "href": "/backtest",
-      "description": "เทียบ strategy ด้วย hit rate, longest miss streak และ performance chart",
+      "description": "Test strategy performance with hit rate, miss streak, and persisted run history.",
       "status": "Compare",
       "icon": "backtest"
     },
@@ -107,7 +107,7 @@
       "id": "watchlist",
       "title": "Watchlist",
       "href": "/watchlist",
-      "description": "เลขที่สนใจ tag ส่วนตัว note และสถิติว่าเคยออกกี่ครั้ง",
+      "description": "Track interesting numbers with tags, notes, and current global-scope saved state.",
       "status": "Saved",
       "icon": "watchlist"
     },
@@ -115,7 +115,7 @@
       "id": "compare",
       "title": "Compare",
       "href": "/compare",
-      "description": "เปรียบเทียบหลายชุดด้วย score breakdown, hot, overdue และ pattern support",
+      "description": "Compare multiple candidate numbers with shared score breakdown, hotness, and overdue support.",
       "status": "Side by side",
       "icon": "compare"
     },
@@ -123,7 +123,7 @@
       "id": "calendar",
       "title": "Calendar",
       "href": "/calendar",
-      "description": "ปฏิทินงวด countdown งวดถัดไป และ insight รายเดือนจากอดีต",
+      "description": "Draw calendar, next-draw countdown, and monthly insight summaries with uncertainty framing.",
       "status": "Schedule",
       "icon": "calendar"
     },
@@ -131,7 +131,7 @@
       "id": "methodology",
       "title": "Methodology",
       "href": "/methodology",
-      "description": "อธิบาย Hot, Cold, Backtest และ prediction score แบบอ่านง่าย",
+      "description": "Explain hot/cold signals, backtest reading, prediction score fields, and product limitations.",
       "status": "Trust",
       "icon": "methodology"
     }
@@ -139,24 +139,24 @@
   "workflow": [
     {
       "step": "01",
-      "title": "Mock data เป็น source เดียว",
-      "description": "Home อ่าน JSON ตรง ๆ และ feature pages ถัดไปควรใช้ mock read model กลางแทน copy กระจายหลายไฟล์"
+      "title": "Mock data stays centralized",
+      "description": "Home reads JSON directly, and downstream feature pages should continue using shared mock read models instead of scattering copy across many files."
     },
     {
       "step": "02",
-      "title": "หน้า user-facing มาก่อน",
-      "description": "ไม่มี admin, import screen หรือ backend input flow ใน MVP รอบนี้ เพื่อให้ product surface ดูพร้อมใช้งานก่อน"
+      "title": "User-facing routes first",
+      "description": "The MVP avoids admin screens and import tooling so the product surface can stabilize before internal workflows are added."
     },
     {
       "step": "03",
-      "title": "API contract เสียบได้ภายหลัง",
-      "description": "ชื่อ entity และ module ยังอิง draws, analytics, predictions, watchlist เพื่อ map เข้ากับ Elysia และ Prisma ได้ตรง"
+      "title": "API contracts can slot in later",
+      "description": "Entity names and module boundaries already align to draws, analytics, predictions, and watchlist so Elysia and Prisma wiring can replace the fixtures cleanly."
     }
   ],
   "trustPanel": {
     "label": "Responsible prediction",
-    "title": "ตัวเลขแนะนำต้องมีเหตุผล ไม่ใช่คำการันตี",
-    "description": "ทุก score ใน MVP จะถูกเล่าเป็น insight จากข้อมูลย้อนหลัง เช่น frequency, recency, position support และ backtest result พร้อม disclaimer ชัดเจน",
+    "title": "Candidate numbers need reasons, not implied guarantees",
+    "description": "Every score in the MVP should be explained as a historical signal derived from frequency, recency, position support, and backtest context, with a clear limitation statement alongside it.",
     "confirmation": "Mock-first, API-ready, user-facing only"
   }
 }

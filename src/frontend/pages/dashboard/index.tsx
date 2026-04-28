@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { MetricCard } from "@/frontend/components/cards/MetricCard";
+import { dashboardContent } from "@/frontend/pages/dashboard/dashboard.content";
 import dashboardMockJson from "@/frontend/pages/dashboard/dashboard.mock.json";
 import {
   Badge,
@@ -39,59 +40,101 @@ export function DashboardPage() {
           </Button>
         </Card>
 
-        <Card className="bg-[var(--color-bg-dark)] p-6 text-[var(--color-text-inverse)]">
-          <p className="text-[11px] font-bold uppercase tracking-normal text-[var(--color-text-inverse-soft)]">
-            งวดล่าสุด
+        <Card className="border-[color:rgba(249,115,22,0.18)] bg-[linear-gradient(180deg,rgba(255,247,237,0.9),rgba(255,255,255,0.72))] p-6 text-[var(--color-text-primary)] shadow-[var(--shadow-glass-strong)]">
+          <p className="text-[11px] font-bold uppercase tracking-normal text-[var(--color-brand-outline)]">
+            {dashboardContent.latestDraw.eyebrow}
           </p>
           <div className="mt-4 flex items-start justify-between gap-4">
             <div>
               <p className="text-2xl font-bold tracking-normal">{latestDraw.drawDate}</p>
-              <p className="mt-1 text-sm text-[var(--color-text-inverse-soft)]">
-                งวดที่ {latestDraw.drawNo}
+              <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+                {dashboardContent.latestDraw.drawLabel} {latestDraw.drawNo}
               </p>
             </div>
             <Badge variant="success">{latestDraw.statusLabel}</Badge>
           </div>
-          <div className="mt-6 rounded-none bg-[var(--color-bg-dark-soft)] p-4">
-            <p className="text-xs font-bold uppercase tracking-normal text-[var(--color-text-inverse-soft)]">
+          <div className="mt-6 rounded-none border border-[var(--color-border-glass)] bg-[var(--color-bg-glass-strong)] p-4 backdrop-blur-lg">
+            <p className="text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
               {latestDraw.primaryPrize.label}
             </p>
-            <p className="mt-2 font-mono text-3xl font-bold tracking-normal">
+            <p className="mt-2 font-mono text-3xl font-bold tracking-normal text-[var(--color-text-primary)]">
               {latestDraw.primaryPrize.value}
             </p>
           </div>
           <div className="mt-4 grid gap-3">
             {latestDraw.secondaryPrizes.map((prize) => (
               <div
-                className="flex items-center justify-between gap-4 border-b border-[var(--color-border-inverse-soft)] pb-3 last:border-b-0 last:pb-0"
+                className="flex items-center justify-between gap-4 border-b border-[var(--color-border-soft)] pb-3 last:border-b-0 last:pb-0"
                 key={prize.label}
               >
-                <span className="text-sm text-[var(--color-text-inverse-soft)]">{prize.label}</span>
-                <span className="font-mono text-sm font-semibold text-[var(--color-text-inverse)]">
+                <span className="text-sm text-[var(--color-text-secondary)]">{prize.label}</span>
+                <span className="font-mono text-sm font-semibold text-[var(--color-text-primary)]">
                   {prize.value}
                 </span>
               </div>
             ))}
+          </div>
+          <div className="mt-6 flex flex-wrap gap-2 border-t border-[var(--color-border-soft)] pt-4">
+            <Button asChild size="sm" variant="secondary">
+              <Link href={`/results/${latestDraw.id}`}>
+                {dashboardContent.latestDraw.detailActionLabel}
+              </Link>
+            </Button>
+            <Button
+              asChild
+              className="border-[var(--color-border-glass)] bg-[var(--color-bg-glass)] text-[var(--color-text-primary)] hover:bg-[var(--color-bg-glass-strong)]"
+              size="sm"
+              variant="outline"
+            >
+              <Link href="/calendar">{dashboardContent.latestDraw.calendarActionLabel}</Link>
+            </Button>
           </div>
         </Card>
       </section>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {metrics.map((metric) => (
-          <MetricCard
-            hint={metric.hint}
+          <Link
+            aria-label={`${dashboardContent.metricLinks[metric.label as keyof typeof dashboardContent.metricLinks]?.label ?? dashboardContent.shared.defaultActionLabel} for ${metric.label}`}
+            className="block"
+            href={
+              dashboardContent.metricLinks[
+                metric.label as keyof typeof dashboardContent.metricLinks
+              ]?.href ?? "/dashboard"
+            }
             key={metric.label}
-            label={metric.label}
-            tone={metric.tone}
-            trend={metric.trend}
-            value={metric.value}
-          />
+          >
+            <MetricCard
+              hint={metric.hint}
+              label={metric.label}
+              tone={metric.tone}
+              trend={metric.trend}
+              value={metric.value}
+            />
+          </Link>
         ))}
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
         <Card className="p-6">
-          <SectionHeading eyebrow="signal board" title="สัญญาณที่ dashboard ต้องรับจาก analytics" />
+          <SectionHeading
+            actions={
+              <div className="flex flex-wrap gap-2">
+                <Button asChild size="sm" variant="outline">
+                  <Link href={dashboardContent.signals.actions.detailHref}>
+                    {dashboardContent.signals.actions.detailLabel}
+                  </Link>
+                </Button>
+                <Button asChild size="sm" variant="link">
+                  <Link href={dashboardContent.signals.actions.methodologyHref}>
+                    {dashboardContent.signals.actions.methodologyLabel}
+                  </Link>
+                </Button>
+              </div>
+            }
+            eyebrow={dashboardContent.signals.eyebrow}
+            title={dashboardContent.signals.title}
+          />
           <div className="mt-5 grid gap-4 md:grid-cols-3">
             {signals.map((signal) => (
               <article
@@ -122,7 +165,24 @@ export function DashboardPage() {
         </Card>
 
         <Card className="p-6">
-          <SectionHeading eyebrow="prediction contract" title={predictionSummary.title} />
+          <SectionHeading
+            actions={
+              <div className="flex flex-wrap gap-2">
+                <Button asChild size="sm" variant="outline">
+                  <Link href={dashboardContent.predictionSummary.actions.detailHref}>
+                    {dashboardContent.predictionSummary.actions.detailLabel}
+                  </Link>
+                </Button>
+                <Button asChild size="sm" variant="link">
+                  <Link href={dashboardContent.predictionSummary.actions.methodologyHref}>
+                    {dashboardContent.predictionSummary.actions.methodologyLabel}
+                  </Link>
+                </Button>
+              </div>
+            }
+            eyebrow={dashboardContent.predictionSummary.eyebrow}
+            title={predictionSummary.title}
+          />
           <div className="mt-5 space-y-3">
             {predictionSummary.candidates.map((candidate) => (
               <div
@@ -134,7 +194,7 @@ export function DashboardPage() {
                     {candidate.number}
                   </span>
                   <span className="text-sm font-semibold text-[var(--color-brand)]">
-                    score {candidate.score}
+                    {dashboardContent.predictionSummary.scoreLabel} {candidate.score}
                   </span>
                 </div>
                 <p className="mt-3 text-sm leading-6 text-[var(--color-text-muted)]">
@@ -151,22 +211,29 @@ export function DashboardPage() {
 
       <Card className="p-6">
         <SectionHeading
-          eyebrow="read model"
-          title="Dashboard data contract ก่อนต่อ API"
-          description="ตารางนี้ล็อก field ที่ dashboard ต้องการจาก service layer เพื่อให้ backend map จาก Prisma หรือ analytics read model ได้ตรง"
+          actions={
+            <Button asChild size="sm" variant="outline">
+              <Link href={dashboardContent.readModel.actionHref}>
+                {dashboardContent.readModel.actionLabel}
+              </Link>
+            </Button>
+          }
+          eyebrow={dashboardContent.readModel.eyebrow}
+          title={dashboardContent.readModel.title}
+          description={dashboardContent.readModel.description}
         />
         <div className="mt-5 overflow-hidden rounded-none border border-[var(--color-border-soft)]">
           <Table>
             <TableHeader className="bg-[var(--color-bg-subtle)]">
               <TableRow className="border-b border-[var(--color-border-soft)] hover:bg-transparent">
                 <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                  field
+                  {dashboardContent.contractTableHeaders.field}
                 </TableHead>
                 <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                  source
+                  {dashboardContent.contractTableHeaders.source}
                 </TableHead>
                 <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                  purpose
+                  {dashboardContent.contractTableHeaders.purpose}
                 </TableHead>
               </TableRow>
             </TableHeader>
