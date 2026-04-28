@@ -1,6 +1,7 @@
 "use client";
 
 import { AlertCircle, FlaskConical, Loader2 } from "lucide-react";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { EmptyState, MetricCard } from "@/frontend/components";
 import {
@@ -116,6 +117,13 @@ export function PredictionLabPage() {
             Strategies rank historical signals from analytics data. Scores are analysis outputs, not
             guarantees.
           </p>
+          <div className="mt-4">
+            <Button asChild className="px-0" variant="link">
+              <Link href="/methodology#prediction-score">
+                Read how prediction scores are derived
+              </Link>
+            </Button>
+          </div>
         </Card>
 
         <Card className="p-6">
@@ -212,6 +220,9 @@ export function PredictionLabPage() {
           <Button disabled={isPending} onClick={handleGenerate} type="button">
             {isPending ? <Loader2 className="animate-spin" /> : <FlaskConical />}
             Generate
+          </Button>
+          <Button asChild className="px-0" variant="link">
+            <Link href="/methodology#score-breakdown">Review score breakdown fields</Link>
           </Button>
           <p className="text-sm leading-6 text-[var(--color-text-muted)]">
             Results use historical analytics signals and should be read as exploratory ranking.

@@ -1,6 +1,7 @@
 "use client";
 
 import { AlertCircle, Loader2, Scale3d } from "lucide-react";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { TimeSeriesChart } from "@/frontend/chart-primitives";
 import { EmptyState, FilterToolbar, LoadingSkeleton, MetricCard } from "@/frontend/components";
@@ -245,6 +246,13 @@ export function BacktestPage() {
             Historical draws are replayed in order so the selected strategy only sees earlier data.
             Hit rate, miss streak, and ranking are shown as analysis output, not guarantees.
           </p>
+          <div className="mt-4">
+            <Button asChild className="px-0" variant="link">
+              <Link href="/methodology#backtest-reading">
+                Read how walk-forward backtest is interpreted
+              </Link>
+            </Button>
+          </div>
         </Card>
 
         <Card className="p-6">
@@ -453,6 +461,13 @@ export function BacktestPage() {
             title="Summary and verification"
             description="The contract exposes versioned scores so the UI can verify which engine produced the run."
           />
+          <div className="mt-4">
+            <Button asChild className="px-0" variant="link">
+              <Link href="/methodology#backtest-reading">
+                Review hit rate, miss streak, and rank guidance
+              </Link>
+            </Button>
+          </div>
           <div className="mt-5 space-y-3">
             <MetricCard
               hint="Strategy registry entry used for scoring."

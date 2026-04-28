@@ -1,6 +1,7 @@
 import { Elysia } from "elysia";
 import { analyticsRouter } from "@/api/router/analytics.router";
 import { backtestRouter } from "@/api/router/backtest.router";
+import { calendarRouter } from "@/api/router/calendar.router";
 import { compareRouter } from "@/api/router/compare.router";
 import { drawRouter } from "@/api/router/draw.router";
 import { predictionRouter } from "@/api/router/prediction.router";
@@ -17,5 +18,6 @@ export function createApiRouter() {
     .use(predictionRouter)
     .use(backtestRouter)
     .use(compareRouter)
+    .use(calendarRouter)
     .use(watchlistRouter);
 }

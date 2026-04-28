@@ -1,6 +1,7 @@
 "use client";
 
 import { AlertCircle, Loader2, Scale3d } from "lucide-react";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { TimeSeriesChart } from "@/frontend/chart-primitives";
 import { EmptyState, FilterToolbar, LoadingSkeleton, MetricCard } from "@/frontend/components";
@@ -163,6 +164,11 @@ export function ComparePage() {
             strongest score is easy to inspect. The output explains historical support, not a win
             guarantee.
           </p>
+          <div className="mt-4">
+            <Button asChild className="px-0" variant="link">
+              <Link href="/methodology#score-breakdown">Read how compare scores are explained</Link>
+            </Button>
+          </div>
         </Card>
 
         <Card className="p-6">
@@ -365,6 +371,11 @@ export function ComparePage() {
             title="Why the leading numbers scored higher"
             description="The score breakdown keeps the output readable for product review and later strategy tuning."
           />
+          <div className="mt-4">
+            <Button asChild className="px-0" variant="link">
+              <Link href="/methodology#score-breakdown">Review the shared scoring fields</Link>
+            </Button>
+          </div>
           <div className="mt-5 space-y-3">
             {compare.candidates.map((candidate) => (
               <div

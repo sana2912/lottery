@@ -1842,3 +1842,39 @@ Deferred:
 - Backtest history uses a compact recent-runs list only; pagination and richer filtering are still out of scope.
 - Random baseline comparison and strategy-vs-strategy reporting remain future work.
 - Phase 6 remains the next MVP phase after this batch.
+
+### Phase 6A: Calendar API and production page
+
+Status: implemented, pending project check by user.
+
+Scope shipped:
+
+- Implemented `calendarService.getCalendarReadModel()` with next-draw schedule helper, recent draw rows, and first-pass monthly insight aggregation.
+- Implemented `GET /api/calendar` and registered the calendar router.
+- Added `calendar` to shared frontend API route constants.
+- Replaced the Calendar placeholder with a production page that shows countdown, schedule rows, and monthly insight cards with API fallback to the checked mock contract.
+
+Deferred:
+
+- Calendar still uses a simple schedule helper for the 1st and 16th rhythm; official holiday shifts and source-linked schedule metadata remain future work.
+- Monthly insights are descriptive summaries only; deeper seasonality analytics can be added later.
+- Methodology production content and cross-links are still pending Phase 6B.
+
+### Phase 6B: Methodology production page and cross-links
+
+Status: implemented, pending project check by user.
+
+Scope shipped:
+
+- Replaced the Methodology placeholder with a production page that explains glossary terms, prediction scoring, shared score breakdown fields, walk-forward backtest reading, monthly insight interpretation, and product limitations.
+- Added stable in-page methodology anchors for prediction score, score breakdown, backtest reading, monthly insights, and disclaimers.
+- Added direct links from Prediction Lab to methodology sections for score derivation and breakdown fields.
+- Added direct links from Backtest to methodology guidance for walk-forward interpretation, hit rate, miss streak, and rank reading.
+- Added direct links from Compare to methodology guidance for the shared score breakdown contract.
+- Added direct links from Calendar to methodology guidance for monthly insight sample-size and uncertainty framing.
+
+Deferred:
+
+- Global navigation label cleanup and unrelated mojibake repair remain separate work and are not part of this batch.
+- Dashboard-to-methodology deep links can be added later if the dashboard starts exposing more score or uncertainty copy.
+- Phase 6 is now functionally complete for the current MVP scope; future calendar/methodology work should be treated as polish or content expansion, not a foundation blocker.
