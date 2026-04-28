@@ -1,31 +1,37 @@
 import { ChartFrame } from "@/frontend/chart-primitives/d3/ChartFrame";
 
-const timeSeriesPoints = [
-  { id: "point-1", value: 32 },
-  { id: "point-2", value: 52 },
-  { id: "point-3", value: 44 },
-  { id: "point-4", value: 68 },
-  { id: "point-5", value: 58 },
-  { id: "point-6", value: 76 },
-  { id: "point-7", value: 64 },
-  { id: "point-8", value: 84 }
-] as const;
+export type TimeSeriesPoint = {
+  id: string;
+  label: string;
+  value: number;
+};
 
-export function TimeSeriesChart() {
+export type TimeSeriesChartProps = {
+  points: readonly TimeSeriesPoint[];
+  title?: string;
+};
+
+export function TimeSeriesChart({ points, title = "Time series" }: TimeSeriesChartProps) {
+  const maxValue = Math.max(...points.map((point) => point.value), 1);
+
   return (
-    <ChartFrame title="Time series">
+    <ChartFrame title={title}>
       <div
-        aria-label="Time series placeholder"
+        aria-label={title}
         className="flex h-44 items-end gap-2 border-l border-b border-[var(--color-border-soft)] px-4 pt-4"
         role="img"
       >
-        {timeSeriesPoints.map((point) => (
-          <div
-            aria-hidden="true"
-            className="min-h-4 flex-1 bg-[var(--color-brand)]"
-            key={point.id}
-            style={{ height: `${point.value}%` }}
-          />
+        {points.map((point) => (
+          <div className="flex min-w-0 flex-1 flex-col items-center gap-2" key={point.id}>
+            <div
+              aria-hidden="true"
+              className="min-h-4 w-full bg-[var(--color-brand)]"
+              style={{ height: `${Math.max(8, (point.value / maxValue) * 100)}%` }}
+            />
+            <span className="max-w-full truncate text-[10px] text-[var(--color-text-muted)]">
+              {point.label}
+            </span>
+          </div>
         ))}
       </div>
     </ChartFrame>

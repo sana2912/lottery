@@ -1633,3 +1633,58 @@ Deferred:
 
 - `bun install`, Prisma generate, migration, and Docker startup are intentionally left for the user to run locally.
 - Generated Prisma client files are not updated until `bun run db:generate` runs.
+
+### Phase 3A: Analytics engine foundation
+
+Status: implemented, pending project check by user.
+
+Scope shipped:
+
+- Added digit event extraction utility for Prisma-shaped prize records while preserving lottery numbers as strings.
+- Added number stat calculation utility with frequency, recency, gap, trend score, and pattern flag support.
+- Added pattern summary generation from computed number stats.
+- Implemented `analyticsService.getAnalyticsReadModel()`, `getDigitStats()`, and `getNumberStats()`.
+- Implemented `GET /api/analytics`, `GET /api/analytics/digits`, and `GET /api/analytics/numbers`.
+- Reused shared `filterContextSchema` and backend query parsing for analytics filters.
+
+Deferred:
+
+- Analytics and Patterns pages are not wired to the API yet.
+- Chart primitives remain placeholder until Phase 3B.
+- Dedicated unit tests for leading-zero fixtures such as `09` and `007` are still pending.
+
+### Phase 3B: Analytics and Patterns UI foundation
+
+Status: implemented, pending project check by user.
+
+Scope shipped:
+
+- Updated `TimeSeriesChart` to render caller-provided points instead of fixed placeholder bars.
+- Updated `Heatmap` to render caller-provided cells instead of fixed placeholder cells.
+- Replaced Analytics placeholder page with an API-backed dashboard using `/api/analytics` and Zod response parsing.
+- Replaced Patterns placeholder page with pattern summaries and flagged number groups from the analytics read model.
+- Added frontend-local empty fallback models so UI pages do not import backend DTO-backed mock fixtures.
+
+Deferred:
+
+- URL-backed interactive analytics filters remain pending.
+- Chart rendering is still CSS-based; D3-specific rendering can be added when chart interactions are needed.
+- Dedicated unit tests for analytics utilities remain pending.
+
+### Phase 3C: Analytics correctness tests
+
+Status: implemented, pending project check by user.
+
+Scope shipped:
+
+- Added a separate test registry under `tests/analytics` so test files do not live inside feature implementation folders.
+- Added Bun tests for digit event extraction, including leading-zero numbers such as `09` and `007`.
+- Added Bun tests for number stat calculation, number-length filtering, and pattern flags.
+- Added Bun tests for pattern summary generation.
+- Added `bun run test` script.
+- Added Bun test typings for TypeScript project checks.
+
+Deferred:
+
+- API integration tests for `/api/analytics` remain pending.
+- Broader statistical validation tests can be added after real seed data is available.
