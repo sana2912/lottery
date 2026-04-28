@@ -10,19 +10,19 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-primary text-primary-foreground shadow-[var(--shadow-micro)] hover:bg-[var(--primary-hover)]",
+          "border border-[color:rgba(255,255,255,0.18)] bg-[linear-gradient(180deg,var(--primary),var(--primary-hover))] text-primary-foreground shadow-[var(--shadow-micro)] hover:brightness-[1.03]",
         primary:
-          "bg-primary text-primary-foreground shadow-[var(--shadow-micro)] hover:bg-[var(--primary-hover)]",
+          "border border-[color:rgba(255,255,255,0.18)] bg-[linear-gradient(180deg,var(--primary),var(--primary-hover))] text-primary-foreground shadow-[var(--shadow-micro)] hover:brightness-[1.03]",
         destructive:
           "bg-destructive text-[var(--destructive-foreground)] hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:bg-destructive/60 dark:focus-visible:ring-destructive/40",
         danger:
           "bg-[var(--danger)] text-[var(--destructive-foreground)] hover:bg-[var(--danger)]/90 focus-visible:ring-[var(--danger)]/20",
         outline:
-          "border border-input bg-background shadow-xs hover:bg-[var(--muted-soft)] hover:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
+          "border border-[var(--color-border-glass)] bg-[var(--color-bg-glass)] shadow-[var(--shadow-micro)] backdrop-blur-lg hover:bg-[var(--color-bg-glass-strong)] hover:text-foreground",
         secondary:
-          "bg-[var(--secondary)] text-[var(--secondary-foreground)] shadow-[var(--shadow-micro)] hover:bg-[var(--secondary)]/90",
+          "border border-[color:rgba(255,255,255,0.14)] bg-[linear-gradient(180deg,var(--secondary),color-mix(in srgb,var(--secondary) 88%, black))] text-[var(--secondary-foreground)] shadow-[var(--shadow-micro)] hover:brightness-[1.03]",
         ghost:
-          "hover:bg-[var(--muted-soft)] hover:text-foreground dark:hover:bg-[var(--muted-soft)]",
+          "border border-transparent bg-transparent hover:border-[var(--color-border-glass)] hover:bg-[var(--color-bg-glass)] hover:text-foreground hover:backdrop-blur-lg",
         link: "text-primary underline-offset-4 hover:underline"
       },
       size: {

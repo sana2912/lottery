@@ -18,17 +18,17 @@ export function AppShell({ children }: AppShellProps) {
   const mobileNavigationId = "mobile-primary-navigation";
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg-app)] text-[var(--color-text-primary)] lg:flex">
+    <div className="min-h-screen bg-transparent text-[var(--color-text-primary)] lg:flex">
       <Sidebar items={userNavigation} pathname={pathname} />
 
       <div className="min-w-0 flex-1">
-        <header className="sticky top-0 z-10 border-b border-[var(--color-border-soft)]/80 bg-[var(--color-bg-frosted)] backdrop-blur">
+        <header className="sticky top-0 z-10 border-b border-[var(--color-border-glass)] bg-[linear-gradient(180deg,var(--color-bg-glass-strong),var(--color-bg-glass))] backdrop-blur-xl">
           <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-4 md:px-6 lg:px-8">
             <button
               aria-controls={mobileNavigationId}
               aria-expanded={mobileNavigationOpen}
               aria-label={mobileNavigationOpen ? "Close navigation" : "Open navigation"}
-              className="inline-flex size-11 items-center justify-center rounded-none border border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] text-[var(--color-text-primary)] shadow-[var(--shadow-micro)] transition-colors hover:bg-[var(--color-bg-subtle)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 lg:hidden"
+              className="inline-flex size-11 items-center justify-center rounded-none border border-[var(--color-border-glass)] bg-[var(--color-bg-glass)] text-[var(--color-text-primary)] shadow-[var(--shadow-micro)] backdrop-blur-lg transition-colors hover:bg-[var(--color-bg-glass-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 lg:hidden"
               onClick={() => setMobileNavigationOpen((open) => !open)}
               type="button"
             >

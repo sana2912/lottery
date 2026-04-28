@@ -44,58 +44,59 @@ export function HomePage() {
       </header>
 
       <section className="relative overflow-hidden border-b border-[var(--color-border-soft)] bg-[var(--color-bg-canvas)]">
-        <ProductPreview />
-        <div className="absolute inset-0 bg-[var(--color-bg-hero-scrim)] lg:bg-[var(--color-bg-hero-scrim-soft)]" />
+        <div className="mx-auto max-w-7xl px-4 py-14 md:px-6 md:py-[72px] lg:px-8 lg:py-24">
+          <div className="grid gap-10 lg:grid-cols-[minmax(0,1.08fr)_minmax(420px,0.92fr)] lg:items-start">
+            <div>
+              <Badge variant="brand">{homeContent.hero.eyebrow}</Badge>
+              <h1 className="mt-6 max-w-3xl text-4xl font-bold leading-[1.1] tracking-normal text-[var(--color-text-primary)] md:text-5xl">
+                {homeContent.hero.title}
+              </h1>
+              <p className="mt-5 max-w-2xl text-base leading-7 text-[var(--color-text-secondary)] md:text-lg">
+                {homeContent.hero.description}
+              </p>
 
-        <div className="relative mx-auto max-w-7xl px-4 py-14 md:px-6 md:py-[72px] lg:px-8 lg:py-24">
-          <div className="max-w-3xl">
-            <Badge variant="brand">{homeContent.hero.eyebrow}</Badge>
-            <h1 className="mt-6 text-4xl font-bold leading-[1.1] tracking-normal text-[var(--color-text-primary)] md:text-5xl">
-              {homeContent.hero.title}
-            </h1>
-            <p className="mt-5 max-w-2xl text-base leading-7 text-[var(--color-text-secondary)] md:text-lg">
-              {homeContent.hero.description}
-            </p>
-
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Button
-                asChild
-                className="rounded-none bg-[var(--color-brand)] px-4 py-[13px] text-[var(--primary-foreground)] hover:bg-[var(--color-brand-strong)]"
-              >
-                <Link href={homeContent.hero.primaryAction.href}>
-                  {homeContent.hero.primaryAction.label}
-                  <ArrowRight className="size-4" />
-                </Link>
-              </Button>
-              <Button
-                asChild
-                className="rounded-none border-[var(--color-brand-outline)] bg-[var(--color-bg-canvas)] px-4 py-[13px] text-[var(--color-brand-outline)] hover:bg-[var(--color-bg-brand-soft)]"
-                variant="outline"
-              >
-                <Link href={homeContent.hero.secondaryAction.href}>
-                  {homeContent.hero.secondaryAction.label}
-                </Link>
-              </Button>
-            </div>
-          </div>
-
-          <div className="mt-10 grid gap-4 md:grid-cols-3">
-            {homeContent.metrics.map((metric) => (
-              <div
-                className="rounded-none border border-[var(--color-border-soft)] bg-[var(--color-bg-elevated)] p-5 shadow-[var(--shadow-card)]"
-                key={metric.label}
-              >
-                <p className="text-sm font-medium text-[var(--color-text-secondary)]">
-                  {metric.label}
-                </p>
-                <p className="mt-3 text-3xl font-bold tracking-normal text-[var(--color-text-primary)]">
-                  {metric.value}
-                </p>
-                <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">
-                  {metric.hint}
-                </p>
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <Button
+                  asChild
+                  className="rounded-none bg-[var(--color-brand)] px-4 py-[13px] text-[var(--primary-foreground)] hover:bg-[var(--color-brand-strong)]"
+                >
+                  <Link href={homeContent.hero.primaryAction.href}>
+                    {homeContent.hero.primaryAction.label}
+                    <ArrowRight className="size-4" />
+                  </Link>
+                </Button>
+                <Button
+                  asChild
+                  className="rounded-none border-[var(--color-brand-outline)] bg-[var(--color-bg-canvas)] px-4 py-[13px] text-[var(--color-brand-outline)] hover:bg-[var(--color-bg-brand-soft)]"
+                  variant="outline"
+                >
+                  <Link href={homeContent.hero.secondaryAction.href}>
+                    {homeContent.hero.secondaryAction.label}
+                  </Link>
+                </Button>
               </div>
-            ))}
+
+              <div className="mt-10 grid gap-4 md:grid-cols-3">
+                {homeContent.metrics.map((metric) => (
+                  <div
+                    className="rounded-none border border-[var(--color-border-soft)] bg-[var(--color-bg-elevated)] p-5 shadow-[var(--shadow-card)]"
+                    key={metric.label}
+                  >
+                    <p className="text-sm font-medium text-[var(--color-text-secondary)]">
+                      {metric.label}
+                    </p>
+                    <p className="mt-3 text-3xl font-bold tracking-normal text-[var(--color-text-primary)]">
+                      {metric.value}
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">
+                      {metric.hint}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <ProductPreview />
           </div>
         </div>
       </section>
