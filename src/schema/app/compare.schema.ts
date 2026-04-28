@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { predictionStrategyIdSchema } from "@/schema/app/prediction.schema";
 import { filterContextSchema } from "@/schema/app/query.schema";
 
 export const scoreBreakdownSchema = z.object({
@@ -10,7 +11,12 @@ export const scoreBreakdownSchema = z.object({
 });
 
 export const compareRequestSchema = filterContextSchema.extend({
-  numbers: z.array(z.string()).min(1).max(20)
+  numbers: z.array(z.string().trim().min(1)).min(1).max(20),
+  numberLength: z.coerce
+    .number()
+    .pipe(z.union([z.literal(2), z.literal(3), z.literal(6)]))
+    .default(2),
+  strategyId: predictionStrategyIdSchema.optional().default("balanced")
 });
 
 export const compareCandidateSchema = z.object({
@@ -25,6 +31,7 @@ export const compareCandidateSchema = z.object({
 export const compareReadModelSchema = z.object({
   generatedAt: z.string(),
   source: z.enum(["mock", "api"]),
+  strategyId: predictionStrategyIdSchema.optional(),
   candidates: z.array(compareCandidateSchema),
   strongestSignal: z.string().optional(),
   sampleSize: z.number()

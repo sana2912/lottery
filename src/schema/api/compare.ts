@@ -1,10 +1,6 @@
-export interface ApiScoreBreakdown {
-  hot: number;
-  overdue: number;
-  position: number;
-  pair: number;
-  pattern: number;
-}
+import type { ApiPredictionScoreBreakdown, ApiPredictionStrategyId } from "@/schema/api/prediction";
+
+export type ApiScoreBreakdown = ApiPredictionScoreBreakdown;
 
 export interface ApiCompareCandidate {
   number: string;
@@ -18,6 +14,7 @@ export interface ApiCompareCandidate {
 export interface ApiCompareReadModel {
   generatedAt: string;
   source: "mock" | "api";
+  strategyId?: ApiPredictionStrategyId;
   candidates: ApiCompareCandidate[];
   strongestSignal?: string;
   sampleSize: number;

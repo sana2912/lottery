@@ -23,6 +23,7 @@ export function toApiCompareReadModel(model: CompareReadModelDtoInput): ApiCompa
     generatedAt: normalizeDateString(model.generatedAt),
     sampleSize: model.sampleSize,
     source: model.source,
+    strategyId: model.strategyId,
     strongestSignal: model.strongestSignal
   };
 }

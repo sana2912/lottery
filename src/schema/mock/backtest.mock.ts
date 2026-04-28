@@ -28,7 +28,8 @@ const backtestFixtureInput = {
     longestMissStreak: 8,
     averageHitRank: 4.2,
     coverage: 24,
-    computedAt: new Date("2026-04-27T00:00:00.000Z")
+    computedAt: new Date("2026-04-27T00:00:00.000Z"),
+    version: "prediction-engine-v1"
   },
   results: [
     {

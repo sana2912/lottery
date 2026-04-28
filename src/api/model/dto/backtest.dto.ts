@@ -1,4 +1,6 @@
 import type {
+  ApiBacktestHistoryItem,
+  ApiBacktestHistoryResponse,
   ApiBacktestReadModel,
   ApiBacktestResult,
   ApiBacktestRun
@@ -26,6 +28,15 @@ type BacktestReadModelDtoInput = Omit<ApiBacktestReadModel, "generatedAt" | "res
   run: BacktestRunDtoInput;
 };
 
+type BacktestHistoryItemDtoInput = Omit<ApiBacktestHistoryItem, "computedAt"> & {
+  computedAt: Date | string;
+};
+
+type BacktestHistoryResponseDtoInput = Omit<ApiBacktestHistoryResponse, "generatedAt" | "items"> & {
+  generatedAt: Date | string;
+  items: readonly BacktestHistoryItemDtoInput[];
+};
+
 export function toApiBacktestRun(run: BacktestRunDtoInput): ApiBacktestRun {
   return {
     ...run,
@@ -51,6 +62,25 @@ export function toApiBacktestReadModel(model: BacktestReadModelDtoInput): ApiBac
     results: model.results.map(toApiBacktestResult),
     run: toApiBacktestRun(model.run),
     source: model.source
+  };
+}
+
+export function toApiBacktestHistoryItem(
+  item: BacktestHistoryItemDtoInput
+): ApiBacktestHistoryItem {
+  return {
+    ...item,
+    computedAt: normalizeDateString(item.computedAt)
+  };
+}
+
+export function toApiBacktestHistoryResponse(
+  response: BacktestHistoryResponseDtoInput
+): ApiBacktestHistoryResponse {
+  return {
+    generatedAt: normalizeDateString(response.generatedAt),
+    items: response.items.map(toApiBacktestHistoryItem),
+    source: response.source
   };
 }
 

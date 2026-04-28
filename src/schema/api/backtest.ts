@@ -14,6 +14,7 @@ export interface ApiBacktestRun {
   averageHitRank?: number;
   coverage: number;
   computedAt: string;
+  version: string;
 }
 
 export interface ApiBacktestResult {
@@ -33,4 +34,25 @@ export interface ApiBacktestReadModel {
   source: "mock" | "api";
   run: ApiBacktestRun;
   results: ApiBacktestResult[];
+}
+
+export interface ApiBacktestHistoryItem {
+  id: string;
+  strategyId: string;
+  strategyName: string;
+  lotteryType: string;
+  prizeType: string;
+  numberLength: number;
+  candidateCount: number;
+  hitRate: number;
+  longestMissStreak: number;
+  coverage: number;
+  computedAt: string;
+  version: string;
+}
+
+export interface ApiBacktestHistoryResponse {
+  generatedAt: string;
+  source: "api";
+  items: ApiBacktestHistoryItem[];
 }

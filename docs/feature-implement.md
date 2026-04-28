@@ -1767,3 +1767,78 @@ Deferred:
 - Edit/PATCH UI remains pending.
 - User-scoped watchlist with `userId` remains pending future auth work.
 - Watchlist enrichment with analytics stats remains pending.
+
+### Phase 5A: Backtest and Compare API foundation
+
+Status: implemented, pending project check by user.
+
+Scope shipped:
+
+- Added walk-forward backtest engine that evaluates each target draw using only earlier draw history.
+- Implemented `backtestService.runBacktest()` with strategy registry reuse, analytics number stat reuse, hit rate, average hit rank, coverage, and longest miss streak.
+- Implemented `POST /api/backtests`.
+- Implemented `compareService.compareNumbers()` by reusing analytics number stats and the Prediction Lab scoring engine.
+- Implemented `POST /api/compare`.
+- Registered Backtest and Compare routers in the API router composition.
+- Aligned Backtest and Compare app schemas with `balanced`, `hotTrend`, and `coldRebound` strategy IDs.
+
+Deferred:
+
+- Backtest runs/results are not persisted to Prisma yet; this batch returns read models directly from historical draws.
+- Backtest-specific Prisma models and migrations remain pending for the persistence batch.
+- Backtest and Compare pages remain placeholder UI until the next frontend batch.
+- Performance chart and compare table UI remain pending.
+
+### Phase 5B: Backtest and Compare UI
+
+Status: implemented, pending project check by user.
+
+Scope shipped:
+
+- Replaced Backtest placeholder with a client page that runs `POST /api/backtests`.
+- Added Backtest strategy, window, number length, date range, and candidate controls.
+- Rendered Backtest summary cards, a hit-sequence chart, and a result table.
+- Replaced Compare placeholder with a client page that runs `POST /api/compare`.
+- Added Compare number input, strategy, window, number length, and filter controls.
+- Rendered Compare summary cards, a score comparison chart, and an explainable results table.
+- Updated shared API route constants for `/api/backtests` and `/api/compare`.
+
+Deferred:
+
+- Backtest and Compare are still sample-backed when the API or database is unavailable.
+- Persisted backtest run storage is still pending Phase 5C or a later persistence batch.
+- More advanced charting and interactive filtering can be added after the core UI is stable.
+
+### Phase 5C: Backtest persistence
+
+Status: implemented, pending `bun run db:generate` and local project check by user.
+
+Scope shipped:
+
+- Added Prisma `BacktestRun` and `BacktestResult` models with PostgreSQL tables and indexes.
+- Persisted backtest runs and per-draw results through Prisma client delegates instead of raw SQL.
+- Added `GET /api/backtests/:id` so saved backtest runs can be reloaded by id.
+- Kept the walk-forward engine as the calculation layer and used it to seed the persisted records.
+
+Deferred:
+
+- Generated Prisma client files need `bun run db:generate` before typecheck will fully reflect the new models.
+- Backtest list/history UI is still not added because the MVP only needs detail reloading for now.
+- If UUID v7-only runtime generation is required later, we can swap the explicit id helper in a follow-up batch after client generation.
+
+### Phase 5D: Backtest history and persisted reload flow
+
+Status: implemented, pending project check by user.
+
+Scope shipped:
+
+- Added `GET /api/backtests` for recent persisted run summaries.
+- Expanded Backtest API/app contracts with history list response shapes.
+- Added a recent-runs panel to the Backtest page so persisted runs can be loaded back into the full detail view.
+- Updated the Backtest page to append newly completed live runs into the local recent-run list immediately.
+
+Deferred:
+
+- Backtest history uses a compact recent-runs list only; pagination and richer filtering are still out of scope.
+- Random baseline comparison and strategy-vs-strategy reporting remain future work.
+- Phase 6 remains the next MVP phase after this batch.

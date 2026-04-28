@@ -97,3 +97,49 @@ model PredictionResult {
   @@index([number])
   @@map("prediction_results")
 }
+
+model BacktestRun {
+  id               String          @id @default(uuid(7)) @map("_id") @db.Uuid
+  strategyId       String
+  strategyName     String
+  params           Json?
+  lotteryType      LotteryType
+  prizeType        LotteryPrizeType
+  numberLength     Int
+  startDrawDate    DateTime
+  endDrawDate      DateTime
+  candidateCount   Int
+  hitRate          Float
+  longestMissStreak Int
+  averageHitRank   Float?
+  coverage         Int
+  computedAt       DateTime
+  version          String
+  results          BacktestResult[]
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([strategyId])
+  @@index([lotteryType, prizeType])
+  @@index([computedAt])
+  @@map("backtest_runs")
+}
+
+model BacktestResult {
+  id              String       @id @default(uuid(7)) @map("_id") @db.Uuid
+  runId           String       @db.Uuid
+  run             BacktestRun  @relation(fields: [runId], references: [id], onDelete: Cascade)
+  drawId          String       @db.Uuid
+  drawDate        DateTime
+  generatedNumbers String[]
+  actualNumbers   String[]
+  isHit           Boolean
+  hitNumbers      String[]
+  rankOfHit       Int?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([runId])
+  @@index([drawId])
+  @@map("backtest_results")
+}
