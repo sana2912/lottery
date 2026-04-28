@@ -1,6 +1,6 @@
 # Lottery Intelligence Dashboard
 
-Production-oriented MVP scaffold for a user-facing lottery analytics dashboard.
+Production-oriented MVP for a user-facing lottery analytics dashboard.
 
 ## Runtime
 
@@ -10,7 +10,7 @@ Production-oriented MVP scaffold for a user-facing lottery analytics dashboard.
 
 ## Scope
 
-This scaffold intentionally contains structure only. Feature logic, data fetching, prediction models, persistence, and admin/content workflows are left as TODOs until the historical-results API and seed data are ready.
+This project keeps a modular MVP architecture and still has some mock-first surfaces, but it is no longer structure-only. The repository already includes API routes, Prisma-backed persistence, analytics utilities, and user-facing dashboard flows that can be extended incrementally.
 
 Agents working in this repo should read `AGENTS.md`. Any UI or UI feature work must read `design.md` first.
 
@@ -67,12 +67,13 @@ Agents working in this repo should read `AGENTS.md`. Any UI or UI feature work m
 
 ## Database
 
-- Prisma ORM v7.7.0 scaffold.
-- MongoDB provider in `prisma/schema.prisma`.
+- Prisma ORM `^7.8.0`.
+- PostgreSQL provider in `prisma/schema.prisma`.
+- PostgreSQL adapter: `@prisma/adapter-pg`.
 - Database URL in `prisma.config.ts` via `DATABASE_URL`.
 - Generated Prisma Client output: `src/generated/prisma`.
 - Prisma Client generator runtime: `bun`.
-- All generated model IDs use UUID v7 and are mapped to MongoDB `_id`.
+- All generated model IDs use UUID v7.
 
 ## API
 

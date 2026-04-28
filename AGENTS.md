@@ -296,7 +296,6 @@ args = ["shadcn@latest", "mcp"]
 - Keep API-facing interfaces in `src/schema/api`.
 - Keep app-facing validation schemas in `src/schema/app`.
 - Keep backend response mapping in `src/api/model/dto`, returning types from `src/schema/api`.
-- Whenever adding or changing a feature, update `docs/feature-implement.md` in the same change to keep the current stage, feature plan, contracts, and deferred work aligned with the implementation. If no documentation update is needed, state the reason in the final response.
 
 ## State Management
 
