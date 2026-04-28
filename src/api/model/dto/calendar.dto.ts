@@ -20,8 +20,12 @@ type CalendarReadModelDtoInput = Omit<
 
 export function toApiCalendarDraw(draw: CalendarDrawDtoInput): ApiCalendarDraw {
   return {
-    ...draw,
-    drawDateIso: normalizeDateString(draw.drawDateIso)
+    drawDate: draw.drawDate,
+    drawDateIso: normalizeDateString(draw.drawDateIso),
+    drawNo: draw.drawNo,
+    id: draw.id,
+    isNextDraw: draw.isNextDraw,
+    status: draw.status
   };
 }
 
@@ -36,10 +40,14 @@ type MonthlyInsightDtoInput = Omit<
 
 export function toApiMonthlyInsight(insight: MonthlyInsightDtoInput): ApiMonthlyInsight {
   return {
-    ...insight,
     coldNumbers: [...insight.coldNumbers],
     hotNumbers: [...insight.hotNumbers],
-    patternNotes: [...insight.patternNotes]
+    id: insight.id,
+    label: insight.label,
+    month: insight.month,
+    patternNotes: [...insight.patternNotes],
+    sampleSize: insight.sampleSize,
+    summary: insight.summary
   };
 }
 

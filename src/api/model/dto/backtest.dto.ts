@@ -39,20 +39,36 @@ type BacktestHistoryResponseDtoInput = Omit<ApiBacktestHistoryResponse, "generat
 
 export function toApiBacktestRun(run: BacktestRunDtoInput): ApiBacktestRun {
   return {
-    ...run,
+    averageHitRank: run.averageHitRank,
+    candidateCount: run.candidateCount,
     computedAt: normalizeDateString(run.computedAt),
+    coverage: run.coverage,
     endDrawDate: normalizeDateString(run.endDrawDate),
-    startDrawDate: normalizeDateString(run.startDrawDate)
+    hitRate: run.hitRate,
+    id: run.id,
+    longestMissStreak: run.longestMissStreak,
+    lotteryType: run.lotteryType,
+    numberLength: run.numberLength,
+    params: run.params,
+    prizeType: run.prizeType,
+    startDrawDate: normalizeDateString(run.startDrawDate),
+    strategyId: run.strategyId,
+    strategyName: run.strategyName,
+    version: run.version
   };
 }
 
 export function toApiBacktestResult(result: BacktestResultDtoInput): ApiBacktestResult {
   return {
-    ...result,
     actualNumbers: [...result.actualNumbers],
     drawDate: normalizeDateString(result.drawDate),
+    drawId: result.drawId,
     generatedNumbers: [...result.generatedNumbers],
-    hitNumbers: [...result.hitNumbers]
+    hitNumbers: [...result.hitNumbers],
+    id: result.id,
+    isHit: result.isHit,
+    rankOfHit: result.rankOfHit,
+    runId: result.runId
   };
 }
 
@@ -69,8 +85,18 @@ export function toApiBacktestHistoryItem(
   item: BacktestHistoryItemDtoInput
 ): ApiBacktestHistoryItem {
   return {
-    ...item,
-    computedAt: normalizeDateString(item.computedAt)
+    candidateCount: item.candidateCount,
+    computedAt: normalizeDateString(item.computedAt),
+    coverage: item.coverage,
+    hitRate: item.hitRate,
+    id: item.id,
+    longestMissStreak: item.longestMissStreak,
+    lotteryType: item.lotteryType,
+    numberLength: item.numberLength,
+    prizeType: item.prizeType,
+    strategyId: item.strategyId,
+    strategyName: item.strategyName,
+    version: item.version
   };
 }
 

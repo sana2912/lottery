@@ -46,25 +46,55 @@ export function toApiAnalyticsSummary(summary: AnalyticsSummaryDtoInput): ApiAna
 
 export function toApiDigitStat(stat: DigitStatDtoInput): ApiDigitStat {
   return {
-    ...stat,
     computedAt: normalizeDateString(stat.computedAt),
-    lastSeenDrawDate: stat.lastSeenDrawDate ? normalizeDateString(stat.lastSeenDrawDate) : undefined
+    digit: stat.digit,
+    drawCount: stat.drawCount,
+    frequencyPercent: stat.frequencyPercent,
+    hitCount: stat.hitCount,
+    lastSeenDrawDate: stat.lastSeenDrawDate
+      ? normalizeDateString(stat.lastSeenDrawDate)
+      : undefined,
+    lotteryType: stat.lotteryType,
+    missingDrawCount: stat.missingDrawCount,
+    position: stat.position,
+    prizeType: stat.prizeType,
+    trendDirection: stat.trendDirection,
+    windowSize: stat.windowSize
   };
 }
 
 export function toApiNumberStat(stat: NumberStatDtoInput): ApiNumberStat {
   return {
-    ...stat,
     computedAt: normalizeDateString(stat.computedAt),
+    drawCount: stat.drawCount,
+    frequencyPercent: stat.frequencyPercent,
+    hitCount: stat.hitCount,
     lastSeenDrawDate: stat.lastSeenDrawDate
       ? normalizeDateString(stat.lastSeenDrawDate)
       : undefined,
-    patternFlags: [...stat.patternFlags]
+    lotteryType: stat.lotteryType,
+    averageGap: stat.averageGap,
+    maxGap: stat.maxGap,
+    missingDrawCount: stat.missingDrawCount,
+    number: stat.number,
+    numberLength: stat.numberLength,
+    patternFlags: [...stat.patternFlags],
+    prizeType: stat.prizeType,
+    trendScore: stat.trendScore,
+    windowSize: stat.windowSize
   };
 }
 
 export function toApiPatternSummary(summary: ApiPatternSummary): ApiPatternSummary {
-  return { ...summary };
+  return {
+    frequencyPercent: summary.frequencyPercent,
+    hitCount: summary.hitCount,
+    id: summary.id,
+    insight: summary.insight,
+    label: summary.label,
+    pattern: summary.pattern,
+    sampleSize: summary.sampleSize
+  };
 }
 
 export function toApiAnalyticsReadModel(model: AnalyticsReadModelDtoInput): ApiAnalyticsReadModel {

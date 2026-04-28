@@ -11,8 +11,11 @@ type CompareReadModelDtoInput = Omit<ApiCompareReadModel, "candidates" | "genera
 
 export function toApiCompareCandidate(candidate: CompareCandidateDtoInput): ApiCompareCandidate {
   return {
-    ...candidate,
+    number: candidate.number,
+    numberLength: candidate.numberLength,
+    rank: candidate.rank,
     reasons: [...candidate.reasons],
+    score: candidate.score,
     scoreBreakdown: { ...candidate.scoreBreakdown }
   };
 }

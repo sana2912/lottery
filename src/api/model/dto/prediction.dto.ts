@@ -11,8 +11,17 @@ type PredictionResponseDtoInput = Omit<ApiPredictionResponse, "generatedAt" | "r
 
 export function toApiPredictionResult(result: PredictionResultDtoInput): ApiPredictionResult {
   return {
-    ...result,
-    reasons: [...result.reasons]
+    id: result.id,
+    inputWindow: result.inputWindow,
+    number: result.number,
+    numberLength: result.numberLength,
+    rank: result.rank,
+    reasons: [...result.reasons],
+    score: result.score,
+    scoreBreakdown: { ...result.scoreBreakdown },
+    strategyId: result.strategyId,
+    strategyName: result.strategyName,
+    version: result.version
   };
 }
 
