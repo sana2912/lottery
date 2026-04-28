@@ -131,13 +131,13 @@ export async function ResultsPage() {
 
           <div className="mt-8 flex flex-wrap gap-3">
             <Button className="rounded-none bg-[var(--color-brand)] px-4 py-[13px] text-[var(--primary-foreground)] hover:bg-[var(--color-brand-strong)]">
-              ดูงวดล่าสุด
+              View latest draw
             </Button>
             <Button
               className="rounded-none border-[var(--color-brand-outline)] bg-[var(--color-bg-canvas)] px-4 py-[13px] text-[var(--color-brand-outline)] hover:bg-[var(--color-bg-brand-soft)]"
               variant="outline"
             >
-              ตรวจ data contract
+              Review data contract
             </Button>
           </div>
         </Card>
@@ -181,19 +181,19 @@ export async function ResultsPage() {
               <div className="w-full max-w-sm">
                 <Input
                   className="h-11 rounded-none border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 py-3 shadow-[var(--shadow-micro)]"
-                  placeholder="ค้นหาจากวันที่ออกรางวัลหรือเลขที่ถูกรางวัล"
+                  placeholder="Search by draw date or winning number"
                 />
               </div>
             }
             className="border-b border-[var(--color-border-soft)] pb-5"
-            eyebrow="ค้นหาและกรอง"
-            title="สรุปงวดย้อนหลังล่าสุด"
+            eyebrow="search and filter"
+            title="Recent historical draws"
           />
 
           <div className="mt-5 grid gap-3 md:grid-cols-2">
             <Select defaultValue={resultsModel.filters.defaultLotteryType}>
               <SelectTrigger className="h-11 w-full rounded-none border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 shadow-[var(--shadow-micro)]">
-                <SelectValue placeholder="เลือกประเภทสลาก" />
+                <SelectValue placeholder="Select lottery type" />
               </SelectTrigger>
               <SelectContent>
                 {resultsModel.filters.lotteryTypes.map((type) => (
@@ -206,10 +206,10 @@ export async function ResultsPage() {
 
             <Select defaultValue={resultsModel.filters.defaultPrizeType}>
               <SelectTrigger className="h-11 w-full rounded-none border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 shadow-[var(--shadow-micro)]">
-                <SelectValue placeholder="เลือกรางวัล" />
+                <SelectValue placeholder="Select prize type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="รางวัลทั้งหมด">รางวัลทั้งหมด</SelectItem>
+                <SelectItem value="All prize types">All prize types</SelectItem>
                 {resultsModel.filters.prizeTypes.map((type) => (
                   <SelectItem key={type} value={type}>
                     {type}
@@ -260,7 +260,7 @@ export async function ResultsPage() {
                       {draw.drawDate}
                     </p>
                     <h3 className="mt-1 text-xl font-bold tracking-normal text-[var(--color-text-primary)]">
-                      งวดที่ {draw.drawNo}
+                      Draw {draw.drawNo}
                     </h3>
                   </div>
 
@@ -297,23 +297,24 @@ export async function ResultsPage() {
 
         <Card className="p-6">
           <SectionHeading
-            eyebrow="ทำไมต้องเริ่มที่หน้านี้"
-            title="หน้า Results เป็นตัวกำหนด shape ของข้อมูล seed"
+            eyebrow="why this page matters"
+            title="Results defines the base shape for historical draw data"
           />
           <div className="mt-5 space-y-4 text-sm leading-7 text-[var(--color-text-secondary)]">
             <p>
-              UI ชุดนี้บังคับให้เราตกลง read model ของงวดก่อนเริ่ม ingestion จริง ทั้งวันที่ออกรางวัล เลขงวด
-              กลุ่มรางวัล และสถานะความครบถ้วนของข้อมูล
+              This screen forces the first stable read model for historical draws before deeper
+              ingestion work begins. It locks the displayed date, draw number, grouped prize values,
+              and data coverage status in one place.
             </p>
             <p>
-              เมื่อ shape นี้นิ่งแล้ว เราจะต่อ `/api/draws` และ map ข้อมูลจาก Prisma เข้าสู่ contract
-              เดิมได้โดยมีความเสี่ยงในการรื้อน้อยลง
+              Once that shape is stable, the `/api/draws` service can map Prisma data into the same
+              contract with less risk of frontend churn.
             </p>
           </div>
 
           <div className="mt-6 rounded-none bg-[var(--color-bg-panel-brand)] p-4">
             <p className="text-xs font-bold uppercase tracking-normal text-[var(--color-brand-outline)]">
-              contract ฝั่ง backend ที่วางไว้
+              backend contract fields
             </p>
             <div className="mt-3 overflow-hidden rounded-none border border-[var(--color-border-soft)]">
               <Table>
@@ -353,7 +354,7 @@ export async function ResultsPage() {
           </div>
 
           <div className="mt-6">
-            <SectionHeading eyebrow="หมายเหตุสำหรับทีม" title="บันทึก mock note" />
+            <SectionHeading eyebrow="team note" title="Mock contract note" />
             <div className="mt-3">
               <Textarea
                 className="min-h-32 rounded-none border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 py-3 shadow-[var(--shadow-micro)]"

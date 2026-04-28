@@ -1,3 +1,5 @@
+import type { ApiLotteryPrizeType, ApiLotteryType, ApiNumberLength } from "@/schema/api/query";
+
 export type ApiPredictionStrategyId = "balanced" | "coldRebound" | "hotTrend";
 
 export interface ApiPredictionScoreBreakdown {
@@ -24,9 +26,9 @@ export interface ApiPredictionResult {
 
 export interface ApiPredictionRequest {
   count?: number;
-  lotteryType?: string;
-  numberLength?: number;
-  prizeType?: string;
+  lotteryType?: ApiLotteryType;
+  numberLength?: ApiNumberLength;
+  prizeType?: ApiLotteryPrizeType;
   strategyId?: ApiPredictionStrategyId;
   windowSize?: number;
 }

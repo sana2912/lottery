@@ -1,15 +1,31 @@
 "use client";
 
-import { AlertCircle, Loader2, Plus, Trash2 } from "lucide-react";
+import { AlertCircle, Check, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { EmptyState, MetricCard } from "@/frontend/components";
-import { Badge, Button, Card, Input, Label, SectionHeading, Textarea } from "@/frontend/primitives";
+import {
+  Badge,
+  Button,
+  Card,
+  Input,
+  Label,
+  SectionHeading,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Textarea
+} from "@/frontend/primitives";
 import { apiGet, apiPost, apiRequest } from "@/lib/api/http";
 import { apiRoutes } from "@/lib/api/routes";
 import {
   createWatchlistItemSchema,
+  deleteWatchlistItemResponseSchema,
+  updateWatchlistItemSchema,
   type WatchlistItem,
   type WatchlistReadModel,
+  type WatchlistSource,
   watchlistItemSchema,
   watchlistReadModelSchema
 } from "@/schema/app/watchlist.schema";
@@ -20,16 +36,27 @@ type WatchlistFormState = {
   tags: string;
 };
 
+type WatchlistEditState = {
+  note: string;
+  source: WatchlistSource;
+  tags: string;
+};
+
 const defaultFormState: WatchlistFormState = {
   note: "",
   number: "",
   tags: ""
 };
 
+const watchlistSourceOptions: readonly WatchlistSource[] = ["MANUAL", "NOTEBOOK", "PREDICTION"];
+
 export function WatchlistPage() {
   const [formState, setFormState] = useState(defaultFormState);
+  const [editState, setEditState] = useState<WatchlistEditState | null>(null);
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [updatingItemId, setUpdatingItemId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [watchlist, setWatchlist] = useState<WatchlistReadModel | null>(null);
 
@@ -97,7 +124,10 @@ export function WatchlistPage() {
     setError(null);
 
     try {
-      await apiRequest(`${apiRoutes.watchlist}/${id}`, { method: "DELETE" });
+      await apiRequest(`${apiRoutes.watchlist}/${id}`, {
+        method: "DELETE",
+        schema: deleteWatchlistItemResponseSchema
+      });
       setWatchlist((current) =>
         current
           ? {
@@ -108,6 +138,57 @@ export function WatchlistPage() {
       );
     } catch {
       setError("Unable to delete this watchlist item.");
+    }
+  }
+
+  function handleStartEditing(item: WatchlistItem) {
+    setEditingItemId(item.id);
+    setEditState({
+      note: item.note ?? "",
+      source: item.source,
+      tags: item.tags.join(", ")
+    });
+  }
+
+  function handleCancelEditing() {
+    setEditingItemId(null);
+    setEditState(null);
+  }
+
+  async function handleUpdateItem(item: WatchlistItem) {
+    if (!editState) {
+      return;
+    }
+
+    setUpdatingItemId(item.id);
+    setError(null);
+
+    const payload = updateWatchlistItemSchema.parse({
+      note: editState.note || undefined,
+      source: editState.source,
+      tags: parseTags(editState.tags)
+    });
+
+    try {
+      const updatedItem = await apiRequest<WatchlistItem>(`${apiRoutes.watchlist}/${item.id}`, {
+        json: payload,
+        method: "PATCH",
+        schema: watchlistItemSchema
+      });
+
+      setWatchlist((current) =>
+        current
+          ? {
+              ...current,
+              items: current.items.map((entry) => (entry.id === item.id ? updatedItem : entry))
+            }
+          : current
+      );
+      handleCancelEditing();
+    } catch {
+      setError("Unable to update this watchlist item.");
+    } finally {
+      setUpdatingItemId(null);
     }
   }
 
@@ -148,7 +229,11 @@ export function WatchlistPage() {
       </section>
 
       <Card className="p-6">
-        <SectionHeading eyebrow="Add number" title="Manual watchlist entry" />
+        <SectionHeading
+          eyebrow="Add number"
+          title="Manual watchlist entry"
+          description="Watchlist edits are still global until authentication introduces user ownership."
+        />
         <div className="mt-5 grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)_260px]">
           <div className="space-y-2">
             <Label htmlFor="watchlist-number">Number</Label>
@@ -222,32 +307,129 @@ export function WatchlistPage() {
                   <Badge variant="neutral">{item.scope}</Badge>
                 </div>
               </div>
-              <Button
-                aria-label={`Delete ${item.number}`}
-                onClick={() => handleDeleteItem(item.id)}
-                size="icon-sm"
-                type="button"
-                variant="ghost"
-              >
-                <Trash2 />
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button
+                  aria-label={`Edit ${item.number}`}
+                  onClick={() => handleStartEditing(item)}
+                  size="icon-sm"
+                  type="button"
+                  variant="ghost"
+                >
+                  <Pencil />
+                </Button>
+                <Button
+                  aria-label={`Delete ${item.number}`}
+                  onClick={() => handleDeleteItem(item.id)}
+                  size="icon-sm"
+                  type="button"
+                  variant="ghost"
+                >
+                  <Trash2 />
+                </Button>
+              </div>
             </div>
 
-            {item.note ? (
-              <p className="mt-4 text-sm leading-6 text-[var(--color-text-secondary)]">
-                {item.note}
-              </p>
-            ) : null}
-
-            {item.tags.length > 0 ? (
-              <div className="mt-4 flex flex-wrap gap-1.5">
-                {item.tags.map((tag) => (
-                  <Badge key={`${item.id}-${tag}`} variant="muted">
-                    {tag}
-                  </Badge>
-                ))}
+            {editingItemId === item.id && editState ? (
+              <div className="mt-4 space-y-4 border-t border-[var(--color-border-soft)] pt-4">
+                <div className="space-y-2">
+                  <Label htmlFor={`watchlist-note-${item.id}`}>Note</Label>
+                  <Textarea
+                    id={`watchlist-note-${item.id}`}
+                    onChange={(event) =>
+                      setEditState((current) =>
+                        current
+                          ? {
+                              ...current,
+                              note: event.target.value
+                            }
+                          : current
+                      )
+                    }
+                    placeholder="Why this number is being watched"
+                    value={editState.note}
+                  />
+                </div>
+                <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_180px]">
+                  <div className="space-y-2">
+                    <Label htmlFor={`watchlist-tags-${item.id}`}>Tags</Label>
+                    <Input
+                      id={`watchlist-tags-${item.id}`}
+                      onChange={(event) =>
+                        setEditState((current) =>
+                          current
+                            ? {
+                                ...current,
+                                tags: event.target.value
+                              }
+                            : current
+                        )
+                      }
+                      placeholder="manual, family"
+                      value={editState.tags}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor={`watchlist-source-${item.id}`}>Source</Label>
+                    <Select
+                      onValueChange={(value) =>
+                        setEditState((current) =>
+                          current
+                            ? {
+                                ...current,
+                                source: value as WatchlistSource
+                              }
+                            : current
+                        )
+                      }
+                      value={editState.source}
+                    >
+                      <SelectTrigger className="h-11 w-full" id={`watchlist-source-${item.id}`}>
+                        <SelectValue placeholder="Select source" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {watchlistSourceOptions.map((source) => (
+                          <SelectItem key={source} value={source}>
+                            {source}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    disabled={updatingItemId === item.id}
+                    onClick={() => void handleUpdateItem(item)}
+                    type="button"
+                  >
+                    {updatingItemId === item.id ? <Loader2 className="animate-spin" /> : <Check />}
+                    Save changes
+                  </Button>
+                  <Button onClick={handleCancelEditing} type="button" variant="outline">
+                    <X />
+                    Cancel
+                  </Button>
+                </div>
               </div>
-            ) : null}
+            ) : (
+              <>
+                {item.note ? (
+                  <p className="mt-4 text-sm leading-6 text-[var(--color-text-secondary)]">
+                    {item.note}
+                  </p>
+                ) : null}
+
+                {item.tags.length > 0 ? (
+                  <div className="mt-4 flex flex-wrap gap-1.5">
+                    {item.tags.map((tag) => (
+                      <Badge key={`${item.id}-${tag}`} variant="muted">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                ) : null}
+              </>
+            )}
 
             <p className="mt-4 text-xs text-[var(--color-text-muted)]">
               Updated {new Date(item.updatedAt).toLocaleDateString("th-TH")}
@@ -257,4 +439,11 @@ export function WatchlistPage() {
       </section>
     </main>
   );
+}
+
+function parseTags(value: string) {
+  return value
+    .split(",")
+    .map((tag) => tag.trim())
+    .filter(Boolean);
 }

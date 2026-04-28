@@ -33,7 +33,7 @@ jobs:
         run: bun run typecheck
 
       - name: Test
-        run: bun test || echo "No tests yet"
+        run: bun test
 
   build:
     name: Build and Push GHCR

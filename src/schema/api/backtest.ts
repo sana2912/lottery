@@ -1,3 +1,13 @@
+import type { ApiPredictionStrategyId } from "@/schema/api/prediction";
+import type { ApiFilterContext, ApiNumberLength } from "@/schema/api/query";
+
+export interface ApiBacktestRequest extends ApiFilterContext {
+  candidateCount?: number;
+  numberLength?: ApiNumberLength;
+  params?: Record<string, unknown>;
+  strategyId?: ApiPredictionStrategyId;
+}
+
 export interface ApiBacktestRun {
   id: string;
   strategyId: string;

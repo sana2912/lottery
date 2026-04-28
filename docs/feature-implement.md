@@ -1878,3 +1878,121 @@ Deferred:
 - Global navigation label cleanup and unrelated mojibake repair remain separate work and are not part of this batch.
 - Dashboard-to-methodology deep links can be added later if the dashboard starts exposing more score or uncertainty copy.
 - Phase 6 is now functionally complete for the current MVP scope; future calendar/methodology work should be treated as polish or content expansion, not a foundation blocker.
+
+### Polish P1: Contract audit
+
+Status: implemented, pending project check by user.
+
+Scope shipped:
+
+- Added missing public API request contracts for Backtest and Compare so their Zod request schemas have matching `src/schema/api` transport interfaces.
+- Added a Watchlist delete response contract and Zod response schema, then parsed the frontend delete response through the shared API client.
+- Tightened the Watchlist DTO input source type to `ApiWatchlistSource` instead of accepting an arbitrary string cast.
+- Added type-only app/API contract assertions in `src/schema/app/api-contract.assert.ts` so TypeScript catches drift between public API interfaces and app Zod inferred types.
+
+Deferred:
+
+- Prisma model/index review is reserved for Polish P2.
+- Mojibake cleanup and navigation/content consistency remain separate polish batches.
+
+### Polish P2: Prisma schema audit
+
+Status: implemented, pending local migration/generate and project check by user.
+
+Scope shipped:
+
+- Added a Prisma relation from `BacktestResult.drawId` to `LotteryDraw` so persisted backtest rows are FK-checked against historical draw records.
+- Changed `LotteryPrize.draw` to `onDelete: Cascade` because prize rows are child records of a draw.
+- Added `@@index([updatedAt])` on `UserWatchlistItem` to match the current watchlist ordering path.
+- Added `@@index([runId, drawDate])` on `BacktestResult` to match persisted backtest detail loading by run ordered by draw date.
+- Added a Prisma migration for the FK/index changes.
+- Updated `prisma/README.md` to reflect the current PostgreSQL setup instead of the old MongoDB wording.
+
+Deferred:
+
+- Prediction persistence models remain legacy/future-facing because `predictionService` does not write prediction runs yet. They should be redesigned when prediction persistence is explicitly implemented.
+- User-scoped watchlist ownership remains deferred until authentication introduces `userId`.
+
+### Polish P3: Mojibake cleanup
+
+Status: implemented, pending project check by user.
+
+Scope shipped:
+
+- Verified user-facing navigation labels in `src/lib/app/navigation.ts` render as valid UTF-8 Thai text.
+- Verified the Thai avoid-list entries in `design.md` render as valid UTF-8 during this pass.
+- Confirmed the current `src/frontend` page/component copy no longer contains detected mojibake patterns in this pass.
+- Confirmed the two planning docs read as valid UTF-8 from file content; mojibake seen through plain `Get-Content` was a PowerShell console encoding display issue, not corrupted source text.
+
+Deferred:
+
+- Broader navigation/content consistency is reserved for Polish P4.
+
+### Polish P4: Navigation and content consistency
+
+Status: implemented, pending project check by user.
+
+Scope shipped:
+
+- Rewrote Dashboard fallback content and page-level headings so the overview uses one consistent product vocabulary instead of mixed or corrupted copy.
+- Rewrote Results fallback content, filter labels, side-panel explanations, and team-note wording so the page reads consistently with the shipped Analytics, Prediction Lab, Backtest, Compare, Calendar, and Methodology surfaces.
+- Rewrote Home mock content so the landing route, feature cards, workflow blocks, and trust panel use the same product terms as the current MVP navigation.
+- Kept the work scoped to navigation/content consistency only, without changing route structure or business logic.
+
+Deferred:
+
+- Dashboard deep links remain a separate polish batch.
+- Watchlist edit flow remains a separate polish batch.
+- Full app-wide wording review can continue later if future pages introduce new copy drift.
+
+### Polish P5: Dashboard deep links
+
+Status: implemented, pending project check by user.
+
+Scope shipped:
+
+- Added direct Dashboard links from the latest-draw panel to draw detail and Calendar so users can move from the overview into history or schedule context immediately.
+- Made Dashboard metric cards route to the next relevant surface, using Results for sample coverage and Analytics or Methodology for signal-focused cards.
+- Added signal-board section links to Analytics and the Methodology score-breakdown section.
+- Added prediction-summary section links to Prediction Lab and the Methodology prediction-score section.
+- Added a contract-surface link from the Dashboard read-model table to Results.
+
+Deferred:
+
+- Dashboard deep links still use static route targets only; shareable prefilled filters or query-state handoff can be added later.
+- Watchlist edit flow remains a separate polish batch.
+- Final boundary/import audit and full polish check remain separate closing work.
+
+### Polish P6: Watchlist edit flow
+
+Status: implemented, pending project check by user.
+
+Scope shipped:
+
+- Added inline edit mode on the Watchlist page so an existing saved number can update note, tags, and source through the existing `PATCH /api/watchlist/:id` contract.
+- Reused the shared watchlist Zod schema for update payload validation before the frontend sends the patch request.
+- Kept number identity read-only during edit mode so the flow stays scoped to metadata updates instead of changing item identity semantics.
+- Preserved the current global-scope warning copy so the page still reflects the no-auth ownership model accurately.
+
+Deferred:
+
+- Watchlist items are still global, not user-scoped, until authentication introduces `userId`.
+- Number replacement or merge behavior is still out of scope; editing changes note, tags, and source only.
+- Final boundary/import audit and full polish check remain separate closing work.
+
+### Polish P7: Final polish check
+
+Status: implemented and verified with `bun run check`.
+
+Scope shipped:
+
+- Audited frontend/app utility imports and found no active `src/frontend`, `src/lib/app`, or `src/util/app` imports from `src/api/*` or `src/util/api/*`.
+- Audited API/backend utility imports and found no active `src/api`, `src/util/api`, `src/schema`, or `prisma` imports from `src/frontend/*`.
+- Audited `src/lib/api` and confirmed it remains frontend-facing API client helper code without backend utility imports.
+- Audited `src/util/api` and confirmed it remains backend/API-route utility code without frontend helper imports.
+- Updated `AGENTS.md` to reflect the current PostgreSQL + `@prisma/adapter-pg` setup and the current API route list.
+
+Deferred:
+
+- `src/schema/mock` still contains unused fixture modules that import DTO mappers. They are not active runtime consumers, but can be moved to a clearer fixture namespace later if mock usage grows.
+- Broader copy review can continue in future product polish, but the core post-MVP debt pass is closed.

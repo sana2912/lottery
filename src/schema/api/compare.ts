@@ -1,6 +1,13 @@
 import type { ApiPredictionScoreBreakdown, ApiPredictionStrategyId } from "@/schema/api/prediction";
+import type { ApiFilterContext, ApiNumberLength } from "@/schema/api/query";
 
 export type ApiScoreBreakdown = ApiPredictionScoreBreakdown;
+
+export interface ApiCompareRequest extends ApiFilterContext {
+  numbers: string[];
+  numberLength?: ApiNumberLength;
+  strategyId?: ApiPredictionStrategyId;
+}
 
 export interface ApiCompareCandidate {
   number: string;

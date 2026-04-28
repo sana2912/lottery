@@ -168,12 +168,15 @@ The API uses Elysia mounted through the Next.js App Router:
 - Elysia app: `src/api/index.ts`
 - Router composition: `src/api/router/index.ts`
 
-Current API routes are scaffold placeholders:
+Current API routes include:
 
 - `/api/draws`
 - `/api/analytics`
 - `/api/predictions`
 - `/api/watchlist`
+- `/api/backtests`
+- `/api/compare`
+- `/api/calendar`
 
 Keep route definitions in `src/api/router`, business logic in `src/api/service`, and DTOs in `src/api/model/dto`.
 
@@ -181,8 +184,8 @@ Keep route definitions in `src/api/router`, business logic in `src/api/service`,
 
 Database stack:
 
-- Prisma ORM `^7.7.0`
-- MongoDB provider
+- Prisma ORM `^7.8.0`
+- PostgreSQL provider with `@prisma/adapter-pg`
 - Prisma config file: `prisma.config.ts`
 - Schema: `prisma/schema.prisma`
 - Generated client output: `src/generated/prisma`
@@ -191,7 +194,7 @@ Database stack:
 All generated model IDs should use UUID v7:
 
 ```prisma
-id String @id @default(uuid(7)) @map("_id")
+id String @id @default(uuid(7)) @map("_id") @db.Uuid
 ```
 
 Do not put `url = env("DATABASE_URL")` back into `schema.prisma`; this project uses `prisma.config.ts` for the datasource URL.

@@ -1,5 +1,6 @@
 import { toApiWatchlistItem, toApiWatchlistReadModel } from "@/api/model/dto/watchlist.dto";
 import { getPrisma } from "@/api/service/prisma";
+import type { ApiDeleteWatchlistItemResponse } from "@/schema/api/watchlist";
 import type { CreateWatchlistItem, UpdateWatchlistItem } from "@/schema/app/watchlist.schema";
 
 export async function getWatchlist() {
@@ -43,7 +44,7 @@ export async function updateWatchlistItem(id: string, input: UpdateWatchlistItem
   return toApiWatchlistItem(item);
 }
 
-export async function deleteWatchlistItem(id: string) {
+export async function deleteWatchlistItem(id: string): Promise<ApiDeleteWatchlistItemResponse> {
   const prisma = getPrisma();
   await prisma.userWatchlistItem.delete({
     where: {

@@ -34,7 +34,14 @@ export const updateWatchlistItemSchema = z.object({
   tags: z.array(z.string().trim().min(1)).optional()
 });
 
+export const deleteWatchlistItemResponseSchema = z.object({
+  deleted: z.literal(true),
+  id: z.string(),
+  scope: watchlistScopeSchema
+});
+
 export type CreateWatchlistItem = z.infer<typeof createWatchlistItemSchema>;
+export type DeleteWatchlistItemResponse = z.infer<typeof deleteWatchlistItemResponseSchema>;
 export type UpdateWatchlistItem = z.infer<typeof updateWatchlistItemSchema>;
 export type WatchlistItem = z.infer<typeof watchlistItemSchema>;
 export type WatchlistReadModel = z.infer<typeof watchlistReadModelSchema>;

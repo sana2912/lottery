@@ -17,6 +17,25 @@ import { dashboardReadModelSchema } from "@/schema/app/dashboard.schema";
 
 const dashboardMock = dashboardReadModelSchema.parse(dashboardMockJson);
 
+const metricLinks = {
+  "Cold number": {
+    href: "/analytics",
+    label: "Open Analytics"
+  },
+  "Draws in sample": {
+    href: "/results",
+    label: "Open Results"
+  },
+  "Hot number": {
+    href: "/analytics",
+    label: "Open Analytics"
+  },
+  "Overdue number": {
+    href: "/methodology#score-breakdown",
+    label: "Read Methodology"
+  }
+} as const;
+
 export function DashboardPage() {
   const { contractRows, hero, latestDraw, metrics, predictionSummary, signals } = dashboardMock;
 
@@ -41,13 +60,13 @@ export function DashboardPage() {
 
         <Card className="bg-[var(--color-bg-dark)] p-6 text-[var(--color-text-inverse)]">
           <p className="text-[11px] font-bold uppercase tracking-normal text-[var(--color-text-inverse-soft)]">
-            งวดล่าสุด
+            Latest draw
           </p>
           <div className="mt-4 flex items-start justify-between gap-4">
             <div>
               <p className="text-2xl font-bold tracking-normal">{latestDraw.drawDate}</p>
               <p className="mt-1 text-sm text-[var(--color-text-inverse-soft)]">
-                งวดที่ {latestDraw.drawNo}
+                Draw {latestDraw.drawNo}
               </p>
             </div>
             <Badge variant="success">{latestDraw.statusLabel}</Badge>
@@ -73,25 +92,57 @@ export function DashboardPage() {
               </div>
             ))}
           </div>
+          <div className="mt-6 flex flex-wrap gap-2 border-t border-[var(--color-border-inverse-soft)] pt-4">
+            <Button asChild size="sm" variant="secondary">
+              <Link href={`/results/${latestDraw.id}`}>Open draw detail</Link>
+            </Button>
+            <Button
+              asChild
+              className="border-[var(--color-border-inverse-softer)] bg-transparent text-[var(--color-text-inverse)] hover:bg-[var(--color-bg-dark-softer)]"
+              size="sm"
+              variant="outline"
+            >
+              <Link href="/calendar">View draw calendar</Link>
+            </Button>
+          </div>
         </Card>
       </section>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {metrics.map((metric) => (
-          <MetricCard
-            hint={metric.hint}
+          <Link
+            aria-label={`${metricLinks[metric.label as keyof typeof metricLinks]?.label ?? "Open"} for ${metric.label}`}
+            className="block"
+            href={metricLinks[metric.label as keyof typeof metricLinks]?.href ?? "/dashboard"}
             key={metric.label}
-            label={metric.label}
-            tone={metric.tone}
-            trend={metric.trend}
-            value={metric.value}
-          />
+          >
+            <MetricCard
+              hint={metric.hint}
+              label={metric.label}
+              tone={metric.tone}
+              trend={metric.trend}
+              value={metric.value}
+            />
+          </Link>
         ))}
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
         <Card className="p-6">
-          <SectionHeading eyebrow="signal board" title="สัญญาณที่ dashboard ต้องรับจาก analytics" />
+          <SectionHeading
+            actions={
+              <div className="flex flex-wrap gap-2">
+                <Button asChild size="sm" variant="outline">
+                  <Link href="/analytics">Open Analytics</Link>
+                </Button>
+                <Button asChild size="sm" variant="link">
+                  <Link href="/methodology#score-breakdown">How signals are scored</Link>
+                </Button>
+              </div>
+            }
+            eyebrow="signal board"
+            title="Signals surfaced from the current analytics model"
+          />
           <div className="mt-5 grid gap-4 md:grid-cols-3">
             {signals.map((signal) => (
               <article
@@ -122,7 +173,20 @@ export function DashboardPage() {
         </Card>
 
         <Card className="p-6">
-          <SectionHeading eyebrow="prediction contract" title={predictionSummary.title} />
+          <SectionHeading
+            actions={
+              <div className="flex flex-wrap gap-2">
+                <Button asChild size="sm" variant="outline">
+                  <Link href="/prediction-lab">Open Prediction Lab</Link>
+                </Button>
+                <Button asChild size="sm" variant="link">
+                  <Link href="/methodology#prediction-score">How to read the score</Link>
+                </Button>
+              </div>
+            }
+            eyebrow="prediction summary"
+            title={predictionSummary.title}
+          />
           <div className="mt-5 space-y-3">
             {predictionSummary.candidates.map((candidate) => (
               <div
@@ -151,9 +215,14 @@ export function DashboardPage() {
 
       <Card className="p-6">
         <SectionHeading
+          actions={
+            <Button asChild size="sm" variant="outline">
+              <Link href="/results">Open Results contract surface</Link>
+            </Button>
+          }
           eyebrow="read model"
-          title="Dashboard data contract ก่อนต่อ API"
-          description="ตารางนี้ล็อก field ที่ dashboard ต้องการจาก service layer เพื่อให้ backend map จาก Prisma หรือ analytics read model ได้ตรง"
+          title="Dashboard read model contract"
+          description="These fields define the dashboard shape expected from the service layer so Prisma-backed and computed analytics data can map into one stable API response."
         />
         <div className="mt-5 overflow-hidden rounded-none border border-[var(--color-border-soft)]">
           <Table>

@@ -2,7 +2,7 @@ generator client {
   provider            = "prisma-client"
   output              = "../src/generated/prisma"
   runtime             = "bun"
-  moduleFormat       = "esm"
+  moduleFormat        = "esm"
   importFileExtension = "ts"
 }
 
@@ -30,13 +30,14 @@ enum WatchlistSource {
 }
 
 model LotteryDraw {
-  id          String        @id @default(uuid(7)) @map("_id") @db.Uuid
-  lotteryType LotteryType   @default(THAI_GOVERNMENT)
-  drawDate    DateTime
-  drawNo      String?
-  prizes      LotteryPrize[]
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id              String           @id @default(uuid(7)) @map("_id") @db.Uuid
+  lotteryType     LotteryType      @default(THAI_GOVERNMENT)
+  drawDate        DateTime
+  drawNo          String?
+  prizes          LotteryPrize[]
+  backtestResults BacktestResult[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 
   @@unique([lotteryType, drawDate])
   @@index([drawDate])
@@ -46,7 +47,7 @@ model LotteryDraw {
 model LotteryPrize {
   id        String           @id @default(uuid(7)) @map("_id") @db.Uuid
   drawId    String           @db.Uuid
-  draw      LotteryDraw      @relation(fields: [drawId], references: [id])
+  draw      LotteryDraw      @relation(fields: [drawId], references: [id], onDelete: Cascade)
   type      LotteryPrizeType
   position  Int?
   number    String
@@ -68,6 +69,7 @@ model UserWatchlistItem {
   updatedAt DateTime        @updatedAt
 
   @@index([number])
+  @@index([updatedAt])
   @@map("user_watchlist_items")
 }
 
@@ -99,25 +101,25 @@ model PredictionResult {
 }
 
 model BacktestRun {
-  id               String          @id @default(uuid(7)) @map("_id") @db.Uuid
-  strategyId       String
-  strategyName     String
-  params           Json?
-  lotteryType      LotteryType
-  prizeType        LotteryPrizeType
-  numberLength     Int
-  startDrawDate    DateTime
-  endDrawDate      DateTime
-  candidateCount   Int
-  hitRate          Float
+  id                String           @id @default(uuid(7)) @map("_id") @db.Uuid
+  strategyId        String
+  strategyName      String
+  params            Json?
+  lotteryType       LotteryType
+  prizeType         LotteryPrizeType
+  numberLength      Int
+  startDrawDate     DateTime
+  endDrawDate       DateTime
+  candidateCount    Int
+  hitRate           Float
   longestMissStreak Int
-  averageHitRank   Float?
-  coverage         Int
-  computedAt       DateTime
-  version          String
-  results          BacktestResult[]
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
+  averageHitRank    Float?
+  coverage          Int
+  computedAt        DateTime
+  version           String
+  results           BacktestResult[]
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 
   @@index([strategyId])
   @@index([lotteryType, prizeType])
@@ -126,20 +128,22 @@ model BacktestRun {
 }
 
 model BacktestResult {
-  id              String       @id @default(uuid(7)) @map("_id") @db.Uuid
-  runId           String       @db.Uuid
-  run             BacktestRun  @relation(fields: [runId], references: [id], onDelete: Cascade)
-  drawId          String       @db.Uuid
-  drawDate        DateTime
+  id               String      @id @default(uuid(7)) @map("_id") @db.Uuid
+  runId            String      @db.Uuid
+  run              BacktestRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  drawId           String      @db.Uuid
+  draw             LotteryDraw @relation(fields: [drawId], references: [id])
+  drawDate         DateTime
   generatedNumbers String[]
-  actualNumbers   String[]
-  isHit           Boolean
-  hitNumbers      String[]
-  rankOfHit       Int?
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  actualNumbers    String[]
+  isHit            Boolean
+  hitNumbers       String[]
+  rankOfHit        Int?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
 
   @@index([runId])
+  @@index([runId, drawDate])
   @@index([drawId])
   @@map("backtest_results")
 }

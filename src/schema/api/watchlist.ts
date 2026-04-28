@@ -31,3 +31,9 @@ export interface ApiUpdateWatchlistItemRequest {
   source?: ApiWatchlistSource;
   tags?: string[];
 }
+
+export interface ApiDeleteWatchlistItemResponse {
+  deleted: true;
+  id: string;
+  scope: ApiWatchlistScope;
+}
