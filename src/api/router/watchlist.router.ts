@@ -1,6 +1,16 @@
 import { Elysia } from "elysia";
-import { notImplemented } from "@/util/api/response";
+import { watchlistService } from "@/api/service/watchlist.service";
+import {
+  createWatchlistItemSchema,
+  updateWatchlistItemSchema
+} from "@/schema/app/watchlist.schema";
 
 export const watchlistRouter = new Elysia({ prefix: "/watchlist" })
-  .get("/", notImplemented)
-  .post("/", notImplemented);
+  .get("/", () => watchlistService.getWatchlist())
+  .post("/", ({ body }) =>
+    watchlistService.createWatchlistItem(createWatchlistItemSchema.parse(body))
+  )
+  .patch("/:id", ({ body, params }) =>
+    watchlistService.updateWatchlistItem(params.id, updateWatchlistItemSchema.parse(body))
+  )
+  .delete("/:id", ({ params }) => watchlistService.deleteWatchlistItem(params.id));

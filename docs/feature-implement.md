@@ -1688,3 +1688,82 @@ Deferred:
 
 - API integration tests for `/api/analytics` remain pending.
 - Broader statistical validation tests can be added after real seed data is available.
+
+### Phase 4A: Prediction scoring foundation
+
+Status: implemented, pending project check by user.
+
+Scope shipped:
+
+- Expanded prediction API contract to include request input, ranked results, score breakdown, reasons, input window, and engine version.
+- Added app Zod schemas for prediction request and response validation.
+- Added static strategy registry with `balanced`, `hotTrend`, and `coldRebound`.
+- Added scoring engine that reuses analytics number stats instead of duplicating stat calculations.
+- Implemented `predictionService.generate()`.
+- Implemented `POST /api/predictions`.
+
+Deferred:
+
+- Prediction Lab UI is not wired to the API yet.
+- Watchlist save flow is not implemented yet.
+- Prediction runs are not persisted to Prisma yet.
+
+### Phase 4B: Prediction Lab UI
+
+Status: implemented, pending project check by user.
+
+Scope shipped:
+
+- Replaced Prediction Lab placeholder with an interactive client page.
+- Added strategy, window size, candidate count, and number length controls.
+- Added frontend payload validation through `predictionRequestSchema`.
+- Connected generation to `POST /api/predictions` through `src/lib/api`.
+- Rendered ranked candidates with score, score breakdown, reasons, strategy name, input window, and engine version.
+- Added empty and error states with responsible analysis copy.
+
+Deferred:
+
+- Save-to-watchlist remains pending for Phase 4C.
+- Prediction runs are still not persisted to Prisma.
+- Form state uses local state because the form is small; React Hook Form can be introduced when nested validation or reset flows grow.
+
+### Phase 4C: Global watchlist CRUD and Prediction save flow
+
+Status: implemented, pending project check by user.
+
+Scope shipped:
+
+- Expanded watchlist API contract with `scope: "global"` to make the no-auth MVP behavior explicit.
+- Added app Zod schemas for watchlist read, create, and update payloads.
+- Implemented global watchlist CRUD through Prisma:
+  - `GET /api/watchlist`
+  - `POST /api/watchlist`
+  - `PATCH /api/watchlist/:id`
+  - `DELETE /api/watchlist/:id`
+- Connected Prediction Lab results to `POST /api/watchlist` with `source: "PREDICTION"`.
+- Added simple saved state and error state for Prediction Lab watchlist saves.
+
+Deferred:
+
+- Watchlist is currently a global preset because authentication does not exist yet.
+- Future auth work must add `userId` ownership to the watchlist model, API filters, DTOs, and UI copy so saved numbers are scoped per user.
+- Full Watchlist page CRUD UI is still pending.
+
+### Phase 4D: Watchlist page UI
+
+Status: implemented, pending project check by user.
+
+Scope shipped:
+
+- Replaced Watchlist placeholder with a global watchlist UI.
+- Connected `GET /api/watchlist` through `src/lib/api`.
+- Added manual global watchlist form with number, note, and comma-separated tags.
+- Added delete action through `DELETE /api/watchlist/:id`.
+- Displayed source, scope, tags, note, and updated date for each watchlist item.
+- Added explicit copy that this is a global no-auth watchlist until user authentication exists.
+
+Deferred:
+
+- Edit/PATCH UI remains pending.
+- User-scoped watchlist with `userId` remains pending future auth work.
+- Watchlist enrichment with analytics stats remains pending.

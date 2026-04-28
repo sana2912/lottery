@@ -1,15 +1,27 @@
-import type { ApiPrediction } from "@/schema/api/prediction";
+import type { ApiPredictionResponse, ApiPredictionResult } from "@/schema/api/prediction";
 
-type PredictionDtoInput = {
-  id: string;
-  strategy: string;
-  numbers: readonly string[];
+type PredictionResultDtoInput = Omit<ApiPredictionResult, "reasons"> & {
+  reasons: readonly string[];
 };
 
-export function toApiPrediction(prediction: PredictionDtoInput): ApiPrediction {
+type PredictionResponseDtoInput = Omit<ApiPredictionResponse, "generatedAt" | "results"> & {
+  generatedAt: Date | string;
+  results: readonly PredictionResultDtoInput[];
+};
+
+export function toApiPredictionResult(result: PredictionResultDtoInput): ApiPredictionResult {
   return {
-    id: prediction.id,
-    strategy: prediction.strategy,
-    numbers: [...prediction.numbers]
+    ...result,
+    reasons: [...result.reasons]
+  };
+}
+
+export function toApiPredictionResponse(input: PredictionResponseDtoInput): ApiPredictionResponse {
+  return {
+    generatedAt:
+      input.generatedAt instanceof Date ? input.generatedAt.toISOString() : input.generatedAt,
+    input: input.input,
+    results: input.results.map(toApiPredictionResult),
+    source: input.source
   };
 }

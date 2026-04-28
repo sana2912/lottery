@@ -31,7 +31,7 @@
       "biome check --write --no-errors-on-unmatched",
       "eslint --fix --max-warnings=0"
     ],
-    "*.{json,md,yaml,yml}": [
+    "*.{json,yaml,yml}": [
       "biome format --write"
     ]
   },
