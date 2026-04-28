@@ -1,6 +1,9 @@
 import { CalendarDays, Clock3, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { EmptyState, MetricCard } from "@/frontend/components";
+import { calendarContent } from "@/frontend/pages/calendar/calendar.content";
+import { getCalendarModel } from "@/frontend/pages/calendar/calendar.data";
+import { getDaysUntilNextDraw } from "@/frontend/pages/calendar/calendar.mappers";
 import {
   Badge,
   Button,
@@ -13,119 +16,57 @@ import {
   TableHeader,
   TableRow
 } from "@/frontend/primitives";
-import { apiGet } from "@/lib/api/http";
-import { apiRoutes } from "@/lib/api/routes";
-import { type CalendarReadModel, calendarReadModelSchema } from "@/schema/app/calendar.schema";
-
-const calendarFallback = calendarReadModelSchema.parse({
-  generatedAt: "2026-04-28T00:00:00.000Z",
-  monthlyInsights: [
-    {
-      coldNumbers: ["03", "91"],
-      hotNumbers: ["47", "24"],
-      id: "monthly-insight-may",
-      label: "May",
-      month: 5,
-      patternNotes: [
-        "Odd-ending numbers appeared slightly more often in the sampled month.",
-        "High-ending numbers carried more weight in same-month history."
-      ],
-      sampleSize: 12,
-      summary:
-        "May has 12 historical draws in sample, leaning toward odd-ending and high-ending numbers."
-    }
-  ],
-  nextDraw: {
-    drawDate: "1 May 2026",
-    drawDateIso: "2026-05-01T00:00:00.000Z",
-    drawNo: "17/2026",
-    id: "draw-2026-05-01",
-    isNextDraw: true,
-    status: "upcoming"
-  },
-  draws: [
-    {
-      drawDate: "1 May 2026",
-      drawDateIso: "2026-05-01T00:00:00.000Z",
-      drawNo: "17/2026",
-      id: "draw-2026-05-01",
-      isNextDraw: true,
-      status: "upcoming"
-    },
-    {
-      drawDate: "16 April 2026",
-      drawDateIso: "2026-04-16T00:00:00.000Z",
-      drawNo: "16/2026",
-      id: "draw-2026-04-16",
-      isNextDraw: false,
-      status: "past"
-    }
-  ],
-  source: "mock"
-});
-
-async function getCalendarModel(): Promise<CalendarReadModel> {
-  try {
-    return await apiGet<CalendarReadModel>(apiRoutes.calendar, {
-      cache: "no-store",
-      schema: calendarReadModelSchema
-    });
-  } catch {
-    return calendarFallback;
-  }
-}
 
 export async function CalendarPage() {
   const calendar = await getCalendarModel();
-  const nextDrawDate = new Date(calendar.nextDraw.drawDateIso);
-  const now = new Date();
-  const daysUntilNextDraw = Math.max(
-    0,
-    Math.ceil((nextDrawDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-  );
+  const daysUntilNextDraw = getDaysUntilNextDraw(calendar);
 
   return (
     <main className="space-y-6">
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.8fr)]">
         <Card className="p-6 md:p-8">
           <p className="text-[11px] font-bold uppercase tracking-normal text-[var(--calendar)]">
-            Calendar
+            {calendarContent.hero.eyebrow}
           </p>
           <h1 className="mt-4 max-w-3xl text-4xl font-bold tracking-normal text-[var(--color-text-primary)]">
-            Draw rhythm and month-based signals
+            {calendarContent.hero.title}
           </h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--color-text-secondary)]">
-            Track the next scheduled draw, review recent dates, and scan monthly patterns from the
-            historical record used by the rest of the dashboard.
+            {calendarContent.hero.description}
           </p>
           <div className="mt-4">
             <Button asChild className="px-0" variant="link">
-              <Link href="/methodology#monthly-insights">
-                Read how monthly insights should be interpreted
+              <Link href={calendarContent.actions.methodologyHref}>
+                {calendarContent.actions.methodologyLabel}
               </Link>
             </Button>
           </div>
         </Card>
 
         <Card className="p-6">
-          <SectionHeading eyebrow="Next draw" title={calendar.nextDraw.drawDate} />
+          <SectionHeading
+            eyebrow={calendarContent.nextDraw.eyebrow}
+            title={calendar.nextDraw.drawDate}
+          />
           <div className="mt-5 grid gap-3">
             <MetricCard
-              hint="Days remaining until the next scheduled draw date."
-              label="Countdown"
+              hint={calendarContent.metrics.countdown.hint}
+              label={calendarContent.metrics.countdown.label}
               tone="default"
-              value={`${daysUntilNextDraw} days`}
+              value={`${daysUntilNextDraw} ${calendarContent.metrics.countdown.suffix}`}
             />
             <MetricCard
-              hint="Draw number label for the next scheduled run."
-              label="Draw no."
+              hint={calendarContent.metrics.drawNumber.hint}
+              label={calendarContent.metrics.drawNumber.label}
               value={calendar.nextDraw.drawNo ?? "-"}
             />
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
             <Badge variant="brand">{calendar.nextDraw.status}</Badge>
             <Badge variant={calendar.source === "api" ? "success" : "warning"}>
-              {calendar.source === "api" ? "Live API" : "Mock fallback"}
+              {calendar.source === "api"
+                ? calendarContent.badges.liveApi
+                : calendarContent.badges.mockFallback}
             </Badge>
           </div>
         </Card>
@@ -133,19 +74,19 @@ export async function CalendarPage() {
 
       <section className="grid gap-4 md:grid-cols-3">
         <MetricCard
-          hint="Recent draw rows plus the upcoming scheduled draw."
-          label="Schedule rows"
+          hint={calendarContent.metrics.scheduleRows.hint}
+          label={calendarContent.metrics.scheduleRows.label}
           tone="default"
           value={String(calendar.draws.length)}
         />
         <MetricCard
-          hint="Monthly seasonal summaries currently exposed by the calendar read model."
-          label="Monthly insights"
+          hint={calendarContent.metrics.monthlyInsights.hint}
+          label={calendarContent.metrics.monthlyInsights.label}
           value={String(calendar.monthlyInsights.length)}
         />
         <MetricCard
-          hint="Timestamp when the calendar read model was generated."
-          label="Generated"
+          hint={calendarContent.metrics.generated.hint}
+          label={calendarContent.metrics.generated.label}
           value={new Date(calendar.generatedAt).toLocaleDateString("th-TH")}
         />
       </section>
@@ -153,9 +94,9 @@ export async function CalendarPage() {
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
         <Card className="p-6">
           <SectionHeading
-            eyebrow="Schedule"
-            title="Upcoming and recent draw dates"
-            description="The next scheduled draw stays pinned at the top so users can orient around the next decision window."
+            eyebrow={calendarContent.cards.schedule.eyebrow}
+            title={calendarContent.cards.schedule.title}
+            description={calendarContent.cards.schedule.description}
           />
 
           <div className="mt-5 overflow-hidden rounded-none border border-[var(--color-border-soft)]">
@@ -163,13 +104,13 @@ export async function CalendarPage() {
               <TableHeader className="bg-[var(--color-bg-subtle)]">
                 <TableRow className="border-b border-[var(--color-border-soft)] hover:bg-transparent">
                   <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                    Date
+                    {calendarContent.scheduleTable.headers.date}
                   </TableHead>
                   <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                    Draw no.
+                    {calendarContent.scheduleTable.headers.drawNumber}
                   </TableHead>
                   <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                    Status
+                    {calendarContent.scheduleTable.headers.status}
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -193,7 +134,9 @@ export async function CalendarPage() {
                         <Badge variant={draw.status === "upcoming" ? "brand" : "neutral"}>
                           {draw.status}
                         </Badge>
-                        {draw.isNextDraw ? <Badge variant="success">Next draw</Badge> : null}
+                        {draw.isNextDraw ? (
+                          <Badge variant="success">{calendarContent.badges.nextDraw}</Badge>
+                        ) : null}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -205,20 +148,20 @@ export async function CalendarPage() {
 
         <Card className="p-6">
           <SectionHeading
-            eyebrow="Context"
-            title="How to read this page"
-            description="Calendar is the timing layer for the rest of the product. It does not predict outcomes by itself."
+            eyebrow={calendarContent.cards.context.eyebrow}
+            title={calendarContent.cards.context.title}
+            description={calendarContent.cards.context.description}
           />
           <div className="mt-5 space-y-3">
             <MetricCard
-              hint="Calendar uses draw dates to anchor seasonality and timing windows."
-              label="Timing anchor"
-              value="Draw date"
+              hint={calendarContent.metrics.timingAnchor.hint}
+              label={calendarContent.metrics.timingAnchor.label}
+              value={calendarContent.metrics.timingAnchor.value}
             />
             <MetricCard
-              hint="Monthly notes summarize historical patterns from the same month only."
-              label="Insight basis"
-              value="Month seasonality"
+              hint={calendarContent.metrics.insightBasis.hint}
+              label={calendarContent.metrics.insightBasis.label}
+              value={calendarContent.metrics.insightBasis.value}
             />
           </div>
         </Card>
@@ -226,14 +169,14 @@ export async function CalendarPage() {
 
       <Card className="p-6">
         <SectionHeading
-          eyebrow="Monthly insights"
-          title="Seasonal notes from the same month in prior draws"
-          description="These cards are descriptive cues for timing and context. They are not guarantees."
+          eyebrow={calendarContent.monthlyInsights.eyebrow}
+          title={calendarContent.monthlyInsights.title}
+          description={calendarContent.monthlyInsights.description}
         />
         <div className="mt-4">
           <Button asChild className="px-0" variant="link">
-            <Link href="/methodology#monthly-insights">
-              Review sample-size and uncertainty guidance
+            <Link href={calendarContent.actions.methodologyHref}>
+              {calendarContent.actions.monthlyMethodologyLabel}
             </Link>
           </Button>
         </div>
@@ -241,9 +184,9 @@ export async function CalendarPage() {
         {calendar.monthlyInsights.length === 0 ? (
           <div className="mt-5">
             <EmptyState
-              description="No monthly insight rows are available in the current calendar read model."
+              description={calendarContent.emptyStates.monthlyInsights.description}
               icon={<Clock3 />}
-              title="No monthly insights"
+              title={calendarContent.emptyStates.monthlyInsights.title}
             />
           </div>
         ) : (
@@ -269,7 +212,7 @@ export async function CalendarPage() {
                 <div className="mt-5 grid gap-3 md:grid-cols-2">
                   <div className="rounded-none bg-[var(--color-bg-subtle)] p-3">
                     <p className="text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                      Hot numbers
+                      {calendarContent.fallbackLabels.hotNumbers}
                     </p>
                     <p className="mt-2 font-mono text-sm text-[var(--color-text-primary)]">
                       {insight.hotNumbers.join(", ")}
@@ -277,7 +220,7 @@ export async function CalendarPage() {
                   </div>
                   <div className="rounded-none bg-[var(--color-bg-subtle)] p-3">
                     <p className="text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                      Cold numbers
+                      {calendarContent.fallbackLabels.coldNumbers}
                     </p>
                     <p className="mt-2 font-mono text-sm text-[var(--color-text-primary)]">
                       {insight.coldNumbers.join(", ")}

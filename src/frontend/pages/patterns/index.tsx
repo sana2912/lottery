@@ -1,60 +1,47 @@
 import { Heatmap } from "@/frontend/chart-primitives";
 import { EmptyState, MetricCard } from "@/frontend/components";
+import { getAnalyticsModel } from "@/frontend/pages/analytics/analytics.data";
+import { patternsContent } from "@/frontend/pages/patterns/patterns.content";
+import {
+  getFlaggedNumbers,
+  toPatternHeatmapCells
+} from "@/frontend/pages/patterns/patterns.mappers";
 import { Badge, Card, SectionHeading } from "@/frontend/primitives";
-import { apiGet } from "@/lib/api/http";
-import { apiRoutes } from "@/lib/api/routes";
-import { type AnalyticsReadModel, analyticsReadModelSchema } from "@/schema/app/analytics.schema";
-
-const analyticsFallback = analyticsReadModelSchema.parse({
-  digitStats: [],
-  generatedAt: "2026-04-28T00:00:00.000Z",
-  numberStats: [],
-  patternSummaries: [],
-  source: "mock",
-  summary: {
-    drawCount: 0,
-    generatedAt: "2026-04-28T00:00:00.000Z"
-  }
-});
 
 export async function PatternsPage() {
   const analytics = await getAnalyticsModel();
-  const patternCells = analytics.patternSummaries.map((summary) => ({
-    id: summary.id,
-    label: summary.pattern,
-    value: summary.hitCount
-  }));
-  const flaggedNumbers = analytics.numberStats
-    .filter((stat) => stat.patternFlags.length > 0)
-    .slice(0, 12);
+  const patternCells = toPatternHeatmapCells(analytics);
+  const flaggedNumbers = getFlaggedNumbers(analytics);
 
   return (
     <main className="space-y-6">
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
         <Card className="p-6 md:p-8">
           <p className="text-[11px] font-bold uppercase tracking-normal text-[var(--color-brand-outline)]">
-            Patterns
+            {patternsContent.hero.eyebrow}
           </p>
           <h1 className="mt-4 max-w-3xl text-4xl font-bold tracking-normal text-[var(--color-text-primary)]">
-            Repeating shapes in historical numbers
+            {patternsContent.hero.title}
           </h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--color-text-secondary)]">
-            Odd/even, high/low, doubles, mirrors, and sequences are summarized as descriptive
-            patterns from past draw records.
+            {patternsContent.hero.description}
           </p>
         </Card>
 
         <Card className="p-6">
-          <SectionHeading eyebrow="Sample" title="Pattern coverage" />
+          <SectionHeading
+            eyebrow={patternsContent.sample.eyebrow}
+            title={patternsContent.sample.title}
+          />
           <div className="mt-5 grid gap-3">
             <MetricCard
-              hint="Pattern groups with at least one matching number."
-              label="Patterns"
+              hint={patternsContent.metrics.patterns.hint}
+              label={patternsContent.metrics.patterns.label}
               value={String(analytics.patternSummaries.length)}
             />
             <MetricCard
-              hint="Number groups carrying one or more pattern flags."
-              label="Flagged numbers"
+              hint={patternsContent.metrics.flaggedNumbers.hint}
+              label={patternsContent.metrics.flaggedNumbers.label}
               value={String(flaggedNumbers.length)}
             />
           </div>
@@ -63,16 +50,19 @@ export async function PatternsPage() {
 
       {analytics.patternSummaries.length === 0 ? (
         <EmptyState
-          description="Pattern summaries will appear after number stats are available."
-          title="No pattern records"
+          description={patternsContent.emptyState.description}
+          title={patternsContent.emptyState.title}
         />
       ) : null}
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
-        <Heatmap cells={patternCells} columns={4} title="Pattern heatmap" />
+        <Heatmap cells={patternCells} columns={4} title={patternsContent.charts.heatmapTitle} />
 
         <Card className="p-6">
-          <SectionHeading eyebrow="Pattern summaries" title="Historical shape notes" />
+          <SectionHeading
+            eyebrow={patternsContent.sections.patternSummaries.eyebrow}
+            title={patternsContent.sections.patternSummaries.title}
+          />
           <div className="mt-5 space-y-4">
             {analytics.patternSummaries.map((summary) => (
               <article
@@ -91,7 +81,9 @@ export async function PatternsPage() {
                   <Badge variant="brand">{summary.frequencyPercent}%</Badge>
                 </div>
                 <p className="mt-3 text-xs text-[var(--color-text-muted)]">
-                  {summary.hitCount} hits from {summary.sampleSize} tracked number groups
+                  {summary.hitCount} {patternsContent.sections.patternSummaries.hitsLabel}{" "}
+                  {summary.sampleSize}{" "}
+                  {patternsContent.sections.patternSummaries.trackedGroupsLabel}
                 </p>
               </article>
             ))}
@@ -100,7 +92,10 @@ export async function PatternsPage() {
       </section>
 
       <Card className="p-6">
-        <SectionHeading eyebrow="Flagged numbers" title="Numbers grouped by pattern flags" />
+        <SectionHeading
+          eyebrow={patternsContent.sections.flaggedNumbers.eyebrow}
+          title={patternsContent.sections.flaggedNumbers.title}
+        />
         <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {flaggedNumbers.map((stat) => (
             <article
@@ -132,15 +127,4 @@ export async function PatternsPage() {
       </Card>
     </main>
   );
-}
-
-async function getAnalyticsModel(): Promise<AnalyticsReadModel> {
-  try {
-    return await apiGet<AnalyticsReadModel>(apiRoutes.analytics, {
-      cache: "no-store",
-      schema: analyticsReadModelSchema
-    });
-  } catch {
-    return analyticsFallback;
-  }
 }

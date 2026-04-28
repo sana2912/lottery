@@ -4,6 +4,13 @@ import { AlertCircle, FlaskConical, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { EmptyState, MetricCard } from "@/frontend/components";
+import { predictionLabContent } from "@/frontend/pages/prediction-lab/prediction-lab.content";
+import {
+  defaultPredictionFormState,
+  getTopPredictionScore,
+  toPredictionPayload,
+  toPredictionWatchlistPayload
+} from "@/frontend/pages/prediction-lab/prediction-lab.mappers";
 import {
   Badge,
   Button,
@@ -28,50 +35,20 @@ import {
 } from "@/schema/app/prediction.schema";
 import { createWatchlistItemSchema } from "@/schema/app/watchlist.schema";
 
-const strategyOptions = [
-  { label: "Balanced", value: "balanced" },
-  { label: "Hot trend", value: "hotTrend" },
-  { label: "Cold rebound", value: "coldRebound" }
-] as const;
-
-type PredictionFormState = {
-  count: string;
-  numberLength: string;
-  strategyId: PredictionRequest["strategyId"];
-  windowSize: string;
-};
-
-const defaultFormState: PredictionFormState = {
-  count: "5",
-  numberLength: "2",
-  strategyId: "balanced",
-  windowSize: "120"
-};
-
 export function PredictionLabPage() {
-  const [formState, setFormState] = useState(defaultFormState);
+  const [formState, setFormState] = useState(defaultPredictionFormState);
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [prediction, setPrediction] = useState<PredictionResponse | null>(null);
   const [savedNumbers, setSavedNumbers] = useState<Set<string>>(() => new Set());
   const [saveError, setSaveError] = useState<string | null>(null);
-  const topScore = useMemo(
-    () => prediction?.results[0]?.score.toString() ?? "-",
-    [prediction?.results]
-  );
+  const topScore = useMemo(() => getTopPredictionScore(prediction), [prediction]);
 
   async function handleGenerate() {
     setIsPending(true);
     setError(null);
 
-    const payload = predictionRequestSchema.parse({
-      count: formState.count,
-      lotteryType: "THAI_GOVERNMENT",
-      numberLength: formState.numberLength,
-      prizeType: "TWO_DIGIT",
-      strategyId: formState.strategyId,
-      windowSize: formState.windowSize
-    });
+    const payload = predictionRequestSchema.parse(toPredictionPayload(formState));
 
     try {
       const response = await apiPost<PredictionResponse>(apiRoutes.predictions, payload, {
@@ -79,7 +56,7 @@ export function PredictionLabPage() {
       });
       setPrediction(response);
     } catch {
-      setError("Prediction API is not available yet. Check database seed data and API runtime.");
+      setError(predictionLabContent.errorMessages.predictionUnavailable);
     } finally {
       setIsPending(false);
     }
@@ -88,18 +65,13 @@ export function PredictionLabPage() {
   async function handleSaveToWatchlist(result: PredictionResult) {
     setSaveError(null);
 
-    const payload = createWatchlistItemSchema.parse({
-      note: `Saved from Prediction Lab using ${result.strategyName}. Score: ${result.score}.`,
-      number: result.number,
-      source: "PREDICTION",
-      tags: ["prediction", result.strategyId]
-    });
+    const payload = createWatchlistItemSchema.parse(toPredictionWatchlistPayload(result));
 
     try {
       await apiPost(apiRoutes.watchlist, payload);
       setSavedNumbers((current) => new Set([...current, result.number]));
     } catch {
-      setSaveError("Unable to save this number to the global watchlist.");
+      setSaveError(predictionLabContent.errorMessages.watchlistSaveFailed);
     }
   }
 
@@ -108,36 +80,38 @@ export function PredictionLabPage() {
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
         <Card className="p-6 md:p-8">
           <p className="text-[11px] font-bold uppercase tracking-normal text-[var(--prediction)]">
-            Prediction Lab
+            {predictionLabContent.hero.eyebrow}
           </p>
           <h1 className="mt-4 max-w-3xl text-4xl font-bold tracking-normal text-[var(--color-text-primary)]">
-            Generate explainable number candidates
+            {predictionLabContent.hero.title}
           </h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--color-text-secondary)]">
-            Strategies rank historical signals from analytics data. Scores are analysis outputs, not
-            guarantees.
+            {predictionLabContent.hero.description}
           </p>
           <div className="mt-4">
             <Button asChild className="px-0" variant="link">
-              <Link href="/methodology#prediction-score">
-                Read how prediction scores are derived
+              <Link href={predictionLabContent.actions.methodologyHref}>
+                {predictionLabContent.actions.methodologyLabel}
               </Link>
             </Button>
           </div>
         </Card>
 
         <Card className="p-6">
-          <SectionHeading eyebrow="Run summary" title="Current result" />
+          <SectionHeading
+            eyebrow={predictionLabContent.sections.currentResult.eyebrow}
+            title={predictionLabContent.sections.currentResult.title}
+          />
           <div className="mt-5 grid gap-3">
             <MetricCard
-              hint="Highest score from the latest generated result."
-              label="Top score"
+              hint={predictionLabContent.metrics.topScore.hint}
+              label={predictionLabContent.metrics.topScore.label}
               tone="prediction"
               value={topScore}
             />
             <MetricCard
-              hint="Candidate count from the latest run."
-              label="Candidates"
+              hint={predictionLabContent.metrics.candidates.hint}
+              label={predictionLabContent.metrics.candidates.label}
               value={String(prediction?.results.length ?? 0)}
             />
           </div>
@@ -145,7 +119,10 @@ export function PredictionLabPage() {
       </section>
 
       <Card className="p-6">
-        <SectionHeading eyebrow="Strategy input" title="Generation settings" />
+        <SectionHeading
+          eyebrow={predictionLabContent.sections.generationSettings.eyebrow}
+          title={predictionLabContent.sections.generationSettings.title}
+        />
         <div className="mt-5 grid gap-4 md:grid-cols-4">
           <div className="space-y-2">
             <Label htmlFor="strategyId">Strategy</Label>
@@ -159,10 +136,10 @@ export function PredictionLabPage() {
               }
             >
               <SelectTrigger id="strategyId">
-                <SelectValue placeholder="Strategy" />
+                <SelectValue placeholder={predictionLabContent.selectPlaceholders.strategy} />
               </SelectTrigger>
               <SelectContent>
-                {strategyOptions.map((strategy) => (
+                {predictionLabContent.strategyOptions.map((strategy) => (
                   <SelectItem key={strategy.value} value={strategy.value}>
                     {strategy.label}
                   </SelectItem>
@@ -219,13 +196,15 @@ export function PredictionLabPage() {
         <div className="mt-5 flex flex-wrap items-center gap-3">
           <Button disabled={isPending} onClick={handleGenerate} type="button">
             {isPending ? <Loader2 className="animate-spin" /> : <FlaskConical />}
-            Generate
+            {predictionLabContent.actions.generate}
           </Button>
           <Button asChild className="px-0" variant="link">
-            <Link href="/methodology#score-breakdown">Review score breakdown fields</Link>
+            <Link href={predictionLabContent.actions.breakdownHref}>
+              {predictionLabContent.actions.breakdownLabel}
+            </Link>
           </Button>
           <p className="text-sm leading-6 text-[var(--color-text-muted)]">
-            Results use historical analytics signals and should be read as exploratory ranking.
+            {predictionLabContent.notes.resultSummary}
           </p>
         </div>
       </Card>
@@ -234,19 +213,23 @@ export function PredictionLabPage() {
         <EmptyState
           description={error}
           icon={<AlertCircle />}
-          title="Unable to generate predictions"
+          title={predictionLabContent.emptyStates.predictionError.title}
         />
       ) : null}
 
       {saveError ? (
-        <EmptyState description={saveError} icon={<AlertCircle />} title="Watchlist save failed" />
+        <EmptyState
+          description={saveError}
+          icon={<AlertCircle />}
+          title={predictionLabContent.emptyStates.watchlistError.title}
+        />
       ) : null}
 
       {!prediction && !error ? (
         <EmptyState
-          description="Choose a strategy and generate candidates to inspect score breakdowns and reasons."
+          description={predictionLabContent.emptyStates.noRun.description}
           icon={<FlaskConical />}
-          title="No prediction run yet"
+          title={predictionLabContent.emptyStates.noRun.title}
         />
       ) : null}
 
@@ -260,11 +243,14 @@ export function PredictionLabPage() {
                     <p className="font-mono text-3xl font-bold text-[var(--color-text-primary)]">
                       {result.number}
                     </p>
-                    <Badge variant="prediction">Rank {result.rank}</Badge>
+                    <Badge variant="prediction">
+                      {predictionLabContent.results.rankLabel} {result.rank}
+                    </Badge>
                     <Badge variant="neutral">{result.strategyName}</Badge>
                   </div>
                   <p className="mt-2 text-sm text-[var(--color-text-muted)]">
-                    {result.version} / window {result.inputWindow}
+                    {result.version} / {predictionLabContent.results.versionWindowLabel}{" "}
+                    {result.inputWindow}
                   </p>
                 </div>
 
@@ -284,8 +270,8 @@ export function PredictionLabPage() {
                   variant="outline"
                 >
                   {savedNumbers.has(result.number)
-                    ? "Saved to global watchlist"
-                    : "Save to watchlist"}
+                    ? predictionLabContent.actions.savedToWatchlist
+                    : predictionLabContent.actions.saveToWatchlist}
                 </Button>
               </div>
 
@@ -296,7 +282,9 @@ export function PredictionLabPage() {
               </div>
 
               <div className="mt-5 border-t border-[var(--color-border-soft)] pt-4">
-                <p className="text-sm font-semibold text-[var(--color-text-primary)]">Reasons</p>
+                <p className="text-sm font-semibold text-[var(--color-text-primary)]">
+                  {predictionLabContent.results.reasonsTitle}
+                </p>
                 <ul className="mt-3 space-y-2 text-sm leading-6 text-[var(--color-text-secondary)]">
                   {result.reasons.map((reason) => (
                     <li key={reason}>{reason}</li>

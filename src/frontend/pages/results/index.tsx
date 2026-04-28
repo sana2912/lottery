@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { EmptyState } from "@/frontend/components";
 import { SlidingNumber } from "@/frontend/components/animate-ui/primitives/texts/sliding-number";
-import resultsMockJson from "@/frontend/pages/results/results.mock.json";
+import { resultsContent } from "@/frontend/pages/results/results.content";
+import { getResultsModel } from "@/frontend/pages/results/results.data";
 import {
   Badge,
   Button,
@@ -21,72 +22,7 @@ import {
   TableRow,
   Textarea
 } from "@/frontend/primitives";
-import { apiGet } from "@/lib/api/http";
-import { apiRoutes } from "@/lib/api/routes";
-import { type DrawListResponse, drawListResponseSchema } from "@/schema/app/draw.schema";
-import { type ResultsReadModel, resultsReadModelSchema } from "@/schema/app/results.schema";
-
-const resultsMock = resultsReadModelSchema.parse(resultsMockJson);
-
-async function getResultsModel(): Promise<ResultsReadModel> {
-  try {
-    const response = await apiGet<DrawListResponse>(apiRoutes.draws, {
-      cache: "no-store",
-      schema: drawListResponseSchema
-    });
-
-    return resultsReadModelSchema.parse(toResultsModel(response));
-  } catch {
-    return resultsMock;
-  }
-}
-
-function toResultsModel(response: DrawListResponse): ResultsReadModel {
-  const latestDraw = response.draws[0];
-  const prizeCount = response.draws.reduce((total, draw) => total + draw.prizes.length, 0);
-
-  return {
-    ...resultsMock,
-    draws: response.draws.map((draw) => ({
-      coverage: draw.coverage,
-      drawDate: draw.drawDate,
-      drawDateIso: draw.drawDateIso,
-      drawNo: draw.drawNo,
-      id: draw.id,
-      lotteryType: draw.lotteryType,
-      prizes: draw.prizes.map((prize) => ({
-        label: prize.label,
-        prizeType: prize.type,
-        value: prize.number
-      })),
-      status: draw.status,
-      statusLabel: draw.statusLabel
-    })),
-    generatedAt: response.generatedAt,
-    mockNote:
-      response.draws.length > 0
-        ? "This page is using the /api/draws contract. If the database is empty or unavailable, the UI falls back to the checked mock read model."
-        : "The /api/draws contract returned no draws. Seed historical draws before enabling analytics.",
-    source: response.source,
-    stats: [
-      {
-        hint: "Latest draw returned by the draw service contract.",
-        label: "Latest draw",
-        value: latestDraw?.drawDate ?? "-"
-      },
-      {
-        hint: "Draw count from the current API query.",
-        label: "Draw records",
-        value: String(response.pagination.total)
-      },
-      {
-        hint: "Prize rows returned in the current page.",
-        label: "Prize records",
-        value: String(prizeCount)
-      }
-    ]
-  };
-}
+import type { ResultsReadModel } from "@/schema/app/results.schema";
 
 function StatCard({ stat }: { stat: ResultsReadModel["stats"][number] }) {
   const isNumericValue = /^\d+$/.test(stat.value);
@@ -131,13 +67,13 @@ export async function ResultsPage() {
 
           <div className="mt-8 flex flex-wrap gap-3">
             <Button className="rounded-none bg-[var(--color-brand)] px-4 py-[13px] text-[var(--primary-foreground)] hover:bg-[var(--color-brand-strong)]">
-              View latest draw
+              {resultsContent.heroActions.latestLabel}
             </Button>
             <Button
               className="rounded-none border-[var(--color-brand-outline)] bg-[var(--color-bg-canvas)] px-4 py-[13px] text-[var(--color-brand-outline)] hover:bg-[var(--color-bg-brand-soft)]"
               variant="outline"
             >
-              Review data contract
+              {resultsContent.heroActions.contractLabel}
             </Button>
           </div>
         </Card>
@@ -181,19 +117,19 @@ export async function ResultsPage() {
               <div className="w-full max-w-sm">
                 <Input
                   className="h-11 rounded-none border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 py-3 shadow-[var(--shadow-micro)]"
-                  placeholder="Search by draw date or winning number"
+                  placeholder={resultsContent.filters.searchPlaceholder}
                 />
               </div>
             }
             className="border-b border-[var(--color-border-soft)] pb-5"
-            eyebrow="search and filter"
-            title="Recent historical draws"
+            eyebrow={resultsContent.filters.sectionEyebrow}
+            title={resultsContent.filters.sectionTitle}
           />
 
           <div className="mt-5 grid gap-3 md:grid-cols-2">
             <Select defaultValue={resultsModel.filters.defaultLotteryType}>
               <SelectTrigger className="h-11 w-full rounded-none border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 shadow-[var(--shadow-micro)]">
-                <SelectValue placeholder="Select lottery type" />
+                <SelectValue placeholder={resultsContent.filters.lotteryTypePlaceholder} />
               </SelectTrigger>
               <SelectContent>
                 {resultsModel.filters.lotteryTypes.map((type) => (
@@ -206,10 +142,12 @@ export async function ResultsPage() {
 
             <Select defaultValue={resultsModel.filters.defaultPrizeType}>
               <SelectTrigger className="h-11 w-full rounded-none border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 shadow-[var(--shadow-micro)]">
-                <SelectValue placeholder="Select prize type" />
+                <SelectValue placeholder={resultsContent.filters.prizeTypePlaceholder} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="All prize types">All prize types</SelectItem>
+                <SelectItem value={resultsContent.filters.allPrizeTypesLabel}>
+                  {resultsContent.filters.allPrizeTypesLabel}
+                </SelectItem>
                 {resultsModel.filters.prizeTypes.map((type) => (
                   <SelectItem key={type} value={type}>
                     {type}
@@ -244,8 +182,8 @@ export async function ResultsPage() {
           <div className="mt-6 space-y-4">
             {resultsModel.draws.length === 0 ? (
               <EmptyState
-                description="The draw API returned an empty result set for the current filters."
-                title="No draw records"
+                description={resultsContent.emptyState.description}
+                title={resultsContent.emptyState.title}
               />
             ) : null}
 
@@ -270,7 +208,7 @@ export async function ResultsPage() {
                     </Badge>
                     <Badge variant="neutral">{draw.coverage}</Badge>
                     <Button asChild size="sm" variant="outline">
-                      <Link href={`/results/${draw.id}`}>Detail</Link>
+                      <Link href={`/results/${draw.id}`}>{resultsContent.filters.detailLabel}</Link>
                     </Button>
                   </div>
                 </div>
@@ -297,37 +235,31 @@ export async function ResultsPage() {
 
         <Card className="p-6">
           <SectionHeading
-            eyebrow="why this page matters"
-            title="Results defines the base shape for historical draw data"
+            eyebrow={resultsContent.sidebar.whyEyebrow}
+            title={resultsContent.sidebar.title}
           />
           <div className="mt-5 space-y-4 text-sm leading-7 text-[var(--color-text-secondary)]">
-            <p>
-              This screen forces the first stable read model for historical draws before deeper
-              ingestion work begins. It locks the displayed date, draw number, grouped prize values,
-              and data coverage status in one place.
-            </p>
-            <p>
-              Once that shape is stable, the `/api/draws` service can map Prisma data into the same
-              contract with less risk of frontend churn.
-            </p>
+            {resultsContent.sidebar.paragraphs.map((paragraph) => (
+              <p key={paragraph}>{paragraph}</p>
+            ))}
           </div>
 
           <div className="mt-6 rounded-none bg-[var(--color-bg-panel-brand)] p-4">
             <p className="text-xs font-bold uppercase tracking-normal text-[var(--color-brand-outline)]">
-              backend contract fields
+              {resultsContent.sidebar.contractEyebrow}
             </p>
             <div className="mt-3 overflow-hidden rounded-none border border-[var(--color-border-soft)]">
               <Table>
                 <TableHeader className="bg-[var(--color-bg-subtle)]">
                   <TableRow className="border-b border-[var(--color-border-soft)] hover:bg-transparent">
                     <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                      field
+                      {resultsContent.contractTableHeaders.field}
                     </TableHead>
                     <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                      source
+                      {resultsContent.contractTableHeaders.source}
                     </TableHead>
                     <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                      purpose
+                      {resultsContent.contractTableHeaders.purpose}
                     </TableHead>
                   </TableRow>
                 </TableHeader>
@@ -354,7 +286,10 @@ export async function ResultsPage() {
           </div>
 
           <div className="mt-6">
-            <SectionHeading eyebrow="team note" title="Mock contract note" />
+            <SectionHeading
+              eyebrow={resultsContent.sidebar.noteEyebrow}
+              title={resultsContent.sidebar.noteTitle}
+            />
             <div className="mt-3">
               <Textarea
                 className="min-h-32 rounded-none border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 py-3 shadow-[var(--shadow-micro)]"

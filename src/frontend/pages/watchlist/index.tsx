@@ -3,6 +3,13 @@
 import { AlertCircle, Check, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { EmptyState, MetricCard } from "@/frontend/components";
+import { watchlistContent } from "@/frontend/pages/watchlist/watchlist.content";
+import {
+  defaultWatchlistFormState,
+  toCreateWatchlistPayload,
+  toUpdateWatchlistPayload,
+  type WatchlistEditState
+} from "@/frontend/pages/watchlist/watchlist.mappers";
 import {
   Badge,
   Button,
@@ -30,28 +37,8 @@ import {
   watchlistReadModelSchema
 } from "@/schema/app/watchlist.schema";
 
-type WatchlistFormState = {
-  note: string;
-  number: string;
-  tags: string;
-};
-
-type WatchlistEditState = {
-  note: string;
-  source: WatchlistSource;
-  tags: string;
-};
-
-const defaultFormState: WatchlistFormState = {
-  note: "",
-  number: "",
-  tags: ""
-};
-
-const watchlistSourceOptions: readonly WatchlistSource[] = ["MANUAL", "NOTEBOOK", "PREDICTION"];
-
 export function WatchlistPage() {
-  const [formState, setFormState] = useState(defaultFormState);
+  const [formState, setFormState] = useState(defaultWatchlistFormState);
   const [editState, setEditState] = useState<WatchlistEditState | null>(null);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -67,7 +54,7 @@ export function WatchlistPage() {
       });
       setWatchlist(response);
     } catch {
-      setError("Unable to load the global watchlist.");
+      setError(watchlistContent.errorMessages.loadFailed);
     } finally {
       setIsLoading(false);
     }
@@ -85,15 +72,7 @@ export function WatchlistPage() {
     setIsSaving(true);
     setError(null);
 
-    const payload = createWatchlistItemSchema.parse({
-      note: formState.note || undefined,
-      number: formState.number,
-      source: "MANUAL",
-      tags: formState.tags
-        .split(",")
-        .map((tag) => tag.trim())
-        .filter(Boolean)
-    });
+    const payload = createWatchlistItemSchema.parse(toCreateWatchlistPayload(formState));
 
     try {
       const item = await apiPost<WatchlistItem>(apiRoutes.watchlist, payload, {
@@ -112,9 +91,9 @@ export function WatchlistPage() {
               source: "api"
             }
       );
-      setFormState(defaultFormState);
+      setFormState(defaultWatchlistFormState);
     } catch {
-      setError("Unable to add this number to the global watchlist.");
+      setError(watchlistContent.errorMessages.addFailed);
     } finally {
       setIsSaving(false);
     }
@@ -137,7 +116,7 @@ export function WatchlistPage() {
           : current
       );
     } catch {
-      setError("Unable to delete this watchlist item.");
+      setError(watchlistContent.errorMessages.deleteFailed);
     }
   }
 
@@ -163,11 +142,7 @@ export function WatchlistPage() {
     setUpdatingItemId(item.id);
     setError(null);
 
-    const payload = updateWatchlistItemSchema.parse({
-      note: editState.note || undefined,
-      source: editState.source,
-      tags: parseTags(editState.tags)
-    });
+    const payload = updateWatchlistItemSchema.parse(toUpdateWatchlistPayload(editState));
 
     try {
       const updatedItem = await apiRequest<WatchlistItem>(`${apiRoutes.watchlist}/${item.id}`, {
@@ -186,7 +161,7 @@ export function WatchlistPage() {
       );
       handleCancelEditing();
     } catch {
-      setError("Unable to update this watchlist item.");
+      setError(watchlistContent.errorMessages.updateFailed);
     } finally {
       setUpdatingItemId(null);
     }
@@ -199,29 +174,31 @@ export function WatchlistPage() {
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
         <Card className="p-6 md:p-8">
           <p className="text-[11px] font-bold uppercase tracking-normal text-[var(--watchlist)]">
-            Global Watchlist
+            {watchlistContent.hero.eyebrow}
           </p>
           <h1 className="mt-4 max-w-3xl text-4xl font-bold tracking-normal text-[var(--color-text-primary)]">
-            Saved numbers for the current MVP workspace
+            {watchlistContent.hero.title}
           </h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--color-text-secondary)]">
-            This watchlist is shared globally because authentication is not enabled yet. Future auth
-            work will scope saved numbers by user.
+            {watchlistContent.hero.description}
           </p>
         </Card>
 
         <Card className="p-6">
-          <SectionHeading eyebrow="Scope" title="Global preset" />
+          <SectionHeading
+            eyebrow={watchlistContent.sections.scope.eyebrow}
+            title={watchlistContent.sections.scope.title}
+          />
           <div className="mt-5 grid gap-3">
             <MetricCard
-              hint="Items currently returned from /api/watchlist."
-              label="Saved numbers"
+              hint={watchlistContent.metrics.savedNumbers.hint}
+              label={watchlistContent.metrics.savedNumbers.label}
               tone="watchlist"
               value={String(items.length)}
             />
             <MetricCard
-              hint="Temporary no-auth ownership mode."
-              label="Scope"
+              hint={watchlistContent.metrics.scope.hint}
+              label={watchlistContent.metrics.scope.label}
               value={watchlist?.scope ?? "global"}
             />
           </div>
@@ -230,41 +207,41 @@ export function WatchlistPage() {
 
       <Card className="p-6">
         <SectionHeading
-          eyebrow="Add number"
-          title="Manual watchlist entry"
-          description="Watchlist edits are still global until authentication introduces user ownership."
+          eyebrow={watchlistContent.sections.addNumber.eyebrow}
+          title={watchlistContent.sections.addNumber.title}
+          description={watchlistContent.sections.addNumber.description}
         />
         <div className="mt-5 grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)_260px]">
           <div className="space-y-2">
-            <Label htmlFor="watchlist-number">Number</Label>
+            <Label htmlFor="watchlist-number">{watchlistContent.fields.number.label}</Label>
             <Input
               id="watchlist-number"
               onChange={(event) =>
                 setFormState((current) => ({ ...current, number: event.target.value }))
               }
-              placeholder="09"
+              placeholder={watchlistContent.fields.number.placeholder}
               value={formState.number}
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="watchlist-note">Note</Label>
+            <Label htmlFor="watchlist-note">{watchlistContent.fields.note.label}</Label>
             <Textarea
               id="watchlist-note"
               onChange={(event) =>
                 setFormState((current) => ({ ...current, note: event.target.value }))
               }
-              placeholder="Why this number is being watched"
+              placeholder={watchlistContent.fields.note.placeholder}
               value={formState.note}
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="watchlist-tags">Tags</Label>
+            <Label htmlFor="watchlist-tags">{watchlistContent.fields.tags.label}</Label>
             <Input
               id="watchlist-tags"
               onChange={(event) =>
                 setFormState((current) => ({ ...current, tags: event.target.value }))
               }
-              placeholder="manual, family"
+              placeholder={watchlistContent.fields.tags.placeholder}
               value={formState.tags}
             />
           </div>
@@ -272,25 +249,31 @@ export function WatchlistPage() {
         <div className="mt-5">
           <Button disabled={isSaving || !formState.number} onClick={handleAddItem} type="button">
             {isSaving ? <Loader2 className="animate-spin" /> : <Plus />}
-            Add to global watchlist
+            {watchlistContent.actions.addButton}
           </Button>
         </div>
       </Card>
 
       {error ? (
-        <EmptyState description={error} icon={<AlertCircle />} title="Watchlist error" />
+        <EmptyState
+          description={error}
+          icon={<AlertCircle />}
+          title={watchlistContent.emptyStates.error.title}
+        />
       ) : null}
 
       {isLoading ? (
         <Card className="p-6">
-          <p className="text-sm text-[var(--color-text-muted)]">Loading watchlist records...</p>
+          <p className="text-sm text-[var(--color-text-muted)]">
+            {watchlistContent.emptyStates.loading}
+          </p>
         </Card>
       ) : null}
 
       {!isLoading && items.length === 0 ? (
         <EmptyState
-          description="Add a number manually or save a generated candidate from Prediction Lab."
-          title="No watchlist items"
+          description={watchlistContent.emptyStates.empty.description}
+          title={watchlistContent.emptyStates.empty.title}
         />
       ) : null}
 
@@ -309,7 +292,7 @@ export function WatchlistPage() {
               </div>
               <div className="flex items-center gap-1">
                 <Button
-                  aria-label={`Edit ${item.number}`}
+                  aria-label={`${watchlistContent.fields.startEditAriaLabel} ${item.number}`}
                   onClick={() => handleStartEditing(item)}
                   size="icon-sm"
                   type="button"
@@ -332,7 +315,9 @@ export function WatchlistPage() {
             {editingItemId === item.id && editState ? (
               <div className="mt-4 space-y-4 border-t border-[var(--color-border-soft)] pt-4">
                 <div className="space-y-2">
-                  <Label htmlFor={`watchlist-note-${item.id}`}>Note</Label>
+                  <Label htmlFor={`watchlist-note-${item.id}`}>
+                    {watchlistContent.fields.note.label}
+                  </Label>
                   <Textarea
                     id={`watchlist-note-${item.id}`}
                     onChange={(event) =>
@@ -345,13 +330,15 @@ export function WatchlistPage() {
                           : current
                       )
                     }
-                    placeholder="Why this number is being watched"
+                    placeholder={watchlistContent.fields.note.placeholder}
                     value={editState.note}
                   />
                 </div>
                 <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_180px]">
                   <div className="space-y-2">
-                    <Label htmlFor={`watchlist-tags-${item.id}`}>Tags</Label>
+                    <Label htmlFor={`watchlist-tags-${item.id}`}>
+                      {watchlistContent.fields.tags.label}
+                    </Label>
                     <Input
                       id={`watchlist-tags-${item.id}`}
                       onChange={(event) =>
@@ -364,12 +351,14 @@ export function WatchlistPage() {
                             : current
                         )
                       }
-                      placeholder="manual, family"
+                      placeholder={watchlistContent.fields.tags.placeholder}
                       value={editState.tags}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor={`watchlist-source-${item.id}`}>Source</Label>
+                    <Label htmlFor={`watchlist-source-${item.id}`}>
+                      {watchlistContent.fields.source.label}
+                    </Label>
                     <Select
                       onValueChange={(value) =>
                         setEditState((current) =>
@@ -384,10 +373,10 @@ export function WatchlistPage() {
                       value={editState.source}
                     >
                       <SelectTrigger className="h-11 w-full" id={`watchlist-source-${item.id}`}>
-                        <SelectValue placeholder="Select source" />
+                        <SelectValue placeholder={watchlistContent.fields.source.placeholder} />
                       </SelectTrigger>
                       <SelectContent>
-                        {watchlistSourceOptions.map((source) => (
+                        {watchlistContent.sourceOptions.map((source) => (
                           <SelectItem key={source} value={source}>
                             {source}
                           </SelectItem>
@@ -403,11 +392,11 @@ export function WatchlistPage() {
                     type="button"
                   >
                     {updatingItemId === item.id ? <Loader2 className="animate-spin" /> : <Check />}
-                    Save changes
+                    {watchlistContent.actions.saveChanges}
                   </Button>
                   <Button onClick={handleCancelEditing} type="button" variant="outline">
                     <X />
-                    Cancel
+                    {watchlistContent.actions.cancel}
                   </Button>
                 </div>
               </div>
@@ -432,18 +421,11 @@ export function WatchlistPage() {
             )}
 
             <p className="mt-4 text-xs text-[var(--color-text-muted)]">
-              Updated {new Date(item.updatedAt).toLocaleDateString("th-TH")}
+              {watchlistContent.updatedLabel} {new Date(item.updatedAt).toLocaleDateString("th-TH")}
             </p>
           </Card>
         ))}
       </section>
     </main>
   );
-}
-
-function parseTags(value: string) {
-  return value
-    .split(",")
-    .map((tag) => tag.trim())
-    .filter(Boolean);
 }

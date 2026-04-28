@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { MetricCard } from "@/frontend/components/cards/MetricCard";
+import { dashboardContent } from "@/frontend/pages/dashboard/dashboard.content";
 import dashboardMockJson from "@/frontend/pages/dashboard/dashboard.mock.json";
 import {
   Badge,
@@ -16,25 +17,6 @@ import {
 import { dashboardReadModelSchema } from "@/schema/app/dashboard.schema";
 
 const dashboardMock = dashboardReadModelSchema.parse(dashboardMockJson);
-
-const metricLinks = {
-  "Cold number": {
-    href: "/analytics",
-    label: "Open Analytics"
-  },
-  "Draws in sample": {
-    href: "/results",
-    label: "Open Results"
-  },
-  "Hot number": {
-    href: "/analytics",
-    label: "Open Analytics"
-  },
-  "Overdue number": {
-    href: "/methodology#score-breakdown",
-    label: "Read Methodology"
-  }
-} as const;
 
 export function DashboardPage() {
   const { contractRows, hero, latestDraw, metrics, predictionSummary, signals } = dashboardMock;
@@ -60,13 +42,13 @@ export function DashboardPage() {
 
         <Card className="bg-[var(--color-bg-dark)] p-6 text-[var(--color-text-inverse)]">
           <p className="text-[11px] font-bold uppercase tracking-normal text-[var(--color-text-inverse-soft)]">
-            Latest draw
+            {dashboardContent.latestDraw.eyebrow}
           </p>
           <div className="mt-4 flex items-start justify-between gap-4">
             <div>
               <p className="text-2xl font-bold tracking-normal">{latestDraw.drawDate}</p>
               <p className="mt-1 text-sm text-[var(--color-text-inverse-soft)]">
-                Draw {latestDraw.drawNo}
+                {dashboardContent.latestDraw.drawLabel} {latestDraw.drawNo}
               </p>
             </div>
             <Badge variant="success">{latestDraw.statusLabel}</Badge>
@@ -94,7 +76,9 @@ export function DashboardPage() {
           </div>
           <div className="mt-6 flex flex-wrap gap-2 border-t border-[var(--color-border-inverse-soft)] pt-4">
             <Button asChild size="sm" variant="secondary">
-              <Link href={`/results/${latestDraw.id}`}>Open draw detail</Link>
+              <Link href={`/results/${latestDraw.id}`}>
+                {dashboardContent.latestDraw.detailActionLabel}
+              </Link>
             </Button>
             <Button
               asChild
@@ -102,7 +86,7 @@ export function DashboardPage() {
               size="sm"
               variant="outline"
             >
-              <Link href="/calendar">View draw calendar</Link>
+              <Link href="/calendar">{dashboardContent.latestDraw.calendarActionLabel}</Link>
             </Button>
           </div>
         </Card>
@@ -111,9 +95,13 @@ export function DashboardPage() {
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {metrics.map((metric) => (
           <Link
-            aria-label={`${metricLinks[metric.label as keyof typeof metricLinks]?.label ?? "Open"} for ${metric.label}`}
+            aria-label={`${dashboardContent.metricLinks[metric.label as keyof typeof dashboardContent.metricLinks]?.label ?? dashboardContent.shared.defaultActionLabel} for ${metric.label}`}
             className="block"
-            href={metricLinks[metric.label as keyof typeof metricLinks]?.href ?? "/dashboard"}
+            href={
+              dashboardContent.metricLinks[
+                metric.label as keyof typeof dashboardContent.metricLinks
+              ]?.href ?? "/dashboard"
+            }
             key={metric.label}
           >
             <MetricCard
@@ -133,15 +121,19 @@ export function DashboardPage() {
             actions={
               <div className="flex flex-wrap gap-2">
                 <Button asChild size="sm" variant="outline">
-                  <Link href="/analytics">Open Analytics</Link>
+                  <Link href={dashboardContent.signals.actions.detailHref}>
+                    {dashboardContent.signals.actions.detailLabel}
+                  </Link>
                 </Button>
                 <Button asChild size="sm" variant="link">
-                  <Link href="/methodology#score-breakdown">How signals are scored</Link>
+                  <Link href={dashboardContent.signals.actions.methodologyHref}>
+                    {dashboardContent.signals.actions.methodologyLabel}
+                  </Link>
                 </Button>
               </div>
             }
-            eyebrow="signal board"
-            title="Signals surfaced from the current analytics model"
+            eyebrow={dashboardContent.signals.eyebrow}
+            title={dashboardContent.signals.title}
           />
           <div className="mt-5 grid gap-4 md:grid-cols-3">
             {signals.map((signal) => (
@@ -177,14 +169,18 @@ export function DashboardPage() {
             actions={
               <div className="flex flex-wrap gap-2">
                 <Button asChild size="sm" variant="outline">
-                  <Link href="/prediction-lab">Open Prediction Lab</Link>
+                  <Link href={dashboardContent.predictionSummary.actions.detailHref}>
+                    {dashboardContent.predictionSummary.actions.detailLabel}
+                  </Link>
                 </Button>
                 <Button asChild size="sm" variant="link">
-                  <Link href="/methodology#prediction-score">How to read the score</Link>
+                  <Link href={dashboardContent.predictionSummary.actions.methodologyHref}>
+                    {dashboardContent.predictionSummary.actions.methodologyLabel}
+                  </Link>
                 </Button>
               </div>
             }
-            eyebrow="prediction summary"
+            eyebrow={dashboardContent.predictionSummary.eyebrow}
             title={predictionSummary.title}
           />
           <div className="mt-5 space-y-3">
@@ -198,7 +194,7 @@ export function DashboardPage() {
                     {candidate.number}
                   </span>
                   <span className="text-sm font-semibold text-[var(--color-brand)]">
-                    score {candidate.score}
+                    {dashboardContent.predictionSummary.scoreLabel} {candidate.score}
                   </span>
                 </div>
                 <p className="mt-3 text-sm leading-6 text-[var(--color-text-muted)]">
@@ -217,25 +213,27 @@ export function DashboardPage() {
         <SectionHeading
           actions={
             <Button asChild size="sm" variant="outline">
-              <Link href="/results">Open Results contract surface</Link>
+              <Link href={dashboardContent.readModel.actionHref}>
+                {dashboardContent.readModel.actionLabel}
+              </Link>
             </Button>
           }
-          eyebrow="read model"
-          title="Dashboard read model contract"
-          description="These fields define the dashboard shape expected from the service layer so Prisma-backed and computed analytics data can map into one stable API response."
+          eyebrow={dashboardContent.readModel.eyebrow}
+          title={dashboardContent.readModel.title}
+          description={dashboardContent.readModel.description}
         />
         <div className="mt-5 overflow-hidden rounded-none border border-[var(--color-border-soft)]">
           <Table>
             <TableHeader className="bg-[var(--color-bg-subtle)]">
               <TableRow className="border-b border-[var(--color-border-soft)] hover:bg-transparent">
                 <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                  field
+                  {dashboardContent.contractTableHeaders.field}
                 </TableHead>
                 <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                  source
+                  {dashboardContent.contractTableHeaders.source}
                 </TableHead>
                 <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                  purpose
+                  {dashboardContent.contractTableHeaders.purpose}
                 </TableHead>
               </TableRow>
             </TableHeader>

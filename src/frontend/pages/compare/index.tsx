@@ -5,6 +5,14 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { TimeSeriesChart } from "@/frontend/chart-primitives";
 import { EmptyState, FilterToolbar, LoadingSkeleton, MetricCard } from "@/frontend/components";
+import { compareContent } from "@/frontend/pages/compare/compare.content";
+import { compareFallback } from "@/frontend/pages/compare/compare.data";
+import {
+  type CompareFormState,
+  defaultCompareFormState,
+  toCompareChartPoints,
+  toComparePayload
+} from "@/frontend/pages/compare/compare.mappers";
 import {
   Badge,
   Button,
@@ -29,112 +37,24 @@ import { apiPost } from "@/lib/api/http";
 import { apiRoutes } from "@/lib/api/routes";
 import {
   type CompareReadModel,
-  type CompareRequest,
   compareReadModelSchema,
   compareRequestSchema
 } from "@/schema/app/compare.schema";
 
-const strategyOptions = [
-  { label: "Balanced", value: "balanced" },
-  { label: "Hot trend", value: "hotTrend" },
-  { label: "Cold rebound", value: "coldRebound" }
-] as const;
-
-const compareFallback = compareReadModelSchema.parse({
-  candidates: [
-    {
-      number: "47",
-      numberLength: 2,
-      rank: 1,
-      reasons: ["Hot trend is strong in the sampled window.", "Position support remains stable."],
-      score: 82,
-      scoreBreakdown: {
-        hot: 30,
-        overdue: 12,
-        pair: 10,
-        pattern: 6,
-        position: 24
-      }
-    },
-    {
-      number: "91",
-      numberLength: 2,
-      rank: 2,
-      reasons: ["Overdue gap is elevated.", "Pair support is moderate."],
-      score: 68,
-      scoreBreakdown: {
-        hot: 14,
-        overdue: 26,
-        pair: 8,
-        pattern: 4,
-        position: 16
-      }
-    }
-  ],
-  generatedAt: "2026-04-28T00:00:00.000Z",
-  sampleSize: 24,
-  source: "mock",
-  strongestSignal: "hot"
-});
-
-type CompareFormState = {
-  endDate: string;
-  lotteryType: CompareRequest["lotteryType"];
-  numberLength: string;
-  numbers: string;
-  prizeType: CompareRequest["prizeType"];
-  startDate: string;
-  strategyId: CompareRequest["strategyId"];
-  windowSize: string;
-};
-
-const defaultFormState: CompareFormState = {
-  endDate: "2026-04-16",
-  lotteryType: "THAI_GOVERNMENT",
-  numberLength: "2",
-  numbers: "47, 91, 24, 03, 18",
-  prizeType: "TWO_DIGIT",
-  startDate: "2025-01-01",
-  strategyId: "balanced",
-  windowSize: "120"
-};
-
 export function ComparePage() {
-  const [formState, setFormState] = useState(defaultFormState);
+  const [formState, setFormState] = useState(defaultCompareFormState);
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [compare, setCompare] = useState<CompareReadModel>(compareFallback);
 
-  const chartPoints = useMemo(
-    () =>
-      compare.candidates.map((candidate) => ({
-        id: candidate.number,
-        label: candidate.number,
-        value: candidate.score
-      })),
-    [compare.candidates]
-  );
+  const chartPoints = useMemo(() => toCompareChartPoints(compare), [compare]);
 
   async function handleCompare() {
     setIsPending(true);
     setError(null);
 
     try {
-      const numbers = formState.numbers
-        .split(/[\n,]+/)
-        .map((value) => value.trim())
-        .filter(Boolean);
-
-      const payload = compareRequestSchema.parse({
-        endDate: formState.endDate || undefined,
-        lotteryType: formState.lotteryType,
-        numberLength: formState.numberLength,
-        numbers,
-        prizeType: formState.prizeType,
-        startDate: formState.startDate || undefined,
-        strategyId: formState.strategyId,
-        windowSize: formState.windowSize
-      });
+      const payload = compareRequestSchema.parse(toComparePayload(formState));
 
       const response = await apiPost<CompareReadModel>(apiRoutes.compare, payload, {
         schema: compareReadModelSchema
@@ -142,7 +62,7 @@ export function ComparePage() {
 
       setCompare(response);
     } catch {
-      setError("Compare API is not available yet, so this view is showing the checked sample set.");
+      setError(compareContent.errorMessage);
       setCompare(compareFallback);
     } finally {
       setIsPending(false);
@@ -154,41 +74,46 @@ export function ComparePage() {
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
         <Card className="p-6 md:p-8">
           <p className="text-[11px] font-bold uppercase tracking-normal text-[var(--prediction)]">
-            Compare
+            {compareContent.hero.eyebrow}
           </p>
           <h1 className="mt-4 max-w-3xl text-4xl font-bold tracking-normal text-[var(--color-text-primary)]">
-            Side-by-side number scoring
+            {compareContent.hero.title}
           </h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--color-text-secondary)]">
-            Compare ranks candidate numbers against the same historical analytics signals so the
-            strongest score is easy to inspect. The output explains historical support, not a win
-            guarantee.
+            {compareContent.hero.description}
           </p>
           <div className="mt-4">
             <Button asChild className="px-0" variant="link">
-              <Link href="/methodology#score-breakdown">Read how compare scores are explained</Link>
+              <Link href={compareContent.actions.methodologyHref}>
+                {compareContent.actions.methodologyLabel}
+              </Link>
             </Button>
           </div>
         </Card>
 
         <Card className="p-6">
-          <SectionHeading eyebrow="Run summary" title="Current compare" />
+          <SectionHeading
+            eyebrow={compareContent.sections.currentRun.eyebrow}
+            title={compareContent.sections.currentRun.title}
+          />
           <div className="mt-5 grid gap-3">
             <MetricCard
-              hint="Highest score in the current candidate set."
-              label="Top score"
+              hint={compareContent.metrics.topScore.hint}
+              label={compareContent.metrics.topScore.label}
               tone="prediction"
               value={String(compare.candidates[0]?.score ?? 0)}
             />
             <MetricCard
-              hint="How many candidate numbers were compared."
-              label="Candidates"
+              hint={compareContent.metrics.candidates.hint}
+              label={compareContent.metrics.candidates.label}
               value={String(compare.candidates.length)}
             />
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
             <Badge variant={compare.source === "api" ? "success" : "warning"}>
-              {compare.source === "api" ? "Live API" : "Sample set"}
+              {compare.source === "api"
+                ? compareContent.badges.liveApi
+                : compareContent.badges.sampleSet}
             </Badge>
             {compare.strategyId ? <Badge variant="prediction">{compare.strategyId}</Badge> : null}
           </div>
@@ -199,7 +124,7 @@ export function ComparePage() {
         actions={
           <Button disabled={isPending} onClick={handleCompare} type="button">
             {isPending ? <Loader2 className="animate-spin" /> : <Scale3d />}
-            Compare numbers
+            {compareContent.actions.button}
           </Button>
         }
         filters={
@@ -228,10 +153,10 @@ export function ComparePage() {
                 }
               >
                 <SelectTrigger id="strategyId">
-                  <SelectValue placeholder="Strategy" />
+                  <SelectValue placeholder={compareContent.selectPlaceholders.strategy} />
                 </SelectTrigger>
                 <SelectContent>
-                  {strategyOptions.map((strategy) => (
+                  {compareContent.strategyOptions.map((strategy) => (
                     <SelectItem key={strategy.value} value={strategy.value}>
                       {strategy.label}
                     </SelectItem>
@@ -280,7 +205,7 @@ export function ComparePage() {
                 }
               >
                 <SelectTrigger id="lotteryType">
-                  <SelectValue placeholder="Lottery type" />
+                  <SelectValue placeholder={compareContent.selectPlaceholders.lotteryType} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="THAI_GOVERNMENT">THAI_GOVERNMENT</SelectItem>
@@ -300,13 +225,14 @@ export function ComparePage() {
                 }
               >
                 <SelectTrigger id="prizeType">
-                  <SelectValue placeholder="Prize type" />
+                  <SelectValue placeholder={compareContent.selectPlaceholders.prizeType} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="TWO_DIGIT">TWO_DIGIT</SelectItem>
-                  <SelectItem value="FIRST">FIRST</SelectItem>
-                  <SelectItem value="THREE_FRONT">THREE_FRONT</SelectItem>
-                  <SelectItem value="THREE_BACK">THREE_BACK</SelectItem>
+                  {compareContent.prizeOptions.map((prize) => (
+                    <SelectItem key={prize.value} value={prize.value}>
+                      {prize.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -336,11 +262,15 @@ export function ComparePage() {
             </div>
           </>
         }
-        summary="Compare uses the same scoring engine as Prediction Lab, so the result is aligned with one contract across the product."
+        summary={compareContent.filters.summary}
       />
 
       {error ? (
-        <EmptyState description={error} icon={<AlertCircle />} title="Compare API fallback" />
+        <EmptyState
+          description={error}
+          icon={<AlertCircle />}
+          title={compareContent.emptyState.fallbackTitle}
+        />
       ) : null}
 
       {isPending ? (
@@ -352,28 +282,40 @@ export function ComparePage() {
         </section>
       ) : (
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <MetricCard label="Sample size" tone="prediction" value={String(compare.sampleSize)} />
-          <MetricCard label="Strongest signal" value={compare.strongestSignal ?? "-"} />
-          <MetricCard label="Top rank" value={String(compare.candidates[0]?.rank ?? 0)} />
           <MetricCard
-            label="Generated"
+            label={compareContent.metrics.sampleSize}
+            tone="prediction"
+            value={String(compare.sampleSize)}
+          />
+          <MetricCard
+            label={compareContent.metrics.strongestSignal}
+            value={compare.strongestSignal ?? "-"}
+          />
+          <MetricCard
+            label={compareContent.metrics.topRank}
+            value={String(compare.candidates[0]?.rank ?? 0)}
+          />
+          <MetricCard
+            label={compareContent.metrics.generated}
             value={new Date(compare.generatedAt).toLocaleDateString("th-TH")}
           />
         </section>
       )}
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
-        <TimeSeriesChart points={chartPoints} title="Score comparison" />
+        <TimeSeriesChart points={chartPoints} title={compareContent.chartTitle} />
 
         <Card className="p-6">
           <SectionHeading
-            eyebrow="Explainable ranking"
-            title="Why the leading numbers scored higher"
-            description="The score breakdown keeps the output readable for product review and later strategy tuning."
+            eyebrow={compareContent.sections.explainableRanking.eyebrow}
+            title={compareContent.sections.explainableRanking.title}
+            description={compareContent.sections.explainableRanking.description}
           />
           <div className="mt-4">
             <Button asChild className="px-0" variant="link">
-              <Link href="/methodology#score-breakdown">Review the shared scoring fields</Link>
+              <Link href={compareContent.actions.methodologyHref}>
+                {compareContent.actions.rankingMethodologyLabel}
+              </Link>
             </Button>
           </div>
           <div className="mt-5 space-y-3">
@@ -387,7 +329,7 @@ export function ComparePage() {
                     {candidate.number}
                   </p>
                   <Badge variant={candidate.rank === 1 ? "success" : "neutral"}>
-                    Rank {candidate.rank}
+                    {compareContent.badges.rankLabel} {candidate.rank}
                   </Badge>
                 </div>
                 <p className="mt-2 text-sm text-[var(--color-text-muted)]">
@@ -401,9 +343,9 @@ export function ComparePage() {
 
       <Card className="p-6">
         <SectionHeading
-          eyebrow="Table"
-          title="Compare results"
-          description="The table exposes each score breakdown so the same scoring model can be audited across candidates."
+          eyebrow={compareContent.sections.results.eyebrow}
+          title={compareContent.sections.results.title}
+          description={compareContent.sections.results.description}
         />
 
         <div className="mt-5 overflow-hidden rounded-none border border-[var(--color-border-soft)]">
@@ -411,19 +353,19 @@ export function ComparePage() {
             <TableHeader className="bg-[var(--color-bg-subtle)]">
               <TableRow className="border-b border-[var(--color-border-soft)] hover:bg-transparent">
                 <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                  Number
+                  {compareContent.sections.results.tableHeaders.number}
                 </TableHead>
                 <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                  Score
+                  {compareContent.sections.results.tableHeaders.score}
                 </TableHead>
                 <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                  Rank
+                  {compareContent.sections.results.tableHeaders.rank}
                 </TableHead>
                 <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                  Breakdown
+                  {compareContent.sections.results.tableHeaders.breakdown}
                 </TableHead>
                 <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                  Reasons
+                  {compareContent.sections.results.tableHeaders.reasons}
                 </TableHead>
               </TableRow>
             </TableHeader>

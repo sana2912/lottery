@@ -1,5 +1,6 @@
 import Link from "next/link";
-import resultsMockJson from "@/frontend/pages/results/results.mock.json";
+import { resultsContent } from "@/frontend/pages/results/results.content";
+import { getDrawDetail } from "@/frontend/pages/results/results.data";
 import {
   Badge,
   Button,
@@ -12,16 +13,6 @@ import {
   TableHeader,
   TableRow
 } from "@/frontend/primitives";
-import { apiGet } from "@/lib/api/http";
-import { apiRoutes } from "@/lib/api/routes";
-import {
-  type Draw,
-  type DrawDetailResponse,
-  drawDetailResponseSchema
-} from "@/schema/app/draw.schema";
-import { resultsReadModelSchema } from "@/schema/app/results.schema";
-
-const resultsMock = resultsReadModelSchema.parse(resultsMockJson);
 
 type ResultsDetailPageProps = {
   id: string;
@@ -34,12 +25,15 @@ export async function ResultsDetailPage({ id }: ResultsDetailPageProps) {
     return (
       <main className="space-y-6">
         <Card className="p-6">
-          <SectionHeading eyebrow="Draw detail" title="Draw not found" />
+          <SectionHeading
+            eyebrow={resultsContent.detail.emptyEyebrow}
+            title={resultsContent.detail.emptyTitle}
+          />
           <p className="mt-4 text-sm leading-6 text-[var(--color-text-secondary)]">
-            No draw record matched this identifier.
+            {resultsContent.detail.emptyDescription}
           </p>
           <Button asChild className="mt-6" variant="outline">
-            <Link href="/results">Back to Results</Link>
+            <Link href="/results">{resultsContent.detail.backLabel}</Link>
           </Button>
         </Card>
       </main>
@@ -51,14 +45,14 @@ export async function ResultsDetailPage({ id }: ResultsDetailPageProps) {
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
         <Card className="p-6 md:p-8">
           <Button asChild size="sm" variant="ghost">
-            <Link href="/results">Back to Results</Link>
+            <Link href="/results">{resultsContent.detail.backLabel}</Link>
           </Button>
 
           <p className="mt-6 text-sm font-semibold text-[var(--color-brand-outline)]">
             {draw.drawDate}
           </p>
           <h1 className="mt-2 text-4xl font-bold tracking-normal text-[var(--color-text-primary)]">
-            Draw {draw.drawNo || draw.id}
+            {resultsContent.detail.drawLabel} {draw.drawNo || draw.id}
           </h1>
 
           <div className="mt-5 flex flex-wrap gap-2">
@@ -71,18 +65,27 @@ export async function ResultsDetailPage({ id }: ResultsDetailPageProps) {
         </Card>
 
         <Card className="p-6">
-          <SectionHeading eyebrow="Contract fields" title="API shape" />
+          <SectionHeading
+            eyebrow={resultsContent.detail.contractEyebrow}
+            title={resultsContent.detail.contractTitle}
+          />
           <dl className="mt-5 space-y-4 text-sm">
             <div>
-              <dt className="font-semibold text-[var(--color-text-muted)]">ID</dt>
+              <dt className="font-semibold text-[var(--color-text-muted)]">
+                {resultsContent.detail.fields.id}
+              </dt>
               <dd className="mt-1 break-all text-[var(--color-text-primary)]">{draw.id}</dd>
             </div>
             <div>
-              <dt className="font-semibold text-[var(--color-text-muted)]">Draw date ISO</dt>
+              <dt className="font-semibold text-[var(--color-text-muted)]">
+                {resultsContent.detail.fields.drawDateIso}
+              </dt>
               <dd className="mt-1 text-[var(--color-text-primary)]">{draw.drawDateIso}</dd>
             </div>
             <div>
-              <dt className="font-semibold text-[var(--color-text-muted)]">Prize rows</dt>
+              <dt className="font-semibold text-[var(--color-text-muted)]">
+                {resultsContent.detail.fields.prizeRows}
+              </dt>
               <dd className="mt-1 text-[var(--color-text-primary)]">{draw.prizes.length}</dd>
             </div>
           </dl>
@@ -90,19 +93,22 @@ export async function ResultsDetailPage({ id }: ResultsDetailPageProps) {
       </section>
 
       <Card className="p-6">
-        <SectionHeading eyebrow="Prizes" title="Prize records in this draw" />
+        <SectionHeading
+          eyebrow={resultsContent.detail.prizesEyebrow}
+          title={resultsContent.detail.prizesTitle}
+        />
         <div className="mt-5 overflow-hidden rounded-none border border-[var(--color-border-soft)]">
           <Table>
             <TableHeader className="bg-[var(--color-bg-subtle)]">
               <TableRow className="border-b border-[var(--color-border-soft)] hover:bg-transparent">
                 <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                  Prize
+                  {resultsContent.detail.prizesTableHeaders.label}
                 </TableHead>
                 <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                  Type
+                  {resultsContent.detail.prizesTableHeaders.type}
                 </TableHead>
                 <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                  Number
+                  {resultsContent.detail.prizesTableHeaders.number}
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -129,42 +135,4 @@ export async function ResultsDetailPage({ id }: ResultsDetailPageProps) {
       </Card>
     </main>
   );
-}
-
-async function getDrawDetail(id: string): Promise<Draw | null> {
-  try {
-    const response = await apiGet<DrawDetailResponse>(`${apiRoutes.draws}/${id}`, {
-      cache: "no-store",
-      schema: drawDetailResponseSchema
-    });
-
-    return response.draw;
-  } catch {
-    return getMockDraw(id);
-  }
-}
-
-function getMockDraw(id: string): Draw | null {
-  const draw = resultsMock.draws.find((item) => item.id === id);
-
-  if (!draw) {
-    return null;
-  }
-
-  return {
-    coverage: draw.coverage,
-    drawDate: draw.drawDate,
-    drawDateIso: draw.drawDateIso,
-    drawNo: draw.drawNo,
-    id: draw.id,
-    lotteryType: draw.lotteryType,
-    prizes: draw.prizes.map((prize, index) => ({
-      id: `${draw.id}-${prize.prizeType}-${index}`,
-      label: prize.label,
-      number: prize.value,
-      type: prize.prizeType
-    })),
-    status: draw.status,
-    statusLabel: draw.statusLabel
-  };
 }

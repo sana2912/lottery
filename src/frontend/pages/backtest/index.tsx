@@ -5,6 +5,15 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { TimeSeriesChart } from "@/frontend/chart-primitives";
 import { EmptyState, FilterToolbar, LoadingSkeleton, MetricCard } from "@/frontend/components";
+import { backtestContent } from "@/frontend/pages/backtest/backtest.content";
+import { backtestFallback, emptyHistory } from "@/frontend/pages/backtest/backtest.data";
+import {
+  type BacktestFormState,
+  defaultBacktestFormState,
+  mergeBacktestHistory,
+  toBacktestChartPoints,
+  toBacktestPayload
+} from "@/frontend/pages/backtest/backtest.mappers";
 import {
   Badge,
   Button,
@@ -29,103 +38,13 @@ import { apiRoutes } from "@/lib/api/routes";
 import {
   type BacktestHistoryResponse,
   type BacktestReadModel,
-  type BacktestRequest,
   backtestHistoryResponseSchema,
   backtestReadModelSchema,
   backtestRequestSchema
 } from "@/schema/app/backtest.schema";
 
-const strategyOptions = [
-  { label: "Balanced", value: "balanced" },
-  { label: "Hot trend", value: "hotTrend" },
-  { label: "Cold rebound", value: "coldRebound" }
-] as const;
-
-const prizeOptions = [
-  { label: "Two digit", value: "TWO_DIGIT" },
-  { label: "First", value: "FIRST" },
-  { label: "Three front", value: "THREE_FRONT" },
-  { label: "Three back", value: "THREE_BACK" }
-] as const;
-
-type BacktestFormState = {
-  candidateCount: string;
-  endDate: string;
-  lotteryType: BacktestRequest["lotteryType"];
-  numberLength: string;
-  prizeType: BacktestRequest["prizeType"];
-  startDate: string;
-  strategyId: BacktestRequest["strategyId"];
-  windowSize: string;
-};
-
-const defaultFormState: BacktestFormState = {
-  candidateCount: "5",
-  endDate: "2026-04-16",
-  lotteryType: "THAI_GOVERNMENT",
-  numberLength: "2",
-  prizeType: "TWO_DIGIT",
-  startDate: "2025-01-01",
-  strategyId: "balanced",
-  windowSize: "120"
-};
-
-const backtestFallback = backtestReadModelSchema.parse({
-  generatedAt: "2026-04-28T00:00:00.000Z",
-  results: [
-    {
-      actualNumbers: ["47"],
-      drawDate: "2026-04-16T00:00:00.000Z",
-      drawId: "draw-2026-04-16",
-      generatedNumbers: ["47", "91", "24"],
-      hitNumbers: ["47"],
-      id: "backtest-result-2026-04-16",
-      isHit: true,
-      rankOfHit: 1,
-      runId: "backtest-run-balanced-001"
-    },
-    {
-      actualNumbers: ["18"],
-      drawDate: "2026-04-01T00:00:00.000Z",
-      drawId: "draw-2026-04-01",
-      generatedNumbers: ["03", "74", "29"],
-      hitNumbers: [],
-      id: "backtest-result-2026-04-01",
-      isHit: false,
-      runId: "backtest-run-balanced-001"
-    }
-  ],
-  run: {
-    averageHitRank: 1,
-    candidateCount: 5,
-    computedAt: "2026-04-28T00:00:00.000Z",
-    coverage: 24,
-    endDrawDate: "2026-04-16T00:00:00.000Z",
-    hitRate: 50,
-    id: "backtest-run-balanced-001",
-    longestMissStreak: 1,
-    lotteryType: "THAI_GOVERNMENT",
-    numberLength: 2,
-    params: {
-      windowSize: 120
-    },
-    prizeType: "TWO_DIGIT",
-    startDrawDate: "2025-01-01T00:00:00.000Z",
-    strategyId: "balanced",
-    strategyName: "Balanced",
-    version: "prediction-engine-v1"
-  },
-  source: "mock"
-});
-
-const emptyHistory = backtestHistoryResponseSchema.parse({
-  generatedAt: "2026-04-28T00:00:00.000Z",
-  items: [],
-  source: "api"
-});
-
 export function BacktestPage() {
-  const [formState, setFormState] = useState(defaultFormState);
+  const [formState, setFormState] = useState(defaultBacktestFormState);
   const [isPending, setIsPending] = useState(false);
   const [isHistoryPending, setIsHistoryPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -133,34 +52,14 @@ export function BacktestPage() {
   const [history, setHistory] = useState<BacktestHistoryResponse>(emptyHistory);
   const [selectedRunId, setSelectedRunId] = useState<string>(backtest.run.id);
 
-  const chartPoints = useMemo(
-    () =>
-      backtest.results.map((result, index) => ({
-        id: result.id,
-        label: `${index + 1}`,
-        value: result.isHit ? 100 : Math.max(15, 30 - (result.rankOfHit ?? 0) * 5)
-      })),
-    [backtest.results]
-  );
+  const chartPoints = useMemo(() => toBacktestChartPoints(backtest), [backtest]);
 
   async function handleRunBacktest() {
     setIsPending(true);
     setError(null);
 
     try {
-      const payload = backtestRequestSchema.parse({
-        candidateCount: formState.candidateCount,
-        endDate: formState.endDate || undefined,
-        lotteryType: formState.lotteryType,
-        numberLength: formState.numberLength,
-        params: {
-          windowSize: formState.windowSize
-        },
-        prizeType: formState.prizeType,
-        startDate: formState.startDate || undefined,
-        strategyId: formState.strategyId,
-        windowSize: formState.windowSize
-      });
+      const payload = backtestRequestSchema.parse(toBacktestPayload(formState));
 
       const response = await apiPost<BacktestReadModel>(apiRoutes.backtests, payload, {
         schema: backtestReadModelSchema
@@ -168,30 +67,9 @@ export function BacktestPage() {
 
       setBacktest(response);
       setSelectedRunId(response.run.id);
-      setHistory((current) => ({
-        ...current,
-        items: [
-          {
-            candidateCount: response.run.candidateCount,
-            computedAt: response.run.computedAt,
-            coverage: response.run.coverage,
-            hitRate: response.run.hitRate,
-            id: response.run.id,
-            longestMissStreak: response.run.longestMissStreak,
-            lotteryType: response.run.lotteryType,
-            numberLength: response.run.numberLength,
-            prizeType: response.run.prizeType,
-            strategyId: response.run.strategyId,
-            strategyName: response.run.strategyName,
-            version: response.run.version
-          },
-          ...current.items.filter((item) => item.id !== response.run.id)
-        ].slice(0, 8)
-      }));
+      setHistory((current) => mergeBacktestHistory(current, response));
     } catch {
-      setError(
-        "Backtest API is not available yet, so this view is showing the checked sample run."
-      );
+      setError(backtestContent.errorMessages.runUnavailable);
       setBacktest(backtestFallback);
     } finally {
       setIsPending(false);
@@ -208,7 +86,7 @@ export function BacktestPage() {
 
       setHistory(response);
     } catch {
-      setError("Backtest history is not available yet, so recent persisted runs cannot be loaded.");
+      setError(backtestContent.errorMessages.historyUnavailable);
     } finally {
       setIsHistoryPending(false);
     }
@@ -226,7 +104,7 @@ export function BacktestPage() {
       setBacktest(response);
       setSelectedRunId(response.run.id);
     } catch {
-      setError("Unable to load the selected persisted backtest run.");
+      setError(backtestContent.errorMessages.selectedRunUnavailable);
     } finally {
       setIsHistoryPending(false);
     }
@@ -237,42 +115,46 @@ export function BacktestPage() {
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
         <Card className="p-6 md:p-8">
           <p className="text-[11px] font-bold uppercase tracking-normal text-[var(--backtest)]">
-            Backtest
+            {backtestContent.hero.eyebrow}
           </p>
           <h1 className="mt-4 max-w-3xl text-4xl font-bold tracking-normal text-[var(--color-text-primary)]">
-            Walk-forward strategy validation
+            {backtestContent.hero.title}
           </h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--color-text-secondary)]">
-            Historical draws are replayed in order so the selected strategy only sees earlier data.
-            Hit rate, miss streak, and ranking are shown as analysis output, not guarantees.
+            {backtestContent.hero.description}
           </p>
           <div className="mt-4">
             <Button asChild className="px-0" variant="link">
-              <Link href="/methodology#backtest-reading">
-                Read how walk-forward backtest is interpreted
+              <Link href={backtestContent.actions.methodologyHref}>
+                {backtestContent.actions.methodologyLabel}
               </Link>
             </Button>
           </div>
         </Card>
 
         <Card className="p-6">
-          <SectionHeading eyebrow="Run summary" title="Current backtest" />
+          <SectionHeading
+            eyebrow={backtestContent.sections.currentRun.eyebrow}
+            title={backtestContent.sections.currentRun.title}
+          />
           <div className="mt-5 grid gap-3">
             <MetricCard
-              hint="Share of historical windows that produced at least one hit."
-              label="Hit rate"
+              hint={backtestContent.metrics.currentHitRate.hint}
+              label={backtestContent.metrics.currentHitRate.label}
               tone="backtest"
               value={`${backtest.run.hitRate}%`}
             />
             <MetricCard
-              hint="Longest consecutive miss streak in the sampled run."
-              label="Miss streak"
+              hint={backtestContent.metrics.currentMissStreak.hint}
+              label={backtestContent.metrics.currentMissStreak.label}
               value={String(backtest.run.longestMissStreak)}
             />
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
             <Badge variant={backtest.source === "api" ? "success" : "warning"}>
-              {backtest.source === "api" ? "Live API" : "Sample run"}
+              {backtest.source === "api"
+                ? backtestContent.badges.liveApi
+                : backtestContent.badges.sampleRun}
             </Badge>
             <Badge variant="backtest">{backtest.run.strategyName}</Badge>
           </div>
@@ -283,7 +165,7 @@ export function BacktestPage() {
         actions={
           <Button disabled={isPending} onClick={handleRunBacktest} type="button">
             {isPending ? <Loader2 className="animate-spin" /> : <Scale3d />}
-            Run backtest
+            {backtestContent.actions.runButton}
           </Button>
         }
         filters={
@@ -300,10 +182,10 @@ export function BacktestPage() {
                 }
               >
                 <SelectTrigger id="strategyId">
-                  <SelectValue placeholder="Strategy" />
+                  <SelectValue placeholder={backtestContent.selectPlaceholders.strategy} />
                 </SelectTrigger>
                 <SelectContent>
-                  {strategyOptions.map((strategy) => (
+                  {backtestContent.strategyOptions.map((strategy) => (
                     <SelectItem key={strategy.value} value={strategy.value}>
                       {strategy.label}
                     </SelectItem>
@@ -366,7 +248,7 @@ export function BacktestPage() {
                 }
               >
                 <SelectTrigger id="lotteryType">
-                  <SelectValue placeholder="Lottery type" />
+                  <SelectValue placeholder={backtestContent.selectPlaceholders.lotteryType} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="THAI_GOVERNMENT">THAI_GOVERNMENT</SelectItem>
@@ -386,10 +268,10 @@ export function BacktestPage() {
                 }
               >
                 <SelectTrigger id="prizeType">
-                  <SelectValue placeholder="Prize type" />
+                  <SelectValue placeholder={backtestContent.selectPlaceholders.prizeType} />
                 </SelectTrigger>
                 <SelectContent>
-                  {prizeOptions.map((prize) => (
+                  {backtestContent.prizeOptions.map((prize) => (
                     <SelectItem key={prize.value} value={prize.value}>
                       {prize.label}
                     </SelectItem>
@@ -423,11 +305,15 @@ export function BacktestPage() {
             </div>
           </>
         }
-        summary="The backtest runs against historical draws only. The selected window never looks forward into the target draw."
+        summary={backtestContent.filters.summary}
       />
 
       {error ? (
-        <EmptyState description={error} icon={<AlertCircle />} title="Backtest API fallback" />
+        <EmptyState
+          description={error}
+          icon={<AlertCircle />}
+          title={backtestContent.emptyState.fallbackTitle}
+        />
       ) : null}
 
       {isPending ? (
@@ -439,44 +325,51 @@ export function BacktestPage() {
         </section>
       ) : (
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <MetricCard label="Coverage" tone="backtest" value={String(backtest.run.coverage)} />
-          <MetricCard label="Candidates" value={String(backtest.run.candidateCount)} />
           <MetricCard
-            label="Average hit rank"
+            label={backtestContent.metrics.coverage}
+            tone="backtest"
+            value={String(backtest.run.coverage)}
+          />
+          <MetricCard
+            label={backtestContent.metrics.candidates}
+            value={String(backtest.run.candidateCount)}
+          />
+          <MetricCard
+            label={backtestContent.metrics.averageHitRank}
             value={backtest.run.averageHitRank ? backtest.run.averageHitRank.toString() : "-"}
           />
           <MetricCard
-            label="Computed"
+            label={backtestContent.metrics.computed}
             value={new Date(backtest.run.computedAt).toLocaleDateString("th-TH")}
           />
         </section>
       )}
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
-        <TimeSeriesChart points={chartPoints} title="Hit sequence" />
+        <TimeSeriesChart points={chartPoints} title={backtestContent.chartTitle} />
 
         <Card className="p-6">
           <SectionHeading
-            eyebrow="Run details"
-            title="Summary and verification"
-            description="The contract exposes versioned scores so the UI can verify which engine produced the run."
+            eyebrow={backtestContent.sections.runDetails.eyebrow}
+            title={backtestContent.sections.runDetails.title}
+            description={backtestContent.sections.runDetails.description}
           />
           <div className="mt-4">
             <Button asChild className="px-0" variant="link">
-              <Link href="/methodology#backtest-reading">
-                Review hit rate, miss streak, and rank guidance
+              <Link href={backtestContent.actions.methodologyHref}>
+                {backtestContent.actions.resultsMethodologyLabel}
               </Link>
             </Button>
           </div>
           <div className="mt-5 space-y-3">
             <MetricCard
-              hint="Strategy registry entry used for scoring."
-              label="Strategy"
+              hint={backtestContent.metrics.strategy.hint}
+              label={backtestContent.metrics.strategy.label}
               value={backtest.run.strategyName}
             />
             <MetricCard
-              hint="Prediction engine version recorded in the backtest run."
-              label="Engine version"
+              hint={backtestContent.metrics.engineVersion.hint}
+              label={backtestContent.metrics.engineVersion.label}
               value={backtest.run.version}
             />
           </div>
@@ -491,9 +384,9 @@ export function BacktestPage() {
 
       <Card className="p-6">
         <SectionHeading
-          eyebrow="History"
-          title="Recent persisted runs"
-          description="Load a previously saved run from PostgreSQL to compare its summary and result table."
+          eyebrow={backtestContent.history.eyebrow}
+          title={backtestContent.history.title}
+          description={backtestContent.history.description}
         />
 
         <div className="mt-5 flex flex-wrap items-center gap-3">
@@ -504,16 +397,18 @@ export function BacktestPage() {
             variant="secondary"
           >
             {isHistoryPending ? <Loader2 className="animate-spin" /> : <Scale3d />}
-            Load recent runs
+            {backtestContent.actions.historyButton}
           </Button>
-          <Badge variant="neutral">{history.items.length} stored runs</Badge>
+          <Badge variant="neutral">
+            {history.items.length} {backtestContent.history.storedRunsLabel}
+          </Badge>
         </div>
 
         {history.items.length === 0 ? (
           <div className="mt-5">
             <EmptyState
-              description="Run a backtest first, then load recent runs to reuse persisted results."
-              title="No stored history loaded"
+              description={backtestContent.emptyState.historyDescription}
+              title={backtestContent.emptyState.historyTitle}
             />
           </div>
         ) : (
@@ -522,19 +417,19 @@ export function BacktestPage() {
               <TableHeader className="bg-[var(--color-bg-subtle)]">
                 <TableRow className="border-b border-[var(--color-border-soft)] hover:bg-transparent">
                   <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                    Computed
+                    {backtestContent.history.tableHeaders.computed}
                   </TableHead>
                   <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                    Strategy
+                    {backtestContent.history.tableHeaders.strategy}
                   </TableHead>
                   <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                    Hit rate
+                    {backtestContent.history.tableHeaders.hitRate}
                   </TableHead>
                   <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                    Coverage
+                    {backtestContent.history.tableHeaders.coverage}
                   </TableHead>
                   <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                    Action
+                    {backtestContent.history.tableHeaders.action}
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -563,7 +458,9 @@ export function BacktestPage() {
                         type="button"
                         variant={selectedRunId === item.id ? "secondary" : "ghost"}
                       >
-                        {selectedRunId === item.id ? "Viewing" : "Load"}
+                        {selectedRunId === item.id
+                          ? backtestContent.actions.viewingLabel
+                          : backtestContent.actions.loadLabel}
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -576,9 +473,9 @@ export function BacktestPage() {
 
       <Card className="p-6">
         <SectionHeading
-          eyebrow="Results"
-          title="Walk-forward outcomes"
-          description="Each row reflects one target draw evaluated from the earlier window only."
+          eyebrow={backtestContent.results.eyebrow}
+          title={backtestContent.results.title}
+          description={backtestContent.results.description}
         />
 
         <div className="mt-5 overflow-hidden rounded-none border border-[var(--color-border-soft)]">
@@ -586,19 +483,19 @@ export function BacktestPage() {
             <TableHeader className="bg-[var(--color-bg-subtle)]">
               <TableRow className="border-b border-[var(--color-border-soft)] hover:bg-transparent">
                 <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                  Draw
+                  {backtestContent.results.tableHeaders.draw}
                 </TableHead>
                 <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                  Generated
+                  {backtestContent.results.tableHeaders.generated}
                 </TableHead>
                 <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                  Actual
+                  {backtestContent.results.tableHeaders.actual}
                 </TableHead>
                 <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                  Status
+                  {backtestContent.results.tableHeaders.status}
                 </TableHead>
                 <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                  Hit rank
+                  {backtestContent.results.tableHeaders.hitRank}
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -619,7 +516,9 @@ export function BacktestPage() {
                   </TableCell>
                   <TableCell className="px-4 py-3">
                     <Badge variant={result.isHit ? "success" : "danger"}>
-                      {result.isHit ? "Hit" : "Miss"}
+                      {result.isHit
+                        ? backtestContent.results.statusLabels.hit
+                        : backtestContent.results.statusLabels.miss}
                     </Badge>
                   </TableCell>
                   <TableCell className="px-4 py-3 text-[var(--color-text-secondary)]">
