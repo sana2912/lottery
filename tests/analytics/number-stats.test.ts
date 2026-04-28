@@ -34,6 +34,16 @@ describe("calculateDigitStats", () => {
       position: 1
     });
   });
+
+  test("returns an empty list when there are no digit events", () => {
+    expect(
+      calculateDigitStats([], {
+        computedAt,
+        drawCount: 0,
+        windowSize: 120
+      })
+    ).toEqual([]);
+  });
 });
 
 describe("calculateNumberStats", () => {
@@ -72,6 +82,34 @@ describe("calculateNumberStats", () => {
     expect(stats.map((stat) => stat.number)).toEqual(["007"]);
   });
 
+  test("keeps same number separated by prize type and returns empty list for no prizes", () => {
+    const mixedStats = calculateNumberStats(
+      [prize("2026-04-01", "09", "TWO_DIGIT"), prize("2026-04-16", "09", "THREE_BACK")],
+      {
+        computedAt,
+        drawCount: 2,
+        windowSize: 120
+      }
+    );
+
+    expect(
+      mixedStats
+        .filter((stat) => stat.number === "09")
+        .map((stat) => [stat.number, stat.prizeType, stat.hitCount])
+    ).toEqual([
+      ["09", "TWO_DIGIT", 1],
+      ["09", "THREE_BACK", 1]
+    ]);
+
+    expect(
+      calculateNumberStats([], {
+        computedAt,
+        drawCount: 0,
+        windowSize: 120
+      })
+    ).toEqual([]);
+  });
+
   test("assigns pattern flags for odd even high low double sequence and mirror", () => {
     const stats = calculateNumberStats(prizes, {
       computedAt,
@@ -106,6 +144,10 @@ describe("summarizePatterns", () => {
     expect(summaries.map((summary) => summary.pattern)).toEqual(
       expect.arrayContaining(["odd", "low", "double", "ascending", "descending", "mirror"])
     );
+  });
+
+  test("returns no summaries when there are no number stats", () => {
+    expect(summarizePatterns([], 0)).toEqual([]);
   });
 });
 

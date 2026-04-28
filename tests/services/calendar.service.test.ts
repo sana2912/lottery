@@ -56,4 +56,20 @@ describe("calendar.service", () => {
     expect(response.draws[0]).toEqual(response.nextDraw);
     expect(response.monthlyInsights.length).toBeGreaterThan(0);
   });
+
+  test("returns a safe calendar read model when the database is empty", async () => {
+    (globalThis as { prisma?: unknown }).prisma = {
+      lotteryDraw: {
+        findMany: async () => []
+      }
+    };
+
+    const response = await calendarService.getCalendarReadModel();
+
+    expect(calendarReadModelSchema.parse(response)).toEqual(response);
+    expect(response.draws).toHaveLength(1);
+    expect(response.draws[0]).toEqual(response.nextDraw);
+    expect(response.monthlyInsights).toEqual([]);
+    expect(response.nextDraw.status).toBe("upcoming");
+  });
 });

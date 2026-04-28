@@ -95,6 +95,36 @@ describe("draw.service", () => {
     expect(detail && drawDetailResponseSchema.parse(detail)).toEqual(detail);
     expect(missing).toBeNull();
   });
+
+  test("builds year and month range filters when explicit start/end are absent", async () => {
+    let receivedWhere: unknown;
+
+    (globalThis as { prisma?: unknown }).prisma = {
+      lotteryDraw: {
+        count: async () => 0,
+        findMany: async ({ where }: { where: unknown }) => {
+          receivedWhere = where;
+          return [];
+        }
+      }
+    };
+
+    await getDraws({
+      lotteryType: "THAI_GOVERNMENT",
+      month: 4,
+      page: 1,
+      pageSize: 20,
+      year: 2026
+    });
+
+    expect(receivedWhere).toEqual({
+      drawDate: {
+        gte: new Date(Date.UTC(2026, 3, 1)),
+        lt: new Date(Date.UTC(2026, 4, 1))
+      },
+      lotteryType: "THAI_GOVERNMENT"
+    });
+  });
 });
 
 function drawRecord(
