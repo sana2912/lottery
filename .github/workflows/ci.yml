@@ -43,3 +43,13 @@ jobs:
 
       - name: Test
         run: bun test
+
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v7
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
