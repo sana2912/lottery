@@ -3,63 +3,63 @@
   "source": "mock",
   "hero": {
     "eyebrow": "Dashboard contract",
-    "title": "ภาพรวมสัญญาณจากข้อมูลงวดล่าสุด",
-    "description": "หน้ารวมนี้ใช้ read model เดียวสำหรับงวดล่าสุด สัญญาณ hot/cold/overdue และ summary ของ prediction เพื่อให้ต่อ API จริงได้โดยไม่กระจาย shape ซ้ำใน page",
-    "primaryActionLabel": "ดูผลย้อนหลัง",
+    "title": "A single read model for the latest draw, live signals, and prediction summary",
+    "description": "This dashboard mock keeps the latest draw, hot/cold/overdue signals, and prediction summary in one checked shape so the API can replace the fixture without spreading contract logic across the page.",
+    "primaryActionLabel": "Review historical results",
     "primaryActionHref": "/results"
   },
   "metrics": [
     {
-      "label": "งวดในชุดข้อมูล",
+      "label": "Draws in sample",
       "value": "24",
-      "hint": "จำนวนงวด mock ที่พร้อมใช้ทดสอบ contract",
+      "hint": "Mock draw count currently used to exercise the dashboard contract.",
       "tone": "default",
       "trend": "mock"
     },
     {
-      "label": "เลข hot",
+      "label": "Hot number",
       "value": "47",
-      "hint": "เลขท้าย 2 ตัวที่มีความถี่สูงใน sample mock",
+      "hint": "Two-digit number with the strongest recent frequency in this mock sample.",
       "tone": "hot",
       "trend": "+12%"
     },
     {
-      "label": "เลข cold",
+      "label": "Cold number",
       "value": "03",
-      "hint": "เลขที่ยังพบต่ำกว่าค่าเฉลี่ยในช่วงข้อมูลเดียวกัน",
+      "hint": "Number currently appearing below the sample baseline in the same window.",
       "tone": "cold",
       "trend": "-8%"
     },
     {
-      "label": "overdue",
+      "label": "Overdue number",
       "value": "91",
-      "hint": "เลขที่หายไปนานเมื่อเทียบกับ sample mock",
+      "hint": "Number missing longer than the rest of the current mock sample.",
       "tone": "overdue",
-      "trend": "9 งวด"
+      "trend": "9 draws"
     }
   ],
   "latestDraw": {
     "id": "draw-2026-04-16",
-    "drawDate": "16 เมษายน 2026",
+    "drawDate": "16 April 2026",
     "drawDateIso": "2026-04-16",
     "drawNo": "16/2026",
     "lotteryType": "THAI_GOVERNMENT",
-    "statusLabel": "ครบถ้วน",
+    "statusLabel": "Verified",
     "primaryPrize": {
-      "label": "รางวัลที่ 1",
+      "label": "1st prize",
       "value": "482395"
     },
     "secondaryPrizes": [
       {
-        "label": "เลขหน้า 3 ตัว",
+        "label": "Front 3 digits",
         "value": "129, 764"
       },
       {
-        "label": "เลขท้าย 3 ตัว",
+        "label": "Back 3 digits",
         "value": "511, 908"
       },
       {
-        "label": "เลขท้าย 2 ตัว",
+        "label": "Last 2 digits",
         "value": "47"
       }
     ]
@@ -71,7 +71,7 @@
       "number": "47",
       "score": 82,
       "tone": "hot",
-      "reason": "ออกซ้ำในกลุ่มเลขท้าย 2 ตัวมากกว่าค่าเฉลี่ยของ sample"
+      "reason": "Repeated more often than the sample average across recent two-digit prize rows."
     },
     {
       "id": "signal-overdue-91",
@@ -79,7 +79,7 @@
       "number": "91",
       "score": 68,
       "tone": "overdue",
-      "reason": "หายไปนานกว่ากรอบปกติของข้อมูล mock ชุดนี้"
+      "reason": "Missing longer than the normal gap observed in the current mock sample."
     },
     {
       "id": "signal-cold-03",
@@ -87,7 +87,7 @@
       "number": "03",
       "score": 34,
       "tone": "cold",
-      "reason": "พบต่ำกว่ากลุ่มเลขอื่นในช่วงข้อมูลเดียวกัน"
+      "reason": "Appears less often than neighboring numbers in the same evaluation window."
     }
   ],
   "predictionSummary": {
@@ -110,28 +110,28 @@
         "reasons": ["stable frequency", "pattern support"]
       }
     ],
-    "disclaimer": "ผลลัพธ์นี้เป็นการวิเคราะห์จากข้อมูลย้อนหลัง ไม่ใช่การการันตีผลรางวัลในอนาคต"
+    "disclaimer": "These outputs summarize historical signals from mock data. They do not guarantee future draw outcomes."
   },
   "contractRows": [
     {
       "field": "latestDraw",
       "source": "LotteryDraw + LotteryPrize",
-      "purpose": "แสดงงวดล่าสุดและกลุ่มรางวัลหลักของ dashboard"
+      "purpose": "Shows the newest verified draw and the main prize groups surfaced on the dashboard."
     },
     {
       "field": "metrics[]",
       "source": "computed analytics",
-      "purpose": "สรุปจำนวนงวดและสัญญาณที่ควรมองเห็นทันที"
+      "purpose": "Summarizes draw count and the first signal cards users should notice immediately."
     },
     {
       "field": "signals[]",
       "source": "analytics read model",
-      "purpose": "ใช้ร่วมกับ Analytics, Compare และ Prediction Lab"
+      "purpose": "Shares the same signal vocabulary used by Analytics, Compare, and Prediction Lab."
     },
     {
       "field": "predictionSummary",
       "source": "prediction service",
-      "purpose": "แสดง candidate พร้อม score และเหตุผลโดยไม่ใส่อัลกอริทึมใน page"
+      "purpose": "Surfaces candidate numbers, scores, and reasons without embedding scoring logic in the page."
     }
   ]
 }

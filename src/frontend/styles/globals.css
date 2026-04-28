@@ -83,6 +83,10 @@
   --color-bg-elevated: #ffffff;
   --color-bg-subtle: var(--muted-soft);
   --color-bg-frosted: rgba(255, 255, 255, 0.86);
+  --color-bg-glass: rgba(255, 255, 255, 0.72);
+  --color-bg-glass-strong: rgba(255, 255, 255, 0.82);
+  --color-bg-glass-dark: rgba(28, 25, 23, 0.72);
+  --color-bg-glass-dark-strong: rgba(28, 25, 23, 0.82);
 
   --color-bg-dark: #1c1917;
   --color-bg-dark-soft: rgba(255, 255, 255, 0.08);
@@ -100,7 +104,19 @@
 
   --color-bg-panel-brand: var(--primary-soft);
 
-  --color-bg-sidebar: linear-gradient(180deg, #1c1917 0%, #292524 100%);
+  --color-bg-sidebar: linear-gradient(180deg, #25211f 0%, #302b28 56%, #3a3532 100%);
+  --color-bg-sidebar-item-hover: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.09) 0%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
+  --color-bg-sidebar-item-active: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.16) 0%,
+    rgba(255, 255, 255, 0.1) 100%
+  );
+  --color-border-sidebar-item-active: rgba(255, 255, 255, 0.22);
+  --color-sidebar-accent: rgba(255, 255, 255, 0.58);
 
   /* Text aliases */
   --color-text-primary: var(--text-title);
@@ -114,6 +130,8 @@
   /* Borders */
   --color-border-default: var(--border);
   --color-border-soft: #f0eeeb;
+  --color-border-glass: rgba(255, 255, 255, 0.58);
+  --color-border-glass-strong: rgba(255, 255, 255, 0.82);
   --color-border-inverse-soft: rgba(255, 255, 255, 0.12);
   --color-border-inverse-softer: rgba(255, 255, 255, 0.18);
 
@@ -126,6 +144,8 @@
   --shadow-card: 0 12px 32px rgba(28, 25, 23, 0.06);
   --shadow-micro: 0 1px 2px rgba(28, 25, 23, 0.06);
   --shadow-float-strong: 0 18px 48px rgba(28, 25, 23, 0.14);
+  --shadow-glass: 0 12px 30px rgba(28, 25, 23, 0.08);
+  --shadow-glass-strong: 0 20px 48px rgba(28, 25, 23, 0.12);
 
   /* Fonts */
   --font-display:
@@ -258,6 +278,10 @@
   --color-bg-elevated: #231f1d;
   --color-bg-subtle: var(--muted-soft);
   --color-bg-frosted: rgba(28, 25, 23, 0.86);
+  --color-bg-glass: rgba(28, 25, 23, 0.72);
+  --color-bg-glass-strong: rgba(28, 25, 23, 0.82);
+  --color-bg-glass-dark: rgba(12, 10, 9, 0.78);
+  --color-bg-glass-dark-strong: rgba(12, 10, 9, 0.86);
 
   --color-bg-dark: #0c0a09;
   --color-bg-dark-soft: rgba(255, 255, 255, 0.08);
@@ -274,7 +298,19 @@
   --color-bg-hero-scrim-soft: rgba(28, 25, 23, 0.68);
 
   --color-bg-panel-brand: var(--primary-soft);
-  --color-bg-sidebar: linear-gradient(180deg, #0c0a09 0%, #1c1917 100%);
+  --color-bg-sidebar: linear-gradient(180deg, #11100f 0%, #1a1715 56%, #24201d 100%);
+  --color-bg-sidebar-item-hover: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.04) 100%
+  );
+  --color-bg-sidebar-item-active: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.16) 0%,
+    rgba(255, 255, 255, 0.1) 100%
+  );
+  --color-border-sidebar-item-active: rgba(255, 255, 255, 0.22);
+  --color-sidebar-accent: rgba(255, 255, 255, 0.62);
 
   --color-text-primary: var(--text-title);
   --color-text-secondary: var(--text-body);
@@ -286,6 +322,8 @@
 
   --color-border-default: var(--border);
   --color-border-soft: #292524;
+  --color-border-glass: rgba(255, 255, 255, 0.16);
+  --color-border-glass-strong: rgba(255, 255, 255, 0.24);
   --color-border-inverse-soft: rgba(255, 255, 255, 0.12);
   --color-border-inverse-softer: rgba(255, 255, 255, 0.18);
 
@@ -296,6 +334,8 @@
   --shadow-card: 0 12px 32px rgba(0, 0, 0, 0.24);
   --shadow-micro: 0 1px 2px rgba(0, 0, 0, 0.2);
   --shadow-float-strong: 0 18px 48px rgba(0, 0, 0, 0.34);
+  --shadow-glass: 0 14px 34px rgba(0, 0, 0, 0.28);
+  --shadow-glass-strong: 0 24px 54px rgba(0, 0, 0, 0.4);
 
   --popover: var(--color-bg-canvas);
   --popover-foreground: var(--color-text-primary);
@@ -314,9 +354,19 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: var(--color-bg-app);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.56), rgba(255, 255, 255, 0) 22%),
+    linear-gradient(135deg, rgba(249, 115, 22, 0.05), transparent 34%),
+    linear-gradient(180deg, #fcfcfb 0%, var(--color-bg-app) 28%, #f6f5f2 100%);
   color: var(--color-text-primary);
   font-family: var(--font-ui);
+}
+
+.dark body {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0) 22%),
+    linear-gradient(135deg, rgba(251, 146, 60, 0.08), transparent 34%),
+    linear-gradient(180deg, #120f0e 0%, var(--color-bg-app) 28%, #090807 100%);
 }
 
 .page-shell {

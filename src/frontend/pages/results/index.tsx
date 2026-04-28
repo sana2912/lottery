@@ -1,5 +1,8 @@
-﻿import { SlidingNumber } from "@/frontend/components/animate-ui/primitives/texts/sliding-number";
-import resultsMockJson from "@/frontend/pages/results/results.mock.json";
+import Link from "next/link";
+import { EmptyState } from "@/frontend/components";
+import { SlidingNumber } from "@/frontend/components/animate-ui/primitives/texts/sliding-number";
+import { resultsContent } from "@/frontend/pages/results/results.content";
+import { getResultsModel } from "@/frontend/pages/results/results.data";
 import {
   Badge,
   Button,
@@ -19,9 +22,7 @@ import {
   TableRow,
   Textarea
 } from "@/frontend/primitives";
-import { type ResultsReadModel, resultsReadModelSchema } from "@/schema/app/results.schema";
-
-const resultsMock = resultsReadModelSchema.parse(resultsMockJson);
+import type { ResultsReadModel } from "@/schema/app/results.schema";
 
 function StatCard({ stat }: { stat: ResultsReadModel["stats"][number] }) {
   const isNumericValue = /^\d+$/.test(stat.value);
@@ -47,30 +48,32 @@ function StatCard({ stat }: { stat: ResultsReadModel["stats"][number] }) {
   );
 }
 
-export function ResultsPage() {
+export async function ResultsPage() {
+  const resultsModel = await getResultsModel();
+
   return (
     <main className="space-y-6">
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(320px,0.8fr)]">
         <Card className="overflow-hidden bg-[image:var(--color-bg-hero-accent),var(--color-bg-hero)] p-6 md:p-8">
           <p className="text-[11px] font-bold uppercase tracking-normal text-[var(--color-brand-outline)]">
-            {resultsMock.hero.eyebrow}
+            {resultsModel.hero.eyebrow}
           </p>
           <h1 className="mt-4 max-w-3xl text-4xl font-bold tracking-normal text-[var(--color-text-primary)] md:text-5xl">
-            {resultsMock.hero.title}
+            {resultsModel.hero.title}
           </h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--color-text-secondary)]">
-            {resultsMock.hero.description}
+            {resultsModel.hero.description}
           </p>
 
           <div className="mt-8 flex flex-wrap gap-3">
             <Button className="rounded-none bg-[var(--color-brand)] px-4 py-[13px] text-[var(--primary-foreground)] hover:bg-[var(--color-brand-strong)]">
-              ดูงวดล่าสุด
+              {resultsContent.heroActions.latestLabel}
             </Button>
             <Button
               className="rounded-none border-[var(--color-brand-outline)] bg-[var(--color-bg-canvas)] px-4 py-[13px] text-[var(--color-brand-outline)] hover:bg-[var(--color-bg-brand-soft)]"
               variant="outline"
             >
-              ตรวจ data contract
+              {resultsContent.heroActions.contractLabel}
             </Button>
           </div>
         </Card>
@@ -78,15 +81,15 @@ export function ResultsPage() {
         <Card className="flex flex-col justify-between bg-[var(--color-bg-dark)] p-6 text-[var(--color-text-inverse)]">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-normal text-[var(--color-text-inverse-soft)]">
-              {resultsMock.hero.coverageLabel}
+              {resultsModel.hero.coverageLabel}
             </p>
             <p className="mt-4 text-3xl font-bold tracking-normal">
-              {resultsMock.hero.coverageValue}
+              {resultsModel.hero.coverageValue}
             </p>
           </div>
 
           <div className="mt-8 space-y-4">
-            {resultsMock.highlights.map((highlight) => (
+            {resultsModel.highlights.map((highlight) => (
               <div
                 className="rounded-none border border-[var(--color-border-inverse-soft)] bg-[var(--color-bg-dark-soft)] p-4"
                 key={highlight.title}
@@ -102,7 +105,7 @@ export function ResultsPage() {
       </section>
 
       <section className="grid gap-4 md:grid-cols-3">
-        {resultsMock.stats.map((stat) => (
+        {resultsModel.stats.map((stat) => (
           <StatCard key={stat.label} stat={stat} />
         ))}
       </section>
@@ -114,22 +117,22 @@ export function ResultsPage() {
               <div className="w-full max-w-sm">
                 <Input
                   className="h-11 rounded-none border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 py-3 shadow-[var(--shadow-micro)]"
-                  placeholder="ค้นหาจากวันที่ออกรางวัลหรือเลขที่ถูกรางวัล"
+                  placeholder={resultsContent.filters.searchPlaceholder}
                 />
               </div>
             }
             className="border-b border-[var(--color-border-soft)] pb-5"
-            eyebrow="ค้นหาและกรอง"
-            title="สรุปงวดย้อนหลังล่าสุด"
+            eyebrow={resultsContent.filters.sectionEyebrow}
+            title={resultsContent.filters.sectionTitle}
           />
 
           <div className="mt-5 grid gap-3 md:grid-cols-2">
-            <Select defaultValue={resultsMock.filters.defaultLotteryType}>
+            <Select defaultValue={resultsModel.filters.defaultLotteryType}>
               <SelectTrigger className="h-11 w-full rounded-none border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 shadow-[var(--shadow-micro)]">
-                <SelectValue placeholder="เลือกประเภทสลาก" />
+                <SelectValue placeholder={resultsContent.filters.lotteryTypePlaceholder} />
               </SelectTrigger>
               <SelectContent>
-                {resultsMock.filters.lotteryTypes.map((type) => (
+                {resultsModel.filters.lotteryTypes.map((type) => (
                   <SelectItem key={type} value={type}>
                     {type}
                   </SelectItem>
@@ -137,13 +140,15 @@ export function ResultsPage() {
               </SelectContent>
             </Select>
 
-            <Select defaultValue={resultsMock.filters.defaultPrizeType}>
+            <Select defaultValue={resultsModel.filters.defaultPrizeType}>
               <SelectTrigger className="h-11 w-full rounded-none border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 shadow-[var(--shadow-micro)]">
-                <SelectValue placeholder="เลือกรางวัล" />
+                <SelectValue placeholder={resultsContent.filters.prizeTypePlaceholder} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="รางวัลทั้งหมด">รางวัลทั้งหมด</SelectItem>
-                {resultsMock.filters.prizeTypes.map((type) => (
+                <SelectItem value={resultsContent.filters.allPrizeTypesLabel}>
+                  {resultsContent.filters.allPrizeTypesLabel}
+                </SelectItem>
+                {resultsModel.filters.prizeTypes.map((type) => (
                   <SelectItem key={type} value={type}>
                     {type}
                   </SelectItem>
@@ -153,7 +158,7 @@ export function ResultsPage() {
           </div>
 
           <div className="mt-5 flex flex-wrap gap-3">
-            {resultsMock.filters.lotteryTypes.map((type) => (
+            {resultsModel.filters.lotteryTypes.map((type) => (
               <Button
                 className="rounded-none bg-[var(--color-bg-brand-soft)] px-3 py-2 text-xs text-[var(--color-brand)] hover:bg-[var(--color-bg-brand-soft-strong)]"
                 key={type}
@@ -163,7 +168,7 @@ export function ResultsPage() {
               </Button>
             ))}
 
-            {resultsMock.filters.prizeTypes.map((type) => (
+            {resultsModel.filters.prizeTypes.map((type) => (
               <Button
                 className="rounded-none border-[var(--color-brand-outline)] bg-[var(--color-bg-canvas)] px-3 py-2 text-xs text-[var(--color-brand-outline)] hover:bg-[var(--color-bg-brand-soft)]"
                 key={type}
@@ -175,7 +180,14 @@ export function ResultsPage() {
           </div>
 
           <div className="mt-6 space-y-4">
-            {resultsMock.draws.map((draw) => (
+            {resultsModel.draws.length === 0 ? (
+              <EmptyState
+                description={resultsContent.emptyState.description}
+                title={resultsContent.emptyState.title}
+              />
+            ) : null}
+
+            {resultsModel.draws.map((draw) => (
               <article
                 className="rounded-none border border-[var(--color-border-soft)] bg-[var(--color-bg-elevated)] p-5"
                 key={draw.id}
@@ -186,7 +198,7 @@ export function ResultsPage() {
                       {draw.drawDate}
                     </p>
                     <h3 className="mt-1 text-xl font-bold tracking-normal text-[var(--color-text-primary)]">
-                      งวดที่ {draw.drawNo}
+                      Draw {draw.drawNo}
                     </h3>
                   </div>
 
@@ -195,6 +207,9 @@ export function ResultsPage() {
                       {draw.statusLabel}
                     </Badge>
                     <Badge variant="neutral">{draw.coverage}</Badge>
+                    <Button asChild size="sm" variant="outline">
+                      <Link href={`/results/${draw.id}`}>{resultsContent.filters.detailLabel}</Link>
+                    </Button>
                   </div>
                 </div>
 
@@ -220,41 +235,36 @@ export function ResultsPage() {
 
         <Card className="p-6">
           <SectionHeading
-            eyebrow="ทำไมต้องเริ่มที่หน้านี้"
-            title="หน้า Results เป็นตัวกำหนด shape ของข้อมูล seed"
+            eyebrow={resultsContent.sidebar.whyEyebrow}
+            title={resultsContent.sidebar.title}
           />
           <div className="mt-5 space-y-4 text-sm leading-7 text-[var(--color-text-secondary)]">
-            <p>
-              UI ชุดนี้บังคับให้เราตกลง read model ของงวดก่อนเริ่ม ingestion จริง ทั้งวันที่ออกรางวัล เลขงวด
-              กลุ่มรางวัล และสถานะความครบถ้วนของข้อมูล
-            </p>
-            <p>
-              เมื่อ shape นี้นิ่งแล้ว เราจะต่อ `/api/draws` และ map ข้อมูลจาก Prisma เข้าสู่ contract
-              เดิมได้โดยมีความเสี่ยงในการรื้อน้อยลง
-            </p>
+            {resultsContent.sidebar.paragraphs.map((paragraph) => (
+              <p key={paragraph}>{paragraph}</p>
+            ))}
           </div>
 
           <div className="mt-6 rounded-none bg-[var(--color-bg-panel-brand)] p-4">
             <p className="text-xs font-bold uppercase tracking-normal text-[var(--color-brand-outline)]">
-              contract ฝั่ง backend ที่วางไว้
+              {resultsContent.sidebar.contractEyebrow}
             </p>
             <div className="mt-3 overflow-hidden rounded-none border border-[var(--color-border-soft)]">
               <Table>
                 <TableHeader className="bg-[var(--color-bg-subtle)]">
                   <TableRow className="border-b border-[var(--color-border-soft)] hover:bg-transparent">
                     <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                      field
+                      {resultsContent.contractTableHeaders.field}
                     </TableHead>
                     <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                      source
+                      {resultsContent.contractTableHeaders.source}
                     </TableHead>
                     <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                      purpose
+                      {resultsContent.contractTableHeaders.purpose}
                     </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {resultsMock.contractRows.map((row) => (
+                  {resultsModel.contractRows.map((row) => (
                     <TableRow
                       className="border-b border-[var(--color-border-soft)] hover:bg-[var(--color-bg-subtle)]/50"
                       key={row.field}
@@ -276,12 +286,15 @@ export function ResultsPage() {
           </div>
 
           <div className="mt-6">
-            <SectionHeading eyebrow="หมายเหตุสำหรับทีม" title="บันทึก mock note" />
+            <SectionHeading
+              eyebrow={resultsContent.sidebar.noteEyebrow}
+              title={resultsContent.sidebar.noteTitle}
+            />
             <div className="mt-3">
               <Textarea
                 className="min-h-32 rounded-none border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 py-3 shadow-[var(--shadow-micro)]"
                 readOnly
-                value={resultsMock.mockNote}
+                value={resultsModel.mockNote}
               />
             </div>
           </div>

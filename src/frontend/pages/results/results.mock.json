@@ -2,96 +2,102 @@
   "generatedAt": "2026-04-27T00:00:00.000Z",
   "source": "mock",
   "hero": {
-    "eyebrow": "ผลสลากย้อนหลัง",
-    "title": "คลังข้อมูลหวยรัฐบาลไทยในหน้าจอที่พร้อมใช้ทดสอบงานจริง",
-    "description": "ชุดข้อมูล mock นี้จำลองประสบการณ์หน้าแสดงผลที่พร้อมใช้งานรอบแรก ทั้งงวดล่าสุด ความครบถ้วนของรางวัล และตัวกรองแบบเร็ว เพื่อกำหนด data contract ก่อนเชื่อมต่อ API และฐานข้อมูลจริง",
-    "coverageLabel": "ความครอบคลุมข้อมูล",
-    "coverageValue": "มีข้อมูลงวด mock แล้ว 24 งวด"
+    "eyebrow": "Historical results",
+    "title": "A source-of-truth results surface for historical Thai Government Lottery draws",
+    "description": "This mock read model simulates the first production-ready results experience with recent draw cards, grouped prizes, and quick filters so the data contract is stable before live data fully replaces the fixture.",
+    "coverageLabel": "Coverage snapshot",
+    "coverageValue": "24 mock draws currently loaded"
   },
   "stats": [
     {
-      "label": "วันที่ออกรางวัลล่าสุด",
-      "value": "16 เมษายน 2026",
-      "hint": "งวดล่าสุดที่มีอยู่ในชุดข้อมูล mock"
+      "label": "Latest draw date",
+      "value": "16 April 2026",
+      "hint": "Newest draw currently available in the checked mock fixture."
     },
     {
-      "label": "ประเภทรางวัลที่ติดตาม",
+      "label": "Tracked prize groups",
       "value": "5",
-      "hint": "รางวัลที่ 1, เลขหน้า 3 ตัว, เลขท้าย 3 ตัว, เลขท้าย 2 ตัว, ข้างเคียงรางวัลที่ 1"
+      "hint": "1st prize, front 3 digits, back 3 digits, last 2 digits, and adjacent first prize rows."
     },
     {
-      "label": "เลขที่ค้นหาได้",
+      "label": "Searchable numbers",
       "value": "182",
-      "hint": "ข้อมูลถูกจัดรูปแบบพร้อมใช้กับการค้นหาและเปรียบเทียบ"
+      "hint": "Normalized prize values prepared for search, filtering, and comparison surfaces."
     }
   ],
   "filters": {
-    "lotteryTypes": ["หวยรัฐบาลไทย"],
-    "prizeTypes": ["รางวัลที่ 1", "เลขหน้า 3 ตัว", "เลขท้าย 3 ตัว", "เลขท้าย 2 ตัว", "ข้างเคียงรางวัลที่ 1"],
-    "defaultLotteryType": "หวยรัฐบาลไทย",
-    "defaultPrizeType": "รางวัลทั้งหมด"
+    "lotteryTypes": ["Thai Government Lottery"],
+    "prizeTypes": [
+      "1st prize",
+      "Front 3 digits",
+      "Back 3 digits",
+      "Last 2 digits",
+      "Adjacent 1st prize"
+    ],
+    "defaultLotteryType": "Thai Government Lottery",
+    "defaultPrizeType": "All prize types"
   },
   "highlights": [
     {
-      "title": "คุณภาพข้อมูล",
-      "description": "ทุกการ์ดของงวดจะแสดงส่วนข้อมูลที่ยังไม่ครบ เพื่อให้เห็นชัดว่าต้อง backfill ตรงไหนเมื่อเริ่มทำ seed จริง"
+      "title": "Data quality visibility",
+      "description": "Each draw card carries a coverage label so missing or partially verified prize rows remain visible during seed and QA work."
     },
     {
-      "title": "สัญญาข้อมูลฝั่งหน้าเว็บ",
-      "description": "ตารางและการ์ดชุดนี้กำหนด shape ของวันที่ออกรางวัล เลขงวด และผลรางวัลแบบ grouped ไว้ล่วงหน้าแล้ว"
+      "title": "Frontend data contract",
+      "description": "The cards and tables define how draw date, draw number, grouped prizes, and status metadata must appear in the first production results surface."
     },
     {
-      "title": "ขั้นถัดไปของ backend",
-      "description": "เมื่อ service และการ map ผ่าน Prisma พร้อมแล้ว ให้แทน JSON ชุดนี้ด้วย read model จาก `/api/draws`"
+      "title": "Backend handoff",
+      "description": "When `/api/draws` is fully live, the Prisma-backed response should replace this fixture without changing the page-level contract."
     }
   ],
   "draws": [
     {
       "id": "draw-2026-04-16",
-      "drawDate": "16 เมษายน 2026",
+      "drawDate": "16 April 2026",
       "drawDateIso": "2026-04-16",
       "drawNo": "16/2026",
       "lotteryType": "THAI_GOVERNMENT",
       "status": "complete",
-      "statusLabel": "ครบถ้วน",
-      "coverage": "มีข้อมูลครบทุกรางวัลที่ระบบติดตาม",
+      "statusLabel": "Verified",
+      "coverage": "All tracked prize groups are present in this mock draw.",
       "prizes": [
-        { "label": "รางวัลที่ 1", "value": "482395", "prizeType": "FIRST" },
-        { "label": "เลขหน้า 3 ตัว", "value": "129, 764", "prizeType": "THREE_FRONT" },
-        { "label": "เลขท้าย 3 ตัว", "value": "511, 908", "prizeType": "THREE_BACK" },
-        { "label": "เลขท้าย 2 ตัว", "value": "47", "prizeType": "TWO_DIGIT" }
+        { "label": "1st prize", "value": "482395", "prizeType": "FIRST" },
+        { "label": "Front 3 digits", "value": "129, 764", "prizeType": "THREE_FRONT" },
+        { "label": "Back 3 digits", "value": "511, 908", "prizeType": "THREE_BACK" },
+        { "label": "Last 2 digits", "value": "47", "prizeType": "TWO_DIGIT" }
       ]
     },
     {
       "id": "draw-2026-04-01",
-      "drawDate": "1 เมษายน 2026",
+      "drawDate": "1 April 2026",
       "drawDateIso": "2026-04-01",
       "drawNo": "15/2026",
       "lotteryType": "THAI_GOVERNMENT",
       "status": "complete",
-      "statusLabel": "ครบถ้วน",
-      "coverage": "ข้อมูลข้างเคียงรางวัลที่ 1 ยังรอ normalize",
+      "statusLabel": "Verified",
+      "coverage": "Adjacent first-prize rows still need normalization in the live ingestion path.",
       "prizes": [
-        { "label": "รางวัลที่ 1", "value": "105673", "prizeType": "FIRST" },
-        { "label": "เลขหน้า 3 ตัว", "value": "204, 581", "prizeType": "THREE_FRONT" },
-        { "label": "เลขท้าย 3 ตัว", "value": "336, 790", "prizeType": "THREE_BACK" },
-        { "label": "เลขท้าย 2 ตัว", "value": "18", "prizeType": "TWO_DIGIT" }
+        { "label": "1st prize", "value": "105673", "prizeType": "FIRST" },
+        { "label": "Front 3 digits", "value": "204, 581", "prizeType": "THREE_FRONT" },
+        { "label": "Back 3 digits", "value": "336, 790", "prizeType": "THREE_BACK" },
+        { "label": "Last 2 digits", "value": "18", "prizeType": "TWO_DIGIT" }
       ]
     },
     {
       "id": "draw-2026-03-16",
-      "drawDate": "16 มีนาคม 2026",
+      "drawDate": "16 March 2026",
       "drawDateIso": "2026-03-16",
       "drawNo": "14/2026",
       "lotteryType": "THAI_GOVERNMENT",
       "status": "partial",
-      "statusLabel": "บางส่วน",
-      "coverage": "เลขท้าย 2 ตัวตรวจแล้ว แต่เลขหน้า/ท้าย 3 ตัวยังรอ QA",
+      "statusLabel": "Partial",
+      "coverage": "Last 2 digits are verified, while front/back 3-digit rows still need QA review.",
       "prizes": [
-        { "label": "รางวัลที่ 1", "value": "774281", "prizeType": "FIRST" },
-        { "label": "เลขหน้า 3 ตัว", "value": "093, 661", "prizeType": "THREE_FRONT" },
-        { "label": "เลขท้าย 3 ตัว", "value": "244, 580", "prizeType": "THREE_BACK" },
-        { "label": "เลขท้าย 2 ตัว", "value": "52", "prizeType": "TWO_DIGIT" }
+        { "label": "1st prize", "value": "774281", "prizeType": "FIRST" },
+        { "label": "Front 3 digits", "value": "093, 661", "prizeType": "THREE_FRONT" },
+        { "label": "Back 3 digits", "value": "244, 580", "prizeType": "THREE_BACK" },
+        { "label": "Last 2 digits", "value": "52", "prizeType": "TWO_DIGIT" }
       ]
     }
   ],
@@ -99,43 +105,43 @@
     {
       "field": "draw.id",
       "source": "LotteryDraw.id",
-      "purpose": "คีย์หลักของงวดสำหรับใช้ในหน้าและ API"
+      "purpose": "Primary key used by the results page, detail routes, and API consumers."
     },
     {
       "field": "drawDate",
       "source": "LotteryDraw.drawDate",
-      "purpose": "ใช้เป็นหัวหลักของงวดและตัวกรองตามวันออกรางวัล"
+      "purpose": "Human-readable draw date used as the main heading and draw-level filter target."
     },
     {
       "field": "drawDateIso",
       "source": "LotteryDraw.drawDate",
-      "purpose": "วันที่แบบ ISO สำหรับ sort, filter และเชื่อมกับ API โดยไม่พึ่งข้อความที่แสดงผล"
+      "purpose": "ISO date form used for sorting, filtering, and stable API transport."
     },
     {
       "field": "drawNo",
       "source": "LotteryDraw.drawNo",
-      "purpose": "ใช้แสดงเลขงวดและอ้างอิงในรายการผลย้อนหลัง"
+      "purpose": "Supports compact draw identification in list and detail views."
     },
     {
       "field": "status",
       "source": "computed",
-      "purpose": "สถานะ machine-readable เช่น complete หรือ partial สำหรับเลือก badge และ filter"
+      "purpose": "Machine-readable state such as complete or partial for badges and filtering."
     },
     {
       "field": "prizes[]",
       "source": "LotteryPrize[]",
-      "purpose": "รวมผลรางวัลเป็นกลุ่มพร้อมแสดงใน card ของแต่ละงวด"
+      "purpose": "Grouped prize rows rendered inside each draw card."
     },
     {
       "field": "prizes[].prizeType",
       "source": "LotteryPrize.type",
-      "purpose": "ชนิดรางวัลแบบ enum สำหรับ map กับ Prisma และตัวกรอง"
+      "purpose": "Enum-backed prize type used for Prisma mapping and filter behavior."
     },
     {
       "field": "coverage",
       "source": "computed",
-      "purpose": "สรุปความครบถ้วนของข้อมูลและสถานะ QA"
+      "purpose": "Summarizes data completeness and QA state for each draw row."
     }
   ],
-  "mockNote": "หมายเหตุ mock: ตอนเชื่อมข้อมูลจริงควร normalize ชื่อประเภทรางวัลให้คงที่ทั้งฝั่ง import, Prisma และ API response เพื่อไม่ให้ตัวกรองหน้าเว็บแตกภายหลัง"
+  "mockNote": "Mock note: when live data replaces this fixture, normalize prize-group labels consistently across import scripts, Prisma records, and API responses so frontend filters remain stable."
 }

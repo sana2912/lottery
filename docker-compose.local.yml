@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: lottery-postgres-local
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: lottery
+      POSTGRES_PASSWORD: lottery
+      POSTGRES_USER: lottery
+    ports:
+      - "8888:5432"
+    volumes:
+      - lottery-postgres-data:/var/lib/postgresql/data
+
+volumes:
+  lottery-postgres-data:

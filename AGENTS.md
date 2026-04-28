@@ -111,6 +111,52 @@ Keep code modular and respect these boundaries:
 - `src/schema/app`: App Zod schemas and inferred TypeScript types.
 - `prisma`: Prisma config and schema.
 
+## Documentation Source Of Truth
+
+Treat the two planning docs with different roles:
+
+- `docs/mvp-user-pages-implementation-plan.md` is the main requirement document. Use it as the source of truth for product scope, feature requirements, field dictionaries, and long-term MVP direction.
+
+## Folder Ownership
+
+Keep functions and logic in the folder that matches their consumer:
+
+| Folder                          | What belongs here                                                                                                   | Primary consumer                          |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| `src/app`                       | Route entrypoints, thin wiring only                                                                                 | Next.js routing/runtime                   |
+| `src/frontend/pages`            | Route-level page composition and page-specific view logic                                                           | App routes                                |
+| `src/frontend/components`       | Reusable composed UI components                                                                                     | Multiple pages/components                 |
+| `src/frontend/primitives`       | Low-level UI primitives only                                                                                        | Composed UI and pages                     |
+| `src/frontend/chart-primitives` | Shared chart foundations and D3 building blocks                                                                     | Analytics/chart surfaces                  |
+| `src/frontend/hooks`            | Frontend hooks used by UI                                                                                           | Frontend components/pages                 |
+| `src/api/router`                | API route definitions and request wiring                                                                            | API runtime                               |
+| `src/api/service`               | Business logic and data access orchestration                                                                        | API routers and DTOs                      |
+| `src/api/model/dto`             | Backend-only response mapping/serialization                                                                         | API services and routers                  |
+| `src/schema/api`                | Public API contract types                                                                                           | API and consumer code                     |
+| `src/schema/app`                | Zod validation schemas and inferred app types                                                                       | Frontend forms/queries and API validation |
+| `src/lib/api`                   | Frontend-facing API client helpers, fetch wrappers, and typed request helpers                                       | Frontend API consumers                    |
+| `src/lib/app`                   | Shared app/runtime helpers                                                                                          | Frontend app code                         |
+| `src/util/api`                  | Backend/API-route utilities such as query parsing, normalization, pagination parsing, and request parameter helpers | API routes and backend request handling   |
+| `src/util/app`                  | Small app utilities                                                                                                 | Frontend app code                         |
+| `prisma`                        | Schema and database configuration only                                                                              | Prisma CLI and API services               |
+
+Do not register, call, or re-export function implementations across these boundaries if doing so would move logic into the wrong layer. Keep route code thin, keep business logic in services, keep serialization in DTOs, keep validation in `src/schema/app`, and keep transport types in `src/schema/api`.
+
+- Frontend files must not import from `src/api/*` or `src/util/api/*`.
+- API/service/DTO code must not import from `src/frontend/*`.
+
+## API Contracts, App Schemas, And DTOs
+
+Keep shared contracts and backend serialization separate:
+
+- `src/schema/api` is the public API contract layer. Put API response/request TypeScript interfaces and transport-facing types here.
+- `src/schema/app` is the Zod validation layer. Put app-facing schemas, form/query/body validation schemas, and inferred app types here. Frontend code may import from this layer to validate URL query params, forms, and request payloads before calling API endpoints.
+- `src/api/model/dto` is backend-only serialization/mapping code. Use it to map Prisma/domain/service objects into `src/schema/api` response shapes, normalize dates/enums/labels, and hide internal fields.
+- `src/lib/api` is the only place for frontend-facing API client/fetch helpers. Keep client request wrappers, typed fetch helpers, and frontend response parsing helpers here.
+- `src/util/api` is backend/API-route utility code only. Keep query parsing, normalization, pagination parsing, and request-parameter helpers here.
+
+Do not import `src/api/model/dto` from frontend code or route-level page modules. Do not make DTO files the shared Zod schema source. If an API router needs request validation, reuse the relevant Zod schema from `src/schema/app`; if it needs response serialization, call a mapper in `src/api/model/dto`.
+
 ## API
 
 The API uses Elysia mounted through the Next.js App Router:
@@ -119,12 +165,15 @@ The API uses Elysia mounted through the Next.js App Router:
 - Elysia app: `src/api/index.ts`
 - Router composition: `src/api/router/index.ts`
 
-Current API routes are scaffold placeholders:
+Current API routes include:
 
 - `/api/draws`
 - `/api/analytics`
 - `/api/predictions`
 - `/api/watchlist`
+- `/api/backtests`
+- `/api/compare`
+- `/api/calendar`
 
 Keep route definitions in `src/api/router`, business logic in `src/api/service`, and DTOs in `src/api/model/dto`.
 
@@ -132,8 +181,8 @@ Keep route definitions in `src/api/router`, business logic in `src/api/service`,
 
 Database stack:
 
-- Prisma ORM `^7.7.0`
-- MongoDB provider
+- Prisma ORM `^7.8.0`
+- PostgreSQL provider with `@prisma/adapter-pg`
 - Prisma config file: `prisma.config.ts`
 - Schema: `prisma/schema.prisma`
 - Generated client output: `src/generated/prisma`
@@ -142,7 +191,7 @@ Database stack:
 All generated model IDs should use UUID v7:
 
 ```prisma
-id String @id @default(uuid(7)) @map("_id")
+id String @id @default(uuid(7)) @map("_id") @db.Uuid
 ```
 
 Do not put `url = env("DATABASE_URL")` back into `schema.prisma`; this project uses `prisma.config.ts` for the datasource URL.
@@ -178,6 +227,16 @@ Frontend work must preserve the project design system and module boundaries:
 - Make mobile behavior explicit for user-facing navigation, filters, tables, and toolbars. Prefer accessible controls with labels, `aria-expanded`, `aria-controls`, and keyboard-safe focus styles.
 - For chart surfaces, use `src/frontend/chart-primitives` as reusable foundations. Do not hand-roll chart layout inside route pages when a chart primitive can own the structure.
 - Keep placeholders lightweight until real feature behavior is requested. Do not add prediction algorithms, admin flows, or data mutation behavior as part of UI cleanup.
+
+For route-level page modules under `src/frontend/pages`, keep page-local files split by responsibility:
+
+- `index.tsx` or `detail.tsx`: route composition, local UI state, and event wiring only.
+- `*.content.ts`: static UI copy, labels, options, links, and non-backend page config.
+- `*.data.ts`: page-local frontend data loaders, fallback read models, and thin API client wiring through `src/lib/api`.
+- `*.mappers.ts`: page-local view-model shaping, chart/table row mapping, and request payload helpers.
+- `*.components.tsx`: page-local extracted subcomponents that are not shared broadly enough for `src/frontend/components`.
+
+Do not hardcode backend-owned data, fallback API responses, or large UI copy/config objects directly inside route page files when they can live in these companion files instead.
 
 ## Animate UI And shadcn
 
@@ -236,6 +295,19 @@ args = ["shadcn@latest", "mcp"]
 - Use TypeScript types and Zod schemas at module boundaries.
 - Keep API-facing interfaces in `src/schema/api`.
 - Keep app-facing validation schemas in `src/schema/app`.
+- Keep backend response mapping in `src/api/model/dto`, returning types from `src/schema/api`.
+
+## State Management
+
+Choose the smallest state tool that matches the state ownership:
+
+- Server/API data -> TanStack Query when client-side cache, refetching, optimistic updates, or mutation state are actually needed. Prefer server/service read models first for simple server-rendered data.
+- Global UI state -> Zustand for cross-route or cross-component UI state that cannot live in URL state or a local parent component.
+- Form state -> React Hook Form for non-trivial forms with validation, dirty state, reset behavior, or nested fields.
+- Shareable filter state -> URL query params for filters/search/ranges that should be bookmarkable, reload-safe, and shareable, such as `lotteryType`, `prizeType`, `windowSize`, `startDate`, `endDate`, `year`, `month`, and `q`.
+- Local tiny state -> `useState` for component-local UI state such as menu open/close, dialog visibility, temporary input, and tab state that does not need to survive reloads.
+
+Default project bias: keep read-heavy dashboard data in API/service read models, keep filters in URL query params, and avoid introducing a global client store until a real cross-route workflow requires it.
 
 ## Verification
 

@@ -1,4 +1,4 @@
-# Prisma + MongoDB
+# Prisma + PostgreSQL
 
 This project uses Prisma ORM v7 style configuration:
 
@@ -7,6 +7,6 @@ This project uses Prisma ORM v7 style configuration:
 - Prisma Client is generated to `src/generated/prisma`.
 - Prisma Client generator targets Bun with `runtime = "bun"`.
 - Generated IDs use UUID v7 with `@default(uuid(7))`.
-- MongoDB primary keys are mapped to `_id` with `@map("_id")`.
+- PostgreSQL UUID primary keys are currently mapped to `_id` with `@map("_id")` to preserve the earlier model contract.
 
-The generated Prisma Client directory is ignored by git. Run `bun run db:generate` after installing dependencies and after each schema change.
+The generated Prisma Client directory is ignored by git. Run `bun run db:migrate` and `bun run db:generate` after schema changes.
