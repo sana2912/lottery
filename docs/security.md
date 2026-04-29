@@ -2,31 +2,36 @@
 
 ## Environment Files
 
-This project uses dotenvx for encrypted environment management.
+This project uses plaintext local development environment files and platform-managed production environment variables.
 
-- `.env.development`: development environment values
-- `.env.production`: production environment values
-- `.env.keys`: private dotenvx keys, ignored by git
-- `.env.example`: safe placeholders only
+- `.env.development`: local development values
+- `.env.example`: safe placeholders and required variable names
+- `.env.local`: optional developer-local overrides, ignored by git
+
+There is no encrypted dotenvx workflow. Do not add `.env.keys`, `.env.production`, or real production secrets to the repository.
 
 ## Commands
 
-```bash
-bun run env:encrypt:dev
-bun run env:encrypt:prod
-bun run env:decrypt:dev
-bun run env:decrypt:prod
-```
-
-Runtime commands inject encrypted dotenvx values in memory and do not rewrite env files to plaintext:
+Local development commands load `.env.development` when runtime environment values are needed:
 
 ```bash
 bun run dev
-bun run build
 bun run start
+bun run db:push
+bun run db:migrate
+bun run db:studio
 ```
 
-Use `env:decrypt:*` only when you explicitly need a temporary plaintext env file for local inspection or editing. Re-encrypt before sharing changes.
+Docker Compose local commands pass `.env.development` through Compose:
+
+```bash
+bun run docker:local
+bun run docker:local:up
+bun run docker:local:logs
+bun run docker:local:down
+```
+
+Production deployments should provide required values, especially `DATABASE_URL`, through the deployment platform environment configuration.
 
 ## Pre-Commit
 

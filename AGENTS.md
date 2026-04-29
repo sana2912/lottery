@@ -28,34 +28,23 @@ Do not introduce npm, pnpm, or yarn lockfiles unless the user explicitly asks.
 
 ## Security And Environment
 
-Environment management uses dotenvx.
+Environment management uses plaintext local env files and platform-managed production env vars.
 
-- Package: `@dotenvx/dotenvx`
 - Development env file: `.env.development`
-- Production env file: `.env.production`
-- Private dotenvx key file: `.env.keys`
-- `.env.keys` is ignored by git and must not be committed.
+- Example env file: `.env.example`
+- Production env values should be configured in the deployment platform, such as Render environment variables.
+- Do not add `.env.keys`, `.env.production`, or real production secrets to the repository.
 
-Available commands:
-
-```bash
-bun run env:encrypt:dev
-bun run env:encrypt:prod
-bun run env:decrypt:dev
-bun run env:decrypt:prod
-```
-
-Runtime scripts inject encrypted values in memory with dotenvx and must not rewrite env files to plaintext:
+Runtime scripts load local env values directly when needed:
 
 ```bash
 bun run dev
-bun run build
 bun run start
+bun run db:push
+bun run db:migrate
 ```
 
-Use `env:decrypt:*` only when a developer explicitly needs a local plaintext env file for inspection or editing. Re-encrypt before sharing changes.
-
-Do not add real secrets to documentation, examples, final responses, or committed files. If adding new required env vars, update `.env.development`, `.env.production`, and `.env.example` with safe placeholders.
+Do not add real secrets to documentation, examples, final responses, or committed files. If adding new required env vars, update `.env.development` and `.env.example` with safe local placeholders.
 
 ## Code Quality And Git Hooks
 
