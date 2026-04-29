@@ -1,14 +1,36 @@
 services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lottery-web-local
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-lottery}:${POSTGRES_PASSWORD:-lottery}@postgres:5432/${POSTGRES_DB:-lottery}
+      HOSTNAME: 0.0.0.0
+      NODE_ENV: production
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
   postgres:
     image: postgres:17
     container_name: lottery-postgres-local
     restart: unless-stopped
     environment:
-      POSTGRES_DB: lottery
-      POSTGRES_PASSWORD: lottery
-      POSTGRES_USER: lottery
+      POSTGRES_DB: ${POSTGRES_DB:-lottery}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lottery}
+      POSTGRES_USER: ${POSTGRES_USER:-lottery}
     ports:
       - "8888:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     volumes:
       - lottery-postgres-data:/var/lib/postgresql/data
 
