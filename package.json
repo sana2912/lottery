@@ -21,6 +21,9 @@
     "db:migrate": "bun --env-file=.env.development x --bun prisma migrate dev",
     "db:push": "bun --env-file=.env.development x --bun prisma db push",
     "db:studio": "bun --env-file=.env.development x --bun prisma studio",
+    "db:migrate:prod": "bun run scripts/run-with-env.ts .env.production -- bunx --bun prisma migrate deploy",
+    "db:push:prod": "bun run scripts/run-with-env.ts .env.production -- bunx --bun prisma db push",
+    "db:studio:prod": "bun run scripts/run-with-env.ts .env.production -- bunx --bun prisma studio",
     "prepare": "husky || true"
   },
   "lint-staged": {

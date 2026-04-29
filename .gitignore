@@ -13,3 +13,5 @@ yarn-error.log*
 pnpm-debug.log*
 ref
 .env.development
+.env.production
+.env.development
