@@ -1,7 +1,8 @@
 import type {
   ApiWatchlistItem,
   ApiWatchlistReadModel,
-  ApiWatchlistSource
+  ApiWatchlistSource,
+  ApiWatchlistStatSummary
 } from "@/schema/api/watchlist";
 
 type WatchlistItemDtoInput = {
@@ -10,6 +11,7 @@ type WatchlistItemDtoInput = {
   note?: null | string;
   number: string;
   source: ApiWatchlistSource;
+  stats?: ApiWatchlistStatSummary;
   tags: readonly string[];
   updatedAt: Date | string;
 };
@@ -22,6 +24,7 @@ export function toApiWatchlistItem(item: WatchlistItemDtoInput): ApiWatchlistIte
     number: item.number,
     scope: "global",
     source: item.source,
+    stats: item.stats,
     tags: [...item.tags],
     updatedAt: normalizeDateString(item.updatedAt)
   };

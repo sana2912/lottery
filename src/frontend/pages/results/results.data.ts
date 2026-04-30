@@ -1,6 +1,7 @@
 import { resultsContent } from "@/frontend/pages/results/results.content";
 import { toResultsModel, toResultsShellModel } from "@/frontend/pages/results/results.mappers";
 import resultsMockJson from "@/frontend/pages/results/results.mock.json";
+import { type SearchQuery, toResultsApiQuery } from "@/frontend/pages/results/results.query";
 import { ApiHttpError, apiGet } from "@/lib/api/http";
 import { apiRoutes } from "@/lib/api/routes";
 import {
@@ -23,10 +24,11 @@ export type ResultsDetailData =
   | { draw: null; state: "error" }
   | { draw: null; state: "notFound" };
 
-export async function getResultsPageData(): Promise<ResultsPageData> {
+export async function getResultsPageData(query: SearchQuery): Promise<ResultsPageData> {
   try {
     const response = await apiGet<DrawListResponse>(apiRoutes.draws, {
       cache: "no-store",
+      query: toResultsApiQuery(query),
       schema: drawListResponseSchema
     });
     const model = resultsReadModelSchema.parse(

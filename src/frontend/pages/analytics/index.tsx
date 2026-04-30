@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Heatmap, TimeSeriesChart } from "@/frontend/chart-primitives";
 import { EmptyState, FilterToolbar, MetricCard } from "@/frontend/components";
 import { analyticsContent } from "@/frontend/pages/analytics/analytics.content";
@@ -9,7 +10,12 @@ import {
   toNumberFrequencyPoints
 } from "@/frontend/pages/analytics/analytics.mappers";
 import {
+  buildAnalyticsHref,
+  parseAnalyticsSearchParams
+} from "@/frontend/pages/analytics/analytics.query";
+import {
   Badge,
+  Button,
   Card,
   SectionHeading,
   Table,
@@ -20,8 +26,13 @@ import {
   TableRow
 } from "@/frontend/primitives";
 
-export async function AnalyticsPage() {
-  const { model: analytics, state } = await getAnalyticsPageData();
+export async function AnalyticsPage({
+  searchParams
+}: {
+  searchParams?: Record<string, string | string[] | undefined>;
+}) {
+  const query = parseAnalyticsSearchParams(searchParams);
+  const { model: analytics, state } = await getAnalyticsPageData(query);
   const topDigits = getTopDigits(analytics);
   const topNumbers = getTopNumbers(analytics);
 
@@ -62,7 +73,7 @@ export async function AnalyticsPage() {
 
       <FilterToolbar
         filters={
-          <>
+          <div className="flex flex-wrap gap-3">
             <MetricCard
               label={analyticsContent.metrics.digitGroups}
               value={String(analytics.digitStats.length)}
@@ -79,7 +90,41 @@ export async function AnalyticsPage() {
               label={analyticsContent.metrics.generated}
               value={new Date(analytics.generatedAt).toLocaleDateString("th-TH")}
             />
-          </>
+            {[30, 60, 120].map((windowSize) => (
+              <Button
+                asChild
+                className="rounded-none px-3 py-2 text-xs"
+                key={windowSize}
+                variant="outline"
+              >
+                <Link href={buildAnalyticsHref(query, { page: 1, windowSize })}>
+                  Window {windowSize}
+                </Link>
+              </Button>
+            ))}
+            {[
+              { numberLength: 2 as const, prizeType: "TWO_DIGIT" as const },
+              { numberLength: 3 as const, prizeType: "THREE_DIGIT" as const },
+              { numberLength: 6 as const, prizeType: "FIRST" as const }
+            ].map((filter) => (
+              <Button
+                asChild
+                className="rounded-none px-3 py-2 text-xs"
+                key={filter.prizeType}
+                variant="ghost"
+              >
+                <Link
+                  href={buildAnalyticsHref(query, {
+                    numberLength: filter.numberLength,
+                    page: 1,
+                    prizeType: filter.prizeType
+                  })}
+                >
+                  {filter.prizeType}
+                </Link>
+              </Button>
+            ))}
+          </div>
         }
         summary={analyticsContent.filterSummary}
       />

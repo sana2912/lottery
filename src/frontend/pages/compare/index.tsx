@@ -2,6 +2,7 @@
 
 import { AlertCircle, Loader2, Scale3d } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { TimeSeriesChart } from "@/frontend/chart-primitives";
 import { EmptyState, FilterToolbar, LoadingSkeleton, MetricCard } from "@/frontend/components";
@@ -13,6 +14,7 @@ import {
   toCompareChartPoints,
   toComparePayload
 } from "@/frontend/pages/compare/compare.mappers";
+import { buildCompareHref, parseCompareSearchParams } from "@/frontend/pages/compare/compare.query";
 import {
   Badge,
   Button,
@@ -35,8 +37,15 @@ import {
 } from "@/frontend/primitives";
 import { type CompareReadModel, compareRequestSchema } from "@/schema/app/compare.schema";
 
-export function ComparePage() {
-  const [formState, setFormState] = useState(defaultCompareFormState);
+export function ComparePage({
+  searchParams
+}: {
+  searchParams?: Record<string, string | string[] | undefined>;
+}) {
+  const router = useRouter();
+  const [formState, setFormState] = useState(() =>
+    parseCompareSearchParams(searchParams, defaultCompareFormState)
+  );
   const [compareState, setCompareState] = useState<"empty" | "error" | "ready">("empty");
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,6 +59,7 @@ export function ComparePage() {
 
     try {
       const payload = compareRequestSchema.parse(toComparePayload(formState));
+      router.replace(buildCompareHref(formState));
       const response = await runCompareRequest(payload);
 
       setCompare(response);

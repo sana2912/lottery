@@ -2,6 +2,13 @@ import { z } from "zod";
 
 export const watchlistScopeSchema = z.literal("global");
 export const watchlistSourceSchema = z.enum(["MANUAL", "NOTEBOOK", "PREDICTION"]);
+export const watchlistStatSummarySchema = z.object({
+  frequencyPercent: z.number(),
+  hitCount: z.number().int().nonnegative(),
+  lastSeenDrawDate: z.string().optional(),
+  missingDrawCount: z.number().int().nonnegative(),
+  prizeType: z.enum(["FIRST", "THREE_DIGIT", "TWO_DIGIT", "PRIZE2", "PRIZE3", "PRIZE4", "PRIZE5"])
+});
 
 export const watchlistItemSchema = z.object({
   createdAt: z.string(),
@@ -10,6 +17,7 @@ export const watchlistItemSchema = z.object({
   number: z.string(),
   scope: watchlistScopeSchema,
   source: watchlistSourceSchema,
+  stats: watchlistStatSummarySchema.optional(),
   tags: z.array(z.string()),
   updatedAt: z.string()
 });
@@ -46,4 +54,5 @@ export type UpdateWatchlistItem = z.infer<typeof updateWatchlistItemSchema>;
 export type WatchlistItem = z.infer<typeof watchlistItemSchema>;
 export type WatchlistReadModel = z.infer<typeof watchlistReadModelSchema>;
 export type WatchlistScope = z.infer<typeof watchlistScopeSchema>;
+export type WatchlistStatSummary = z.infer<typeof watchlistStatSummarySchema>;
 export type WatchlistSource = z.infer<typeof watchlistSourceSchema>;

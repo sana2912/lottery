@@ -197,6 +197,11 @@ export function WatchlistPage() {
               value={String(items.length)}
             />
             <MetricCard
+              hint={watchlistContent.metrics.statCoverage.hint}
+              label={watchlistContent.metrics.statCoverage.label}
+              value={String(items.filter((item) => item.stats).length)}
+            />
+            <MetricCard
               hint={watchlistContent.metrics.scope.hint}
               label={watchlistContent.metrics.scope.label}
               value={watchlist?.scope ?? "global"}
@@ -402,6 +407,57 @@ export function WatchlistPage() {
               </div>
             ) : (
               <>
+                {item.stats ? (
+                  <div className="mt-4 grid gap-3 border-t border-[var(--color-border-soft)] pt-4 sm:grid-cols-2">
+                    <div className="rounded-none bg-[var(--color-bg-subtle)] p-3">
+                      <p className="text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
+                        {watchlistContent.statSummary.prizeTypeLabel}
+                      </p>
+                      <p className="mt-2 text-sm font-semibold text-[var(--color-text-primary)]">
+                        {item.stats.prizeType}
+                      </p>
+                    </div>
+                    <div className="rounded-none bg-[var(--color-bg-subtle)] p-3">
+                      <p className="text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
+                        {watchlistContent.statSummary.frequencyLabel}
+                      </p>
+                      <p className="mt-2 text-sm font-semibold text-[var(--color-text-primary)]">
+                        {item.stats.frequencyPercent}%
+                      </p>
+                    </div>
+                    <div className="rounded-none bg-[var(--color-bg-subtle)] p-3">
+                      <p className="text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
+                        {watchlistContent.statSummary.hitsLabel}
+                      </p>
+                      <p className="mt-2 text-sm font-semibold text-[var(--color-text-primary)]">
+                        {item.stats.hitCount}
+                      </p>
+                    </div>
+                    <div className="rounded-none bg-[var(--color-bg-subtle)] p-3">
+                      <p className="text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
+                        {watchlistContent.statSummary.missingLabel}
+                      </p>
+                      <p className="mt-2 text-sm font-semibold text-[var(--color-text-primary)]">
+                        {item.stats.missingDrawCount}
+                      </p>
+                    </div>
+                    <div className="rounded-none bg-[var(--color-bg-subtle)] p-3 sm:col-span-2">
+                      <p className="text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
+                        {watchlistContent.statSummary.lastSeenLabel}
+                      </p>
+                      <p className="mt-2 text-sm font-semibold text-[var(--color-text-primary)]">
+                        {item.stats.lastSeenDrawDate
+                          ? new Date(item.stats.lastSeenDrawDate).toLocaleDateString("th-TH")
+                          : "-"}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="mt-4 border-t border-[var(--color-border-soft)] pt-4 text-sm leading-6 text-[var(--color-text-muted)]">
+                    {watchlistContent.statSummary.unavailable}
+                  </p>
+                )}
+
                 {item.note ? (
                   <p className="mt-4 text-sm leading-6 text-[var(--color-text-secondary)]">
                     {item.note}

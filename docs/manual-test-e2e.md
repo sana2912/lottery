@@ -27,12 +27,13 @@ Expected:
 ### Ready State
 
 1. Open `/results`.
-2. Confirm the page renders draw cards from the database.
-3. Confirm the stat cards show:
+2. Apply a search query or prize-type filter through the URL-driven controls.
+3. Confirm the page renders draw cards from the database.
+4. Confirm the stat cards show:
 - latest draw date
 - draw record count
 - prize record count
-4. Confirm each draw card shows:
+5. Confirm each draw card shows:
 - draw date
 - draw number
 - status badge
@@ -43,6 +44,7 @@ Expected:
 - Draw records come from `/api/draws`.
 - The page note states the page is rendering from the API/database contract.
 - No mock draw rows are rendered.
+- Reloading the same URL preserves the same query state.
 
 ### Empty State
 
@@ -104,7 +106,8 @@ Expected:
 ### Ready State
 
 1. Open `/analytics`.
-2. Confirm the page renders:
+2. Change `windowSize` or `prizeType` through the URL-based filter links.
+3. Confirm the page renders:
 - draw count
 - source metric
 - digit groups
@@ -120,6 +123,7 @@ Expected:
 - Data comes from `/api/analytics`.
 - Source is `api`.
 - No fallback mock analytics payload is rendered.
+- Reloading the same URL preserves the same filter state.
 
 ### Empty State
 
@@ -310,11 +314,13 @@ Expected:
 1. Open `/compare`.
 2. Enter one or more candidate numbers.
 3. Run compare.
+4. Reload or share the same `/compare?...` URL.
 
 Expected:
 - The page renders results from `POST /api/compare`.
 - The current run badge says `Live API`.
 - The chart, ranking panel, and results table all reflect the returned API payload.
+- Reloading the same URL preserves the compare form state.
 
 ### Empty State
 
@@ -334,6 +340,47 @@ Expected:
 - The page shows a compare unavailable state.
 - No sample set is rendered in place of the API.
 - If a previous live compare result exists, it remains visible after the failed request.
+
+## Watchlist
+
+### Enriched Read State
+
+1. Open the watchlist flow or hit `/api/watchlist` through your normal app workflow.
+2. Confirm watchlist items still render the base fields:
+- number
+- note
+- source
+- tags
+3. Confirm items with matching historical stats now include enrichment data:
+- `hitCount`
+- `frequencyPercent`
+- `missingDrawCount`
+- `lastSeenDrawDate`
+- `prizeType`
+
+Expected:
+- Watchlist data still comes from `/api/watchlist`.
+- Enrichment reflects live analytics/stat data rather than hardcoded values.
+- Six-digit watchlist numbers can resolve against `FIRST` or `PRIZE2-5` contexts.
+- The watchlist UI renders stat summary blocks when `item.stats` exists, and a graceful fallback note when it does not.
+
+## Search
+
+### Grouped Search Results
+
+1. Open `/search?q=09`.
+2. Confirm the page renders grouped results for:
+- draws
+- prizes
+- stats
+- watchlist
+
+Expected:
+- Empty `q` returns empty groups, not an error.
+- Numeric `q` can surface stat hits from canonical analytics contexts.
+- Draw and prize hits reflect persisted DB records.
+- Watchlist hits reflect live watchlist rows and tags.
+- Reloading the same `/search?q=...` URL preserves the same result set.
 
 ## API Behavior Checks Through UI
 

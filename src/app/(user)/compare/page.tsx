@@ -1,3 +1,9 @@
 import { ComparePage } from "@/frontend/pages/compare";
 
-export default ComparePage;
+export default async function CompareRoute({
+  searchParams
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  return <ComparePage searchParams={searchParams ? await searchParams : undefined} />;
+}

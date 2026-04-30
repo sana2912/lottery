@@ -4,16 +4,16 @@ import { SlidingNumber } from "@/frontend/components/animate-ui/primitives/texts
 import { resultsContent } from "@/frontend/pages/results/results.content";
 import { getResultsPageData } from "@/frontend/pages/results/results.data";
 import {
+  buildResultsHref,
+  getResultsFilterPills,
+  parseResultsSearchParams
+} from "@/frontend/pages/results/results.query";
+import {
   Badge,
   Button,
   Card,
   Input,
   SectionHeading,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
   Table,
   TableBody,
   TableCell,
@@ -22,6 +22,7 @@ import {
   TableRow,
   Textarea
 } from "@/frontend/primitives";
+import type { SearchQuery } from "@/schema/app/query.schema";
 import type { ResultsReadModel } from "@/schema/app/results.schema";
 
 function StatCard({ stat }: { stat: ResultsReadModel["stats"][number] }) {
@@ -48,8 +49,14 @@ function StatCard({ stat }: { stat: ResultsReadModel["stats"][number] }) {
   );
 }
 
-export async function ResultsPage() {
-  const { model: resultsModel, state } = await getResultsPageData();
+export async function ResultsPage({
+  searchParams
+}: {
+  searchParams?: Record<string, string | string[] | undefined>;
+}) {
+  const query = parseResultsSearchParams(searchParams);
+  const { model: resultsModel, state } = await getResultsPageData(query);
+  const filterPills = getResultsFilterPills(query);
 
   return (
     <main className="space-y-6">
@@ -114,67 +121,74 @@ export async function ResultsPage() {
         <Card className="p-6">
           <SectionHeading
             actions={
-              <div className="w-full max-w-sm">
+              <form action="/results" className="flex w-full max-w-sm gap-2">
                 <Input
                   className="h-11 rounded-none border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 py-3 shadow-[var(--shadow-micro)]"
+                  defaultValue={query.q ?? ""}
+                  name="q"
                   placeholder={resultsContent.filters.searchPlaceholder}
                 />
-              </div>
+                {query.prizeType ? (
+                  <input name="prizeType" type="hidden" value={query.prizeType} />
+                ) : null}
+                <Button className="rounded-none px-4 py-[13px]" type="submit">
+                  Apply
+                </Button>
+              </form>
             }
             className="border-b border-[var(--color-border-soft)] pb-5"
             eyebrow={resultsContent.filters.sectionEyebrow}
             title={resultsContent.filters.sectionTitle}
           />
 
-          <div className="mt-5 grid gap-3 md:grid-cols-2">
-            <Select defaultValue={resultsModel.filters.defaultLotteryType}>
-              <SelectTrigger className="h-11 w-full rounded-none border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 shadow-[var(--shadow-micro)]">
-                <SelectValue placeholder={resultsContent.filters.lotteryTypePlaceholder} />
-              </SelectTrigger>
-              <SelectContent>
-                {resultsModel.filters.lotteryTypes.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {type}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select defaultValue={resultsModel.filters.defaultPrizeType}>
-              <SelectTrigger className="h-11 w-full rounded-none border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 shadow-[var(--shadow-micro)]">
-                <SelectValue placeholder={resultsContent.filters.prizeTypePlaceholder} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={resultsContent.filters.allPrizeTypesLabel}>
-                  {resultsContent.filters.allPrizeTypesLabel}
-                </SelectItem>
-                {resultsModel.filters.prizeTypes.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {type}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="mt-5 flex flex-wrap gap-2">
+            {filterPills.map((pill) => (
+              <Badge key={pill} variant="brand">
+                {pill}
+              </Badge>
+            ))}
+            {filterPills.length > 0 ? (
+              <Button asChild className="rounded-none px-3 py-2 text-xs" variant="outline">
+                <Link href="/results">Reset filters</Link>
+              </Button>
+            ) : null}
           </div>
 
           <div className="mt-5 flex flex-wrap gap-3">
             {resultsModel.filters.lotteryTypes.map((type) => (
               <Button
+                asChild
                 className="rounded-none bg-[var(--color-bg-brand-soft)] px-3 py-2 text-xs text-[var(--color-brand)] hover:bg-[var(--color-bg-brand-soft-strong)]"
                 key={type}
                 variant="ghost"
               >
-                {type}
+                <Link
+                  href={buildResultsHref(query, {
+                    lotteryType: type as SearchQuery["lotteryType"],
+                    page: 1
+                  })}
+                >
+                  {type}
+                </Link>
               </Button>
             ))}
 
             {resultsModel.filters.prizeTypes.map((type) => (
               <Button
+                asChild
                 className="rounded-none border-[var(--color-brand-outline)] bg-[var(--color-bg-canvas)] px-3 py-2 text-xs text-[var(--color-brand-outline)] hover:bg-[var(--color-bg-brand-soft)]"
                 key={type}
                 variant="outline"
               >
-                {type}
+                <Link
+                  href={buildResultsHref(query, {
+                    page: 1,
+                    prizeType:
+                      query.prizeType === type ? undefined : (type as SearchQuery["prizeType"])
+                  })}
+                >
+                  {type}
+                </Link>
               </Button>
             ))}
           </div>
