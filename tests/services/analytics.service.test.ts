@@ -11,6 +11,78 @@ afterEach(() => {
 });
 
 describe("analytics.service", () => {
+  test("returns materialized stats when a canonical cached context exists", async () => {
+    const queryCalls: string[] = [];
+
+    (globalThis as { prisma?: unknown }).prisma = {
+      $queryRaw: async (...args: unknown[]) => {
+        const sql = getSqlText(args[0]);
+        queryCalls.push(sql);
+
+        if (sql.includes('FROM "number_stat_snapshots"') && sql.includes("LIMIT 1")) {
+          return [{ computedAt: new Date("2026-04-29T00:00:00.000Z") }];
+        }
+
+        if (sql.includes('FROM "digit_stat_snapshots"')) {
+          return [
+            {
+              computedAt: new Date("2026-04-29T00:00:00.000Z"),
+              digit: "0",
+              drawCount: 30,
+              frequencyPercent: 20,
+              hitCount: 6,
+              lastSeenDrawDate: new Date("2026-04-16T00:00:00.000Z"),
+              lotteryType: "THAI_GOVERNMENT",
+              missingDrawCount: 1,
+              position: 1,
+              prizeType: "TWO_DIGIT",
+              trendDirection: "up",
+              windowSize: 30
+            }
+          ];
+        }
+
+        if (sql.includes('FROM "number_stat_snapshots"')) {
+          return [
+            {
+              averageGap: 15,
+              computedAt: new Date("2026-04-29T00:00:00.000Z"),
+              drawCount: 30,
+              frequencyPercent: 13.33,
+              hitCount: 4,
+              lastSeenDrawDate: new Date("2026-04-16T00:00:00.000Z"),
+              lotteryType: "THAI_GOVERNMENT",
+              maxGap: 21,
+              missingDrawCount: 1,
+              number: "09",
+              numberLength: 2,
+              patternFlags: ["odd", "high"],
+              prizeType: "TWO_DIGIT",
+              trendScore: 39.33,
+              windowSize: 30
+            }
+          ];
+        }
+
+        return [];
+      }
+    };
+
+    const model = await getAnalyticsReadModel({
+      lotteryType: "THAI_GOVERNMENT",
+      numberLength: 2,
+      page: 1,
+      pageSize: 20,
+      prizeType: "TWO_DIGIT",
+      windowSize: 30
+    });
+
+    expect(queryCalls.some((sql) => sql.includes('FROM "number_stat_snapshots"'))).toBe(true);
+    expect(analyticsReadModelSchema.parse(model)).toEqual(model);
+    expect(model.summary.drawCount).toBe(30);
+    expect(model.numberStats[0]?.number).toBe("09");
+  });
+
   test("queries the expected prize window and returns a schema-valid read model", async () => {
     let drawArgsSeen: unknown;
     let prizeArgsSeen: unknown;
@@ -160,6 +232,35 @@ describe("analytics.service", () => {
     expect(model.numberStats).toHaveLength(4);
   });
 
+  test("falls back to on-demand analytics when materialized rows are unavailable", async () => {
+    let drawArgsSeen: unknown;
+
+    (globalThis as { prisma?: unknown }).prisma = {
+      $queryRaw: async () => [],
+      lotteryDraw: {
+        findMany: async (args: unknown) => {
+          drawArgsSeen = args;
+          return [{ id: "draw-2" }];
+        }
+      },
+      lotteryPrize: {
+        findMany: async () => [prize("draw-2", "2026-04-16T00:00:00.000Z", "09", "TWO_DIGIT")]
+      }
+    };
+
+    const model = await getAnalyticsReadModel({
+      lotteryType: "THAI_GOVERNMENT",
+      numberLength: 2,
+      page: 1,
+      pageSize: 20,
+      prizeType: "TWO_DIGIT",
+      windowSize: 30
+    });
+
+    expect(drawArgsSeen).toMatchObject({ take: 30 });
+    expect(model.numberStats[0]?.number).toBe("09");
+  });
+
   test("caps analytics windows at the current date when no end date is provided", async () => {
     let drawArgsSeen: unknown;
 
@@ -204,4 +305,8 @@ function prize(drawId: string, drawDate: string, number: string, type: string) {
     number,
     type
   };
+}
+
+function getSqlText(template: unknown) {
+  return Array.isArray(template) ? template.join("?") : String(template);
 }

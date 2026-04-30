@@ -56,7 +56,6 @@ export async function getDashboardReadModel() {
       }
     }),
     analyticsService.getAnalyticsReadModel({
-      endDate: generatedAt.toISOString(),
       lotteryType: "THAI_GOVERNMENT",
       numberLength: 2,
       page: 1,

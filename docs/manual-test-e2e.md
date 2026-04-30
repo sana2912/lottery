@@ -6,6 +6,9 @@ This document is the manual verification checklist for real UI flows backed by t
 
 - Database migrations are applied.
 - Historical seed data is loaded.
+- Run `bun run db:compute-stats` if you want to verify the analytics materialized-cache path for canonical windows.
+- Run `bun run db:compute-stats -- --prizeType=TWO_DIGIT --windowSize=120` if you want to refresh one canonical context without recomputing the full snapshot set.
+- Run `bun run db:compute-stats -- --startDate=2026-04-01 --endDate=2026-04-30` if you want to refresh canonical contexts affected by a known import date range.
 - App is running locally.
 - API routes are reachable from the app runtime.
 

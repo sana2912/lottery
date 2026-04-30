@@ -134,6 +134,54 @@ model PredictionResult {
   @@map("prediction_results")
 }
 
+model DigitStatSnapshot {
+  id               String      @id @default(uuid(7)) @map("_id") @db.Uuid
+  lotteryType      LotteryType
+  prizeType        LotteryPrizeType
+  windowSize       Int
+  digit            String
+  position         Int?
+  drawCount        Int
+  hitCount         Int
+  frequencyPercent Float
+  lastSeenDrawDate DateTime?
+  missingDrawCount Int
+  trendDirection   String
+  computedAt       DateTime
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  @@index([lotteryType, prizeType, windowSize, computedAt])
+  @@index([lotteryType, prizeType, windowSize, digit, position])
+  @@map("digit_stat_snapshots")
+}
+
+model NumberStatSnapshot {
+  id               String      @id @default(uuid(7)) @map("_id") @db.Uuid
+  lotteryType      LotteryType
+  prizeType        LotteryPrizeType
+  windowSize       Int
+  number           String
+  numberLength     Int
+  drawCount        Int
+  hitCount         Int
+  frequencyPercent Float
+  lastSeenDrawDate DateTime?
+  missingDrawCount Int
+  averageGap       Float?
+  maxGap           Float?
+  trendScore       Float
+  patternFlags     Json?
+  computedAt       DateTime
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  @@index([lotteryType, prizeType, windowSize, computedAt])
+  @@index([lotteryType, prizeType, windowSize, number], map: "number_stat_snapshots_window_number_idx")
+  @@index([lotteryType, prizeType, windowSize, numberLength], map: "number_stat_snapshots_window_number_length_idx")
+  @@map("number_stat_snapshots")
+}
+
 model BacktestRun {
   id                String           @id @default(uuid(7)) @map("_id") @db.Uuid
   strategyId        String
