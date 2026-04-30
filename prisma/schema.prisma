@@ -91,28 +91,45 @@ model UserWatchlistItem {
 }
 
 model PredictionRun {
-  id        String             @id @default(uuid(7)) @map("_id") @db.Uuid
-  strategy  String
-  params    Json?
-  items     PredictionResult[]
-  createdAt DateTime           @default(now())
-  updatedAt DateTime           @updatedAt
+  id           String             @id @default(uuid(7)) @map("_id") @db.Uuid
+  strategy     String
+  lotteryType  LotteryType?
+  prizeType    LotteryPrizeType?
+  numberLength Int?
+  windowSize   Int?
+  count        Int?
+  generatedAt  DateTime?
+  version      String?
+  params       Json?
+  items        PredictionResult[]
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
 
   @@index([strategy])
+  @@index([lotteryType, prizeType])
+  @@index([generatedAt])
   @@map("prediction_runs")
 }
 
 model PredictionResult {
-  id        String        @id @default(uuid(7)) @map("_id") @db.Uuid
-  runId     String        @db.Uuid
-  run       PredictionRun @relation(fields: [runId], references: [id])
-  number    String
-  score     Float
-  reasons   String[]
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
+  id             String        @id @default(uuid(7)) @map("_id") @db.Uuid
+  runId          String        @db.Uuid
+  run            PredictionRun @relation(fields: [runId], references: [id])
+  number         String
+  score          Float
+  reasons        String[]
+  inputWindow    Int?
+  numberLength   Int?
+  rank           Int?
+  scoreBreakdown Json?
+  strategyId     String?
+  strategyName   String?
+  version        String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   @@index([runId])
+  @@index([runId, rank])
   @@index([number])
   @@map("prediction_results")
 }

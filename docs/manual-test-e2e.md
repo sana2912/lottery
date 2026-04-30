@@ -180,11 +180,13 @@ Expected:
 - metrics from live analytics
 - signal cards
 - prediction availability summary
+3. If a persisted prediction run exists, confirm the dashboard shows its latest candidates.
 
 Expected:
 - Data comes from `/api/dashboard`.
 - Latest draw links point to a real results detail page.
 - Signal cards reflect live analytics rather than the old mock fixture.
+- Prediction summary reflects the latest persisted prediction run when one exists.
 
 ### Empty State
 
@@ -213,11 +215,13 @@ Expected:
 1. Open `/prediction-lab`.
 2. If a persisted prediction run exists, confirm the page loads it automatically.
 3. Generate a new prediction run.
+4. Open `/dashboard` after generation.
 
 Expected:
 - The page reads the latest persisted run from `/api/predictions`.
 - Generating a new run updates the current result view from the live API.
 - Saving a candidate to watchlist still works.
+- The dashboard prediction summary reflects the newly persisted run.
 
 ### No Run State
 

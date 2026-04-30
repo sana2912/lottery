@@ -1,6 +1,7 @@
 import { toApiDashboardReadModel } from "@/api/model/dto/dashboard.dto";
 import { toApiDraw } from "@/api/model/dto/draw.dto";
 import { analyticsService } from "@/api/service/analytics.service";
+import { predictionService } from "@/api/service/prediction.service";
 import { getPrisma } from "@/api/service/prisma";
 
 const DASHBOARD_WINDOW_SIZE = 120;
@@ -32,15 +33,15 @@ const DASHBOARD_CONTRACT_ROWS = [
   {
     field: "predictionSummary",
     purpose:
-      "Communicates whether a persisted prediction summary is available to surface on the dashboard.",
-    source: "prediction service availability"
+      "Surfaces the latest persisted prediction candidates so the dashboard and Prediction Lab share one read source.",
+    source: "prediction persistence read model"
   }
 ] as const;
 
 export async function getDashboardReadModel() {
   const prisma = getPrisma();
   const generatedAt = new Date();
-  const [latestDrawRecord, analytics] = await Promise.all([
+  const [latestDrawRecord, analytics, latestPredictionSummary] = await Promise.all([
     prisma.lotteryDraw.findFirst({
       include: {
         prizes: true
@@ -62,7 +63,8 @@ export async function getDashboardReadModel() {
       pageSize: 20,
       prizeType: "TWO_DIGIT",
       windowSize: DASHBOARD_WINDOW_SIZE
-    })
+    }),
+    predictionService.getLatestPredictionSummary()
   ]);
 
   const latestDraw = latestDrawRecord ? toApiDraw(latestDrawRecord) : undefined;
@@ -165,11 +167,12 @@ export async function getDashboardReadModel() {
       }
     ],
     predictionSummary: {
-      candidates: [],
+      candidates: latestPredictionSummary?.candidates ?? [],
       disclaimer:
+        latestPredictionSummary?.disclaimer ??
         "A persisted prediction summary is not available through the dashboard read model yet. Use Prediction Lab for ad hoc generation and review.",
-      generatedAt: generatedAt.toISOString(),
-      title: "Prediction summary unavailable"
+      generatedAt: latestPredictionSummary?.generatedAt ?? generatedAt.toISOString(),
+      title: latestPredictionSummary?.title ?? "Prediction summary unavailable"
     },
     signals: [
       toSignal("hot", "Hot signal", hotStat),
