@@ -12,6 +12,10 @@ export const resultsContent = {
     emptyDescription: "No draw record matched this identifier.",
     emptyEyebrow: "Draw detail",
     emptyTitle: "Draw not found",
+    errorDescription:
+      "The draw detail service could not be reached or returned an invalid response. Check the API and database connection, then reload this page.",
+    errorEyebrow: "Draw detail",
+    errorTitle: "Draw detail unavailable",
     fields: {
       drawDateIso: "Draw date ISO",
       id: "ID",
@@ -29,11 +33,17 @@ export const resultsContent = {
     description: "The draw API returned an empty result set for the current filters.",
     title: "No draw records"
   },
+  errorState: {
+    description:
+      "The draw service could not be reached or returned an invalid response. Check the API and database connection, then reload this page.",
+    title: "Draw data unavailable"
+  },
   fallbackNotes: {
     empty:
-      "The /api/draws contract returned no draws. Seed historical draws before enabling analytics.",
-    ready:
-      "This page is using the /api/draws contract. If the database is empty or unavailable, the UI falls back to the checked mock read model."
+      "The /api/draws contract returned no draws for the current query. Seed or broaden the filter range before using downstream analysis screens.",
+    error:
+      "This screen could not load /api/draws. No mock records are being rendered in place of live data.",
+    ready: "This screen is rendering from the /api/draws contract backed by the database."
   },
   filters: {
     allPrizeTypesLabel: "All prize types",
@@ -51,7 +61,7 @@ export const resultsContent = {
   sidebar: {
     contractEyebrow: "backend contract fields",
     noteEyebrow: "team note",
-    noteTitle: "Mock contract note",
+    noteTitle: "Data source note",
     paragraphs: [
       "This screen forces the first stable read model for historical draws before deeper ingestion work begins. It locks the displayed date, draw number, grouped prize values, and data coverage status in one place.",
       "Once that shape is stable, the /api/draws service can map Prisma data into the same contract with less risk of frontend churn."

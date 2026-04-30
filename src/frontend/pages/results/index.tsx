@@ -2,7 +2,7 @@ import Link from "next/link";
 import { EmptyState } from "@/frontend/components";
 import { SlidingNumber } from "@/frontend/components/animate-ui/primitives/texts/sliding-number";
 import { resultsContent } from "@/frontend/pages/results/results.content";
-import { getResultsModel } from "@/frontend/pages/results/results.data";
+import { getResultsPageData } from "@/frontend/pages/results/results.data";
 import {
   Badge,
   Button,
@@ -49,7 +49,7 @@ function StatCard({ stat }: { stat: ResultsReadModel["stats"][number] }) {
 }
 
 export async function ResultsPage() {
-  const resultsModel = await getResultsModel();
+  const { model: resultsModel, state } = await getResultsPageData();
 
   return (
     <main className="space-y-6">
@@ -180,56 +180,67 @@ export async function ResultsPage() {
           </div>
 
           <div className="mt-6 space-y-4">
-            {resultsModel.draws.length === 0 ? (
+            {state === "error" ? (
+              <EmptyState
+                description={resultsContent.errorState.description}
+                title={resultsContent.errorState.title}
+              />
+            ) : null}
+
+            {state === "empty" ? (
               <EmptyState
                 description={resultsContent.emptyState.description}
                 title={resultsContent.emptyState.title}
               />
             ) : null}
 
-            {resultsModel.draws.map((draw) => (
-              <article
-                className="rounded-none border border-[var(--color-border-soft)] bg-[var(--color-bg-elevated)] p-5"
-                key={draw.id}
-              >
-                <div className="flex flex-col gap-3 border-b border-[var(--color-border-soft)] pb-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-[var(--color-brand-outline)]">
-                      {draw.drawDate}
-                    </p>
-                    <h3 className="mt-1 text-xl font-bold tracking-normal text-[var(--color-text-primary)]">
-                      Draw {draw.drawNo}
-                    </h3>
-                  </div>
+            {state === "ready"
+              ? resultsModel.draws.map((draw) => (
+                  <article
+                    className="rounded-none border border-[var(--color-border-soft)] bg-[var(--color-bg-elevated)] p-5"
+                    key={draw.id}
+                  >
+                    <div className="flex flex-col gap-3 border-b border-[var(--color-border-soft)] pb-4 lg:flex-row lg:items-start lg:justify-between">
+                      <div>
+                        <p className="text-sm font-semibold text-[var(--color-brand-outline)]">
+                          {draw.drawDate}
+                        </p>
+                        <h3 className="mt-1 text-xl font-bold tracking-normal text-[var(--color-text-primary)]">
+                          Draw {draw.drawNo}
+                        </h3>
+                      </div>
 
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant={draw.status === "complete" ? "success" : "warning"}>
-                      {draw.statusLabel}
-                    </Badge>
-                    <Badge variant="neutral">{draw.coverage}</Badge>
-                    <Button asChild size="sm" variant="outline">
-                      <Link href={`/results/${draw.id}`}>{resultsContent.filters.detailLabel}</Link>
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="mt-4 grid gap-3 md:grid-cols-2">
-                  {draw.prizes.map((prize) => (
-                    <div
-                      className="rounded-none bg-[var(--color-bg-canvas)] px-4 py-3"
-                      key={`${draw.id}-${prize.label}`}
-                    >
-                      <p className="text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                        {prize.label}
-                      </p>
-                      <p className="mt-2 text-lg font-semibold text-[var(--color-text-primary)]">
-                        {prize.value}
-                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        <Badge variant={draw.status === "complete" ? "success" : "warning"}>
+                          {draw.statusLabel}
+                        </Badge>
+                        <Badge variant="neutral">{draw.coverage}</Badge>
+                        <Button asChild size="sm" variant="outline">
+                          <Link href={`/results/${draw.id}`}>
+                            {resultsContent.filters.detailLabel}
+                          </Link>
+                        </Button>
+                      </div>
                     </div>
-                  ))}
-                </div>
-              </article>
-            ))}
+
+                    <div className="mt-4 grid gap-3 md:grid-cols-2">
+                      {draw.prizes.map((prize) => (
+                        <div
+                          className="rounded-none bg-[var(--color-bg-canvas)] px-4 py-3"
+                          key={`${draw.id}-${prize.label}`}
+                        >
+                          <p className="text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
+                            {prize.label}
+                          </p>
+                          <p className="mt-2 text-lg font-semibold text-[var(--color-text-primary)]">
+                            {prize.value}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </article>
+                ))
+              : null}
           </div>
         </Card>
 

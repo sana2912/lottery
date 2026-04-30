@@ -1,63 +1,57 @@
+import { apiGet, apiHttp, apiPost } from "@/lib/api/http";
+import { apiRoutes } from "@/lib/api/routes";
 import {
   type BacktestHistoryResponse,
   type BacktestReadModel,
+  type BacktestRequest,
   backtestHistoryResponseSchema,
   backtestReadModelSchema
 } from "@/schema/app/backtest.schema";
 
-export const backtestFallback = backtestReadModelSchema.parse({
-  generatedAt: "2026-04-28T00:00:00.000Z",
-  results: [
-    {
-      actualNumbers: ["47"],
-      drawDate: "2026-04-16T00:00:00.000Z",
-      drawId: "draw-2026-04-16",
-      generatedNumbers: ["47", "91", "24"],
-      hitNumbers: ["47"],
-      id: "backtest-result-2026-04-16",
-      isHit: true,
-      rankOfHit: 1,
-      runId: "backtest-run-balanced-001"
-    },
-    {
-      actualNumbers: ["18"],
-      drawDate: "2026-04-01T00:00:00.000Z",
-      drawId: "draw-2026-04-01",
-      generatedNumbers: ["03", "74", "29"],
-      hitNumbers: [],
-      id: "backtest-result-2026-04-01",
-      isHit: false,
-      runId: "backtest-run-balanced-001"
-    }
-  ],
-  run: {
-    averageHitRank: 1,
-    candidateCount: 5,
-    computedAt: "2026-04-28T00:00:00.000Z",
-    coverage: 24,
-    endDrawDate: "2026-04-16T00:00:00.000Z",
-    hitRate: 50,
-    id: "backtest-run-balanced-001",
-    longestMissStreak: 1,
-    lotteryType: "THAI_GOVERNMENT",
-    numberLength: 2,
-    params: {
-      windowSize: 120
-    },
-    prizeType: "TWO_DIGIT",
-    startDrawDate: "2025-01-01T00:00:00.000Z",
-    strategyId: "balanced",
-    strategyName: "Balanced",
-    version: "prediction-engine-v1"
-  },
-  source: "mock"
-});
-
 export const emptyHistory = backtestHistoryResponseSchema.parse({
-  generatedAt: "2026-04-28T00:00:00.000Z",
+  generatedAt: new Date(0).toISOString(),
   items: [],
   source: "api"
 });
+
+export async function getBacktestHistory() {
+  return apiGet<BacktestHistoryResponse>(apiRoutes.backtests, {
+    schema: backtestHistoryResponseSchema
+  });
+}
+
+export async function getBacktestRun(id: string) {
+  return apiGet<BacktestReadModel>(`${apiRoutes.backtests}/${id}`, {
+    schema: backtestReadModelSchema
+  });
+}
+
+export async function getLatestBacktestPageData() {
+  const history = await getBacktestHistory();
+  const latestRunId = history.items[0]?.id;
+
+  if (!latestRunId) {
+    return {
+      backtest: null,
+      history
+    };
+  }
+
+  return {
+    backtest: await getBacktestRun(latestRunId),
+    history
+  };
+}
+
+export async function runBacktestRequest(payload: BacktestRequest) {
+  return apiPost<BacktestReadModel>(apiRoutes.backtests, payload, {
+    schema: backtestReadModelSchema
+  });
+}
+
+export function isBacktestNotFoundError(error: unknown) {
+  return error instanceof apiHttp.ApiHttpError && error.status === 404;
+}
 
 export type BacktestPageHistory = BacktestHistoryResponse;
 export type BacktestPageModel = BacktestReadModel;

@@ -1,7 +1,8 @@
 import Link from "next/link";
+import { EmptyState } from "@/frontend/components";
 import { MetricCard } from "@/frontend/components/cards/MetricCard";
 import { dashboardContent } from "@/frontend/pages/dashboard/dashboard.content";
-import dashboardMockJson from "@/frontend/pages/dashboard/dashboard.mock.json";
+import { getDashboardPageData } from "@/frontend/pages/dashboard/dashboard.data";
 import {
   Badge,
   Button,
@@ -14,12 +15,10 @@ import {
   TableHeader,
   TableRow
 } from "@/frontend/primitives";
-import { dashboardReadModelSchema } from "@/schema/app/dashboard.schema";
 
-const dashboardMock = dashboardReadModelSchema.parse(dashboardMockJson);
-
-export function DashboardPage() {
-  const { contractRows, hero, latestDraw, metrics, predictionSummary, signals } = dashboardMock;
+export async function DashboardPage() {
+  const { model, state } = await getDashboardPageData();
+  const { contractRows, hero, latestDraw, metrics, predictionSummary, signals } = model;
 
   return (
     <main className="space-y-6">
@@ -51,7 +50,9 @@ export function DashboardPage() {
                 {dashboardContent.latestDraw.drawLabel} {latestDraw.drawNo}
               </p>
             </div>
-            <Badge variant="success">{latestDraw.statusLabel}</Badge>
+            <Badge variant={state === "ready" ? "success" : "warning"}>
+              {latestDraw.statusLabel}
+            </Badge>
           </div>
           <div className="mt-6 rounded-none border border-[var(--color-border-glass)] bg-[var(--color-bg-glass-strong)] p-4 backdrop-blur-lg">
             <p className="text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
@@ -75,19 +76,23 @@ export function DashboardPage() {
             ))}
           </div>
           <div className="mt-6 flex flex-wrap gap-2 border-t border-[var(--color-border-soft)] pt-4">
-            <Button asChild size="sm" variant="secondary">
-              <Link href={`/results/${latestDraw.id}`}>
-                {dashboardContent.latestDraw.detailActionLabel}
-              </Link>
-            </Button>
-            <Button
-              asChild
-              className="border-[var(--color-border-glass)] bg-[var(--color-bg-glass)] text-[var(--color-text-primary)] hover:bg-[var(--color-bg-glass-strong)]"
-              size="sm"
-              variant="outline"
-            >
-              <Link href="/calendar">{dashboardContent.latestDraw.calendarActionLabel}</Link>
-            </Button>
+            {state === "ready" ? (
+              <>
+                <Button asChild size="sm" variant="secondary">
+                  <Link href={`/results/${latestDraw.id}`}>
+                    {dashboardContent.latestDraw.detailActionLabel}
+                  </Link>
+                </Button>
+                <Button
+                  asChild
+                  className="border-[var(--color-border-glass)] bg-[var(--color-bg-glass)] text-[var(--color-text-primary)] hover:bg-[var(--color-bg-glass-strong)]"
+                  size="sm"
+                  variant="outline"
+                >
+                  <Link href="/calendar">{dashboardContent.latestDraw.calendarActionLabel}</Link>
+                </Button>
+              </>
+            ) : null}
           </div>
         </Card>
       </section>
@@ -135,32 +140,54 @@ export function DashboardPage() {
             eyebrow={dashboardContent.signals.eyebrow}
             title={dashboardContent.signals.title}
           />
+          {state === "error" ? (
+            <div className="mt-5">
+              <EmptyState
+                description={dashboardContent.errorState.description}
+                title={dashboardContent.errorState.title}
+              />
+            </div>
+          ) : null}
+          {state === "empty" ? (
+            <div className="mt-5">
+              <EmptyState
+                description={dashboardContent.emptyState.description}
+                title={dashboardContent.emptyState.title}
+              />
+            </div>
+          ) : null}
           <div className="mt-5 grid gap-4 md:grid-cols-3">
-            {signals.map((signal) => (
-              <article
-                className="rounded-none border border-[var(--color-border-soft)] bg-[var(--color-bg-elevated)] p-5"
-                key={signal.id}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <Badge
-                    variant={
-                      signal.tone === "hot" ? "hot" : signal.tone === "cold" ? "cold" : "overdue"
-                    }
+            {state === "ready"
+              ? signals.map((signal) => (
+                  <article
+                    className="rounded-none border border-[var(--color-border-soft)] bg-[var(--color-bg-elevated)] p-5"
+                    key={signal.id}
                   >
-                    {signal.label}
-                  </Badge>
-                  <span className="text-sm font-bold text-[var(--color-text-muted)]">
-                    {signal.score}
-                  </span>
-                </div>
-                <p className="mt-5 font-mono text-4xl font-bold tracking-normal text-[var(--color-text-primary)]">
-                  {signal.number}
-                </p>
-                <p className="mt-3 text-sm leading-6 text-[var(--color-text-secondary)]">
-                  {signal.reason}
-                </p>
-              </article>
-            ))}
+                    <div className="flex items-start justify-between gap-3">
+                      <Badge
+                        variant={
+                          signal.tone === "hot"
+                            ? "hot"
+                            : signal.tone === "cold"
+                              ? "cold"
+                              : "overdue"
+                        }
+                      >
+                        {signal.label}
+                      </Badge>
+                      <span className="text-sm font-bold text-[var(--color-text-muted)]">
+                        {signal.score}
+                      </span>
+                    </div>
+                    <p className="mt-5 font-mono text-4xl font-bold tracking-normal text-[var(--color-text-primary)]">
+                      {signal.number}
+                    </p>
+                    <p className="mt-3 text-sm leading-6 text-[var(--color-text-secondary)]">
+                      {signal.reason}
+                    </p>
+                  </article>
+                ))
+              : null}
           </div>
         </Card>
 
@@ -184,24 +211,31 @@ export function DashboardPage() {
             title={predictionSummary.title}
           />
           <div className="mt-5 space-y-3">
-            {predictionSummary.candidates.map((candidate) => (
-              <div
-                className="rounded-none border border-[var(--color-border-soft)] bg-[var(--color-bg-canvas)] p-4"
-                key={candidate.number}
-              >
-                <div className="flex items-center justify-between gap-4">
-                  <span className="font-mono text-2xl font-bold tracking-normal text-[var(--color-text-primary)]">
-                    {candidate.number}
-                  </span>
-                  <span className="text-sm font-semibold text-[var(--color-brand)]">
-                    {dashboardContent.predictionSummary.scoreLabel} {candidate.score}
-                  </span>
+            {predictionSummary.candidates.length > 0 ? (
+              predictionSummary.candidates.map((candidate) => (
+                <div
+                  className="rounded-none border border-[var(--color-border-soft)] bg-[var(--color-bg-canvas)] p-4"
+                  key={candidate.number}
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="font-mono text-2xl font-bold tracking-normal text-[var(--color-text-primary)]">
+                      {candidate.number}
+                    </span>
+                    <span className="text-sm font-semibold text-[var(--color-brand)]">
+                      {dashboardContent.predictionSummary.scoreLabel} {candidate.score}
+                    </span>
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-[var(--color-text-muted)]">
+                    {candidate.reasons.join(", ")}
+                  </p>
                 </div>
-                <p className="mt-3 text-sm leading-6 text-[var(--color-text-muted)]">
-                  {candidate.reasons.join(", ")}
-                </p>
-              </div>
-            ))}
+              ))
+            ) : (
+              <EmptyState
+                description={dashboardContent.predictionSummary.emptyDescription}
+                title={predictionSummary.title}
+              />
+            )}
           </div>
           <p className="mt-5 border-t border-[var(--color-border-soft)] pt-4 text-sm leading-6 text-[var(--color-text-muted)]">
             {predictionSummary.disclaimer}

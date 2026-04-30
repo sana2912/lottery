@@ -4,6 +4,15 @@ export const dashboardContent = {
     purpose: "purpose",
     source: "source"
   },
+  emptyState: {
+    description: "The dashboard API returned no live draw summary for the current dataset.",
+    title: "No dashboard summary"
+  },
+  errorState: {
+    description:
+      "The dashboard service could not be reached or returned an invalid response. Check the API and database connection, then reload this page.",
+    title: "Dashboard data unavailable"
+  },
   latestDraw: {
     calendarActionLabel: "View draw calendar",
     detailActionLabel: "Open draw detail",
@@ -35,6 +44,8 @@ export const dashboardContent = {
       methodologyHref: "/methodology#prediction-score",
       methodologyLabel: "How to read the score"
     },
+    emptyDescription:
+      "No persisted prediction summary is available through the dashboard read model yet.",
     eyebrow: "prediction summary",
     scoreLabel: "score"
   },

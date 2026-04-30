@@ -4,6 +4,7 @@ import { analyticsService } from "@/api/service/analytics.service";
 import { backtestService } from "@/api/service/backtest.service";
 import { calendarService } from "@/api/service/calendar.service";
 import { compareService } from "@/api/service/compare.service";
+import { dashboardService } from "@/api/service/dashboard.service";
 import { drawService } from "@/api/service/draw.service";
 import { predictionService } from "@/api/service/prediction.service";
 import { watchlistService } from "@/api/service/watchlist.service";
@@ -14,6 +15,7 @@ import {
 } from "@/schema/app/backtest.schema";
 import { calendarReadModelSchema } from "@/schema/app/calendar.schema";
 import { compareReadModelSchema } from "@/schema/app/compare.schema";
+import { dashboardReadModelSchema } from "@/schema/app/dashboard.schema";
 import { drawDetailResponseSchema, drawListResponseSchema } from "@/schema/app/draw.schema";
 import { predictionResponseSchema } from "@/schema/app/prediction.schema";
 import {
@@ -33,6 +35,8 @@ const mutableAnalyticsService = analyticsService as {
 };
 const mutablePredictionService = predictionService as {
   generate: typeof predictionService.generate;
+  getLatestPrediction: typeof predictionService.getLatestPrediction;
+  getPredictionById: typeof predictionService.getPredictionById;
 };
 const mutableWatchlistService = watchlistService as {
   createWatchlistItem: typeof watchlistService.createWatchlistItem;
@@ -51,12 +55,16 @@ const mutableCompareService = compareService as {
 const mutableCalendarService = calendarService as {
   getCalendarReadModel: typeof calendarService.getCalendarReadModel;
 };
+const mutableDashboardService = dashboardService as {
+  getDashboardReadModel: typeof dashboardService.getDashboardReadModel;
+};
 
 const originalServices = {
   analyticsReadModel: analyticsService.getAnalyticsReadModel,
   backtestById: backtestService.getBacktestById,
   calendarReadModel: calendarService.getCalendarReadModel,
   compareNumbers: compareService.compareNumbers,
+  dashboardReadModel: dashboardService.getDashboardReadModel,
   deleteWatchlistItem: watchlistService.deleteWatchlistItem,
   digitStats: analyticsService.getDigitStats,
   drawById: drawService.getDrawById,
@@ -64,6 +72,8 @@ const originalServices = {
   listBacktests: backtestService.listBacktests,
   numberStats: analyticsService.getNumberStats,
   predictionGenerate: predictionService.generate,
+  predictionById: predictionService.getPredictionById,
+  predictionLatest: predictionService.getLatestPrediction,
   runBacktest: backtestService.runBacktest,
   updateWatchlistItem: watchlistService.updateWatchlistItem,
   watchlistCreate: watchlistService.createWatchlistItem,
@@ -77,6 +87,8 @@ afterEach(() => {
   mutableAnalyticsService.getDigitStats = originalServices.digitStats;
   mutableAnalyticsService.getNumberStats = originalServices.numberStats;
   mutablePredictionService.generate = originalServices.predictionGenerate;
+  mutablePredictionService.getLatestPrediction = originalServices.predictionLatest;
+  mutablePredictionService.getPredictionById = originalServices.predictionById;
   mutableWatchlistService.createWatchlistItem = originalServices.watchlistCreate;
   mutableWatchlistService.deleteWatchlistItem = originalServices.deleteWatchlistItem;
   mutableWatchlistService.getWatchlist = originalServices.watchlistGet;
@@ -86,6 +98,7 @@ afterEach(() => {
   mutableBacktestService.runBacktest = originalServices.runBacktest;
   mutableCompareService.compareNumbers = originalServices.compareNumbers;
   mutableCalendarService.getCalendarReadModel = originalServices.calendarReadModel;
+  mutableDashboardService.getDashboardReadModel = originalServices.dashboardReadModel;
 });
 
 describe("api router", () => {
@@ -192,30 +205,60 @@ describe("api router", () => {
   test("prediction routes handle scaffold GET and validated POST body", async () => {
     let receivedBody: unknown;
 
+    mutablePredictionService.getLatestPrediction = async () =>
+      predictionResponseSchema.parse(
+        predictionResponse({
+          count: 3,
+          lotteryType: "THAI_GOVERNMENT",
+          numberLength: 2,
+          prizeType: "TWO_DIGIT",
+          strategyId: "balanced",
+          windowSize: 120
+        })
+      );
+    mutablePredictionService.getPredictionById = async (id) =>
+      id === "missing"
+        ? null
+        : predictionResponseSchema.parse(
+            predictionResponse({
+              count: 3,
+              lotteryType: "THAI_GOVERNMENT",
+              numberLength: 2,
+              prizeType: "TWO_DIGIT",
+              strategyId: "balanced",
+              windowSize: 120
+            })
+          );
     mutablePredictionService.generate = async (input) => {
       receivedBody = input;
       return predictionResponseSchema.parse(predictionResponse(input));
     };
 
-    const getResponse = await request("/api/predictions");
-    const postResponse = await request("/api/predictions", {
-      body: JSON.stringify({
-        count: "3",
-        numberLength: "2",
-        prizeType: "TWO_DIGIT",
-        strategyId: "balanced",
-        windowSize: "120"
-      }),
-      headers: {
-        "content-type": "application/json"
-      },
-      method: "POST"
-    });
+    const [getResponse, detailResponse, missingResponse, postResponse] = await Promise.all([
+      request("/api/predictions"),
+      request("/api/predictions/run-1"),
+      request("/api/predictions/missing"),
+      request("/api/predictions", {
+        body: JSON.stringify({
+          count: "3",
+          numberLength: "2",
+          prizeType: "TWO_DIGIT",
+          strategyId: "balanced",
+          windowSize: "120"
+        }),
+        headers: {
+          "content-type": "application/json"
+        },
+        method: "POST"
+      })
+    ]);
 
-    expect(getResponse.status).toBe(501);
-    expect(await getResponse.json()).toEqual({
-      error: "Not implemented",
-      message: "This endpoint is reserved for the MVP API scaffold."
+    expect(predictionResponseSchema.parse(await getResponse.json())).toBeTruthy();
+    expect(predictionResponseSchema.parse(await detailResponse.json())).toBeTruthy();
+    expect(missingResponse.status).toBe(404);
+    expect(await missingResponse.json()).toEqual({
+      error: "Not found",
+      message: "Prediction run not found"
     });
     expect(receivedBody).toEqual({
       count: 3,
@@ -394,6 +437,15 @@ describe("api router", () => {
     const response = await request("/api/calendar");
 
     expect(calendarReadModelSchema.parse(await response.json())).toBeTruthy();
+  });
+
+  test("dashboard route returns a schema-valid response", async () => {
+    mutableDashboardService.getDashboardReadModel = async () =>
+      dashboardReadModelSchema.parse(dashboardReadModel());
+
+    const response = await request("/api/dashboard");
+
+    expect(dashboardReadModelSchema.parse(await response.json())).toBeTruthy();
   });
 });
 
@@ -692,6 +744,70 @@ function calendarReadModel() {
       isNextDraw: true,
       status: "upcoming" as const
     },
+    source: "api" as const
+  };
+}
+
+function dashboardReadModel() {
+  return {
+    contractRows: [
+      {
+        field: "latestDraw",
+        purpose: "Shows the latest draw.",
+        source: "LotteryDraw + LotteryPrize"
+      }
+    ],
+    generatedAt: "2026-04-29T00:00:00.000Z",
+    hero: {
+      description: "Dashboard summary",
+      eyebrow: "Dashboard contract",
+      primaryActionHref: "/results",
+      primaryActionLabel: "Review historical results",
+      title: "Dashboard"
+    },
+    latestDraw: {
+      drawDate: "16 April 2026",
+      drawDateIso: "2026-04-16T00:00:00.000Z",
+      drawNo: "08/2026",
+      id: "draw-1",
+      lotteryType: "THAI_GOVERNMENT",
+      primaryPrize: {
+        label: "First prize",
+        value: "123456"
+      },
+      secondaryPrizes: [
+        {
+          label: "Two-digit",
+          value: "09"
+        }
+      ],
+      statusLabel: "Complete"
+    },
+    metrics: [
+      {
+        hint: "Distinct draw records included in the current two-digit analytics window.",
+        label: "Draws in sample",
+        tone: "default" as const,
+        trend: "120 draw window",
+        value: "24"
+      }
+    ],
+    predictionSummary: {
+      candidates: [],
+      disclaimer: "Prediction summary unavailable.",
+      generatedAt: "2026-04-29T00:00:00.000Z",
+      title: "Prediction summary unavailable"
+    },
+    signals: [
+      {
+        id: "signal-hot-09",
+        label: "Hot signal",
+        number: "09",
+        reason: "Repeated more often than the current two-digit sample average.",
+        score: 50,
+        tone: "hot" as const
+      }
+    ],
     source: "api" as const
   };
 }

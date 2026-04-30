@@ -2,11 +2,17 @@
 
 import { AlertCircle, Loader2, Scale3d } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { TimeSeriesChart } from "@/frontend/chart-primitives";
 import { EmptyState, FilterToolbar, LoadingSkeleton, MetricCard } from "@/frontend/components";
 import { backtestContent } from "@/frontend/pages/backtest/backtest.content";
-import { backtestFallback, emptyHistory } from "@/frontend/pages/backtest/backtest.data";
+import {
+  emptyHistory,
+  getBacktestHistory,
+  getBacktestRun,
+  getLatestBacktestPageData,
+  runBacktestRequest
+} from "@/frontend/pages/backtest/backtest.data";
 import {
   type BacktestFormState,
   defaultBacktestFormState,
@@ -33,26 +39,57 @@ import {
   TableHeader,
   TableRow
 } from "@/frontend/primitives";
-import { apiGet, apiPost } from "@/lib/api/http";
-import { apiRoutes } from "@/lib/api/routes";
 import {
   type BacktestHistoryResponse,
   type BacktestReadModel,
-  backtestHistoryResponseSchema,
-  backtestReadModelSchema,
   backtestRequestSchema
 } from "@/schema/app/backtest.schema";
 
 export function BacktestPage() {
   const [formState, setFormState] = useState(defaultBacktestFormState);
+  const [runState, setRunState] = useState<"empty" | "error" | "loading" | "ready">("loading");
+  const [historyState, setHistoryState] = useState<"error" | "loading" | "ready">("loading");
   const [isPending, setIsPending] = useState(false);
   const [isHistoryPending, setIsHistoryPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [backtest, setBacktest] = useState<BacktestReadModel>(backtestFallback);
+  const [backtest, setBacktest] = useState<BacktestReadModel | null>(null);
   const [history, setHistory] = useState<BacktestHistoryResponse>(emptyHistory);
-  const [selectedRunId, setSelectedRunId] = useState<string>(backtest.run.id);
+  const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
 
-  const chartPoints = useMemo(() => toBacktestChartPoints(backtest), [backtest]);
+  const chartPoints = useMemo(() => (backtest ? toBacktestChartPoints(backtest) : []), [backtest]);
+
+  const loadInitialBacktestData = useCallback(async () => {
+    try {
+      const { backtest: latestRun, history: nextHistory } = await getLatestBacktestPageData();
+
+      setHistory(nextHistory);
+      setHistoryState("ready");
+
+      if (!latestRun) {
+        setBacktest(null);
+        setSelectedRunId(null);
+        setRunState("empty");
+        return;
+      }
+
+      setBacktest(latestRun);
+      setSelectedRunId(latestRun.run.id);
+      setRunState("ready");
+    } catch {
+      setBacktest(null);
+      setHistory(emptyHistory);
+      setSelectedRunId(null);
+      setHistoryState("error");
+      setRunState("error");
+      setError(backtestContent.errorMessages.initialUnavailable);
+    }
+  }, []);
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      void loadInitialBacktestData();
+    });
+  }, [loadInitialBacktestData]);
 
   async function handleRunBacktest() {
     setIsPending(true);
@@ -60,17 +97,16 @@ export function BacktestPage() {
 
     try {
       const payload = backtestRequestSchema.parse(toBacktestPayload(formState));
-
-      const response = await apiPost<BacktestReadModel>(apiRoutes.backtests, payload, {
-        schema: backtestReadModelSchema
-      });
+      const response = await runBacktestRequest(payload);
 
       setBacktest(response);
+      setRunState("ready");
       setSelectedRunId(response.run.id);
+      setHistoryState("ready");
       setHistory((current) => mergeBacktestHistory(current, response));
     } catch {
       setError(backtestContent.errorMessages.runUnavailable);
-      setBacktest(backtestFallback);
+      setRunState(backtest ? "ready" : "error");
     } finally {
       setIsPending(false);
     }
@@ -78,14 +114,14 @@ export function BacktestPage() {
 
   async function handleLoadHistory() {
     setIsHistoryPending(true);
+    setHistoryState("loading");
+    setError(null);
 
     try {
-      const response = await apiGet<BacktestHistoryResponse>(apiRoutes.backtests, {
-        schema: backtestHistoryResponseSchema
-      });
-
-      setHistory(response);
+      setHistory(await getBacktestHistory());
+      setHistoryState("ready");
     } catch {
+      setHistoryState("error");
       setError(backtestContent.errorMessages.historyUnavailable);
     } finally {
       setIsHistoryPending(false);
@@ -97,11 +133,10 @@ export function BacktestPage() {
     setError(null);
 
     try {
-      const response = await apiGet<BacktestReadModel>(`${apiRoutes.backtests}/${id}`, {
-        schema: backtestReadModelSchema
-      });
+      const response = await getBacktestRun(id);
 
       setBacktest(response);
+      setRunState("ready");
       setSelectedRunId(response.run.id);
     } catch {
       setError(backtestContent.errorMessages.selectedRunUnavailable);
@@ -142,21 +177,23 @@ export function BacktestPage() {
               hint={backtestContent.metrics.currentHitRate.hint}
               label={backtestContent.metrics.currentHitRate.label}
               tone="backtest"
-              value={`${backtest.run.hitRate}%`}
+              value={backtest ? `${backtest.run.hitRate}%` : "-"}
             />
             <MetricCard
               hint={backtestContent.metrics.currentMissStreak.hint}
               label={backtestContent.metrics.currentMissStreak.label}
-              value={String(backtest.run.longestMissStreak)}
+              value={backtest ? String(backtest.run.longestMissStreak) : "-"}
             />
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
-            <Badge variant={backtest.source === "api" ? "success" : "warning"}>
-              {backtest.source === "api"
+            <Badge variant={runState === "ready" ? "success" : "warning"}>
+              {runState === "ready"
                 ? backtestContent.badges.liveApi
-                : backtestContent.badges.sampleRun}
+                : runState === "empty"
+                  ? backtestContent.badges.noRun
+                  : backtestContent.badges.unavailable}
             </Badge>
-            <Badge variant="backtest">{backtest.run.strategyName}</Badge>
+            {backtest ? <Badge variant="backtest">{backtest.run.strategyName}</Badge> : null}
           </div>
         </Card>
       </section>
@@ -198,8 +235,8 @@ export function BacktestPage() {
               <Label htmlFor="numberLength">Number length</Label>
               <Input
                 id="numberLength"
-                min={2}
                 max={6}
+                min={2}
                 onChange={(event) =>
                   setFormState((current) => ({ ...current, numberLength: event.target.value }))
                 }
@@ -212,8 +249,8 @@ export function BacktestPage() {
               <Label htmlFor="candidateCount">Candidate count</Label>
               <Input
                 id="candidateCount"
-                min={1}
                 max={20}
+                min={1}
                 onChange={(event) =>
                   setFormState((current) => ({ ...current, candidateCount: event.target.value }))
                 }
@@ -226,8 +263,8 @@ export function BacktestPage() {
               <Label htmlFor="windowSize">Window size</Label>
               <Input
                 id="windowSize"
-                min={1}
                 max={2000}
+                min={1}
                 onChange={(event) =>
                   setFormState((current) => ({ ...current, windowSize: event.target.value }))
                 }
@@ -316,14 +353,14 @@ export function BacktestPage() {
         />
       ) : null}
 
-      {isPending ? (
+      {isPending || runState === "loading" ? (
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <LoadingSkeleton lines={2} />
           <LoadingSkeleton lines={2} />
           <LoadingSkeleton lines={2} />
           <LoadingSkeleton lines={2} />
         </section>
-      ) : (
+      ) : backtest ? (
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <MetricCard
             label={backtestContent.metrics.coverage}
@@ -343,50 +380,67 @@ export function BacktestPage() {
             value={new Date(backtest.run.computedAt).toLocaleDateString("th-TH")}
           />
         </section>
+      ) : (
+        <section>
+          <EmptyState
+            description={
+              runState === "empty"
+                ? backtestContent.emptyState.currentRunDescription
+                : backtestContent.emptyState.fallbackDescription
+            }
+            title={
+              runState === "empty"
+                ? backtestContent.emptyState.currentRunTitle
+                : backtestContent.emptyState.fallbackTitle
+            }
+          />
+        </section>
       )}
 
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
-        <TimeSeriesChart points={chartPoints} title={backtestContent.chartTitle} />
+      {backtest ? (
+        <section className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
+          <TimeSeriesChart points={chartPoints} title={backtestContent.chartTitle} />
 
-        <Card className="p-6">
-          <SectionHeading
-            eyebrow={backtestContent.sections.runDetails.eyebrow}
-            title={backtestContent.sections.runDetails.title}
-            description={backtestContent.sections.runDetails.description}
-          />
-          <div className="mt-4">
-            <Button asChild className="px-0" variant="link">
-              <Link href={backtestContent.actions.methodologyHref}>
-                {backtestContent.actions.resultsMethodologyLabel}
-              </Link>
-            </Button>
-          </div>
-          <div className="mt-5 space-y-3">
-            <MetricCard
-              hint={backtestContent.metrics.strategy.hint}
-              label={backtestContent.metrics.strategy.label}
-              value={backtest.run.strategyName}
+          <Card className="p-6">
+            <SectionHeading
+              description={backtestContent.sections.runDetails.description}
+              eyebrow={backtestContent.sections.runDetails.eyebrow}
+              title={backtestContent.sections.runDetails.title}
             />
-            <MetricCard
-              hint={backtestContent.metrics.engineVersion.hint}
-              label={backtestContent.metrics.engineVersion.label}
-              value={backtest.run.version}
-            />
-          </div>
+            <div className="mt-4">
+              <Button asChild className="px-0" variant="link">
+                <Link href={backtestContent.actions.methodologyHref}>
+                  {backtestContent.actions.resultsMethodologyLabel}
+                </Link>
+              </Button>
+            </div>
+            <div className="mt-5 space-y-3">
+              <MetricCard
+                hint={backtestContent.metrics.strategy.hint}
+                label={backtestContent.metrics.strategy.label}
+                value={backtest.run.strategyName}
+              />
+              <MetricCard
+                hint={backtestContent.metrics.engineVersion.hint}
+                label={backtestContent.metrics.engineVersion.label}
+                value={backtest.run.version}
+              />
+            </div>
 
-          <div className="mt-5 flex flex-wrap gap-2">
-            <Badge variant="backtest">{backtest.run.prizeType}</Badge>
-            <Badge variant="neutral">{backtest.run.numberLength}-digit</Badge>
-            <Badge variant="brand">{backtest.run.lotteryType}</Badge>
-          </div>
-        </Card>
-      </section>
+            <div className="mt-5 flex flex-wrap gap-2">
+              <Badge variant="backtest">{backtest.run.prizeType}</Badge>
+              <Badge variant="neutral">{backtest.run.numberLength}-digit</Badge>
+              <Badge variant="brand">{backtest.run.lotteryType}</Badge>
+            </div>
+          </Card>
+        </section>
+      ) : null}
 
       <Card className="p-6">
         <SectionHeading
+          description={backtestContent.history.description}
           eyebrow={backtestContent.history.eyebrow}
           title={backtestContent.history.title}
-          description={backtestContent.history.description}
         />
 
         <div className="mt-5 flex flex-wrap items-center gap-3">
@@ -404,7 +458,19 @@ export function BacktestPage() {
           </Badge>
         </div>
 
-        {history.items.length === 0 ? (
+        {historyState === "loading" && runState === "loading" ? (
+          <div className="mt-5 grid gap-3">
+            <LoadingSkeleton lines={2} />
+            <LoadingSkeleton lines={2} />
+          </div>
+        ) : historyState === "error" ? (
+          <div className="mt-5">
+            <EmptyState
+              description={backtestContent.emptyState.historyUnavailableDescription}
+              title={backtestContent.emptyState.historyUnavailableTitle}
+            />
+          </div>
+        ) : history.items.length === 0 ? (
           <div className="mt-5">
             <EmptyState
               description={backtestContent.emptyState.historyDescription}
@@ -473,62 +539,71 @@ export function BacktestPage() {
 
       <Card className="p-6">
         <SectionHeading
+          description={backtestContent.results.description}
           eyebrow={backtestContent.results.eyebrow}
           title={backtestContent.results.title}
-          description={backtestContent.results.description}
         />
 
-        <div className="mt-5 overflow-hidden rounded-none border border-[var(--color-border-soft)]">
-          <Table>
-            <TableHeader className="bg-[var(--color-bg-subtle)]">
-              <TableRow className="border-b border-[var(--color-border-soft)] hover:bg-transparent">
-                <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                  {backtestContent.results.tableHeaders.draw}
-                </TableHead>
-                <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                  {backtestContent.results.tableHeaders.generated}
-                </TableHead>
-                <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                  {backtestContent.results.tableHeaders.actual}
-                </TableHead>
-                <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                  {backtestContent.results.tableHeaders.status}
-                </TableHead>
-                <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                  {backtestContent.results.tableHeaders.hitRank}
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {backtest.results.map((result) => (
-                <TableRow
-                  className="border-b border-[var(--color-border-soft)] hover:bg-[var(--color-bg-subtle)]/50"
-                  key={result.id}
-                >
-                  <TableCell className="px-4 py-3 font-medium text-[var(--color-text-primary)]">
-                    {new Date(result.drawDate).toLocaleDateString("th-TH")}
-                  </TableCell>
-                  <TableCell className="px-4 py-3 font-mono text-sm text-[var(--color-text-secondary)]">
-                    {result.generatedNumbers.join(", ")}
-                  </TableCell>
-                  <TableCell className="px-4 py-3 font-mono text-sm text-[var(--color-text-secondary)]">
-                    {result.actualNumbers.join(", ")}
-                  </TableCell>
-                  <TableCell className="px-4 py-3">
-                    <Badge variant={result.isHit ? "success" : "danger"}>
-                      {result.isHit
-                        ? backtestContent.results.statusLabels.hit
-                        : backtestContent.results.statusLabels.miss}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="px-4 py-3 text-[var(--color-text-secondary)]">
-                    {result.rankOfHit ?? "-"}
-                  </TableCell>
+        {backtest && backtest.results.length > 0 ? (
+          <div className="mt-5 overflow-hidden rounded-none border border-[var(--color-border-soft)]">
+            <Table>
+              <TableHeader className="bg-[var(--color-bg-subtle)]">
+                <TableRow className="border-b border-[var(--color-border-soft)] hover:bg-transparent">
+                  <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
+                    {backtestContent.results.tableHeaders.draw}
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
+                    {backtestContent.results.tableHeaders.generated}
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
+                    {backtestContent.results.tableHeaders.actual}
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
+                    {backtestContent.results.tableHeaders.status}
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
+                    {backtestContent.results.tableHeaders.hitRank}
+                  </TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+              </TableHeader>
+              <TableBody>
+                {backtest.results.map((result) => (
+                  <TableRow
+                    className="border-b border-[var(--color-border-soft)] hover:bg-[var(--color-bg-subtle)]/50"
+                    key={result.id}
+                  >
+                    <TableCell className="px-4 py-3 font-medium text-[var(--color-text-primary)]">
+                      {new Date(result.drawDate).toLocaleDateString("th-TH")}
+                    </TableCell>
+                    <TableCell className="px-4 py-3 font-mono text-sm text-[var(--color-text-secondary)]">
+                      {result.generatedNumbers.join(", ")}
+                    </TableCell>
+                    <TableCell className="px-4 py-3 font-mono text-sm text-[var(--color-text-secondary)]">
+                      {result.actualNumbers.join(", ")}
+                    </TableCell>
+                    <TableCell className="px-4 py-3">
+                      <Badge variant={result.isHit ? "success" : "danger"}>
+                        {result.isHit
+                          ? backtestContent.results.statusLabels.hit
+                          : backtestContent.results.statusLabels.miss}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-[var(--color-text-secondary)]">
+                      {result.rankOfHit ?? "-"}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        ) : (
+          <div className="mt-5">
+            <EmptyState
+              description={backtestContent.emptyState.resultsDescription}
+              title={backtestContent.emptyState.resultsTitle}
+            />
+          </div>
+        )}
       </Card>
     </main>
   );

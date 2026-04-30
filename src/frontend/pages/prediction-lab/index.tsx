@@ -2,9 +2,13 @@
 
 import { AlertCircle, FlaskConical, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { EmptyState, MetricCard } from "@/frontend/components";
 import { predictionLabContent } from "@/frontend/pages/prediction-lab/prediction-lab.content";
+import {
+  generatePredictionRun,
+  getLatestPredictionRun
+} from "@/frontend/pages/prediction-lab/prediction-lab.data";
 import {
   defaultPredictionFormState,
   getTopPredictionScore,
@@ -30,19 +34,56 @@ import {
   type PredictionRequest,
   type PredictionResponse,
   type PredictionResult,
-  predictionRequestSchema,
-  predictionResponseSchema
+  predictionRequestSchema
 } from "@/schema/app/prediction.schema";
 import { createWatchlistItemSchema } from "@/schema/app/watchlist.schema";
 
 export function PredictionLabPage() {
   const [formState, setFormState] = useState(defaultPredictionFormState);
+  const [runState, setRunState] = useState<
+    "empty" | "error" | "loading" | "noCandidates" | "ready"
+  >("loading");
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [prediction, setPrediction] = useState<PredictionResponse | null>(null);
   const [savedNumbers, setSavedNumbers] = useState<Set<string>>(() => new Set());
   const [saveError, setSaveError] = useState<string | null>(null);
   const topScore = useMemo(() => getTopPredictionScore(prediction), [prediction]);
+
+  useEffect(() => {
+    let isActive = true;
+
+    async function loadLatestPrediction() {
+      try {
+        const latestPrediction = await getLatestPredictionRun();
+
+        if (!isActive) {
+          return;
+        }
+
+        setPrediction(latestPrediction);
+        setRunState(
+          !latestPrediction
+            ? "empty"
+            : latestPrediction.results.length > 0
+              ? "ready"
+              : "noCandidates"
+        );
+      } catch {
+        if (!isActive) {
+          return;
+        }
+
+        setRunState("error");
+      }
+    }
+
+    void loadLatestPrediction();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   async function handleGenerate() {
     setIsPending(true);
@@ -51,10 +92,9 @@ export function PredictionLabPage() {
     const payload = predictionRequestSchema.parse(toPredictionPayload(formState));
 
     try {
-      const response = await apiPost<PredictionResponse>(apiRoutes.predictions, payload, {
-        schema: predictionResponseSchema
-      });
+      const response = await generatePredictionRun(payload);
       setPrediction(response);
+      setRunState(response.results.length > 0 ? "ready" : "noCandidates");
     } catch {
       setError(predictionLabContent.errorMessages.predictionUnavailable);
     } finally {
@@ -209,6 +249,14 @@ export function PredictionLabPage() {
         </div>
       </Card>
 
+      {runState === "loading" ? (
+        <EmptyState
+          description={predictionLabContent.emptyStates.loading.description}
+          icon={<Loader2 className="animate-spin" />}
+          title={predictionLabContent.emptyStates.loading.title}
+        />
+      ) : null}
+
       {error ? (
         <EmptyState
           description={error}
@@ -225,7 +273,15 @@ export function PredictionLabPage() {
         />
       ) : null}
 
-      {!prediction && !error ? (
+      {runState === "error" && !error ? (
+        <EmptyState
+          description={predictionLabContent.errorMessages.predictionUnavailable}
+          icon={<AlertCircle />}
+          title={predictionLabContent.emptyStates.predictionError.title}
+        />
+      ) : null}
+
+      {runState === "empty" && !error ? (
         <EmptyState
           description={predictionLabContent.emptyStates.noRun.description}
           icon={<FlaskConical />}
@@ -233,7 +289,15 @@ export function PredictionLabPage() {
         />
       ) : null}
 
-      {prediction ? (
+      {runState === "noCandidates" && prediction && !error ? (
+        <EmptyState
+          description={predictionLabContent.emptyStates.noCandidates.description}
+          icon={<FlaskConical />}
+          title={predictionLabContent.emptyStates.noCandidates.title}
+        />
+      ) : null}
+
+      {prediction && runState === "ready" ? (
         <section className="grid gap-4">
           {prediction.results.map((result) => (
             <Card className="p-5" key={result.id}>

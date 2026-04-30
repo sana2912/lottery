@@ -10,13 +10,23 @@ export const compareContent = {
   badges: {
     liveApi: "Live API",
     rankLabel: "Rank",
-    sampleSet: "Sample set"
+    unavailable: "Unavailable",
+    waiting: "Awaiting input"
   },
   chartTitle: "Score comparison",
   emptyState: {
-    fallbackTitle: "Compare API fallback"
+    emptyDescription:
+      "Enter candidate numbers and run compare to generate the first live score set from the API.",
+    emptyTitle: "No compare results yet",
+    fallbackDescription:
+      "Live compare data could not be loaded. No sample set is being rendered in place of the API.",
+    fallbackTitle: "Compare unavailable",
+    resultsDescription:
+      "Run compare with at least one candidate number to inspect the shared scoring breakdown.",
+    resultsTitle: "No compare rows"
   },
-  errorMessage: "Compare API is not available yet, so this view is showing the checked sample set.",
+  errorMessage:
+    "Live compare data could not be loaded. No sample set is being rendered in place of the API.",
   filters: {
     summary:
       "Compare uses the same scoring engine as Prediction Lab, so the result is aligned with one contract across the product."
@@ -65,6 +75,9 @@ export const compareContent = {
       },
       title: "Compare results"
     }
+  },
+  stateNotes: {
+    ready: "This screen is rendering from the /api/compare contract backed by live analytics data."
   },
   selectPlaceholders: {
     lotteryType: "Lottery type",

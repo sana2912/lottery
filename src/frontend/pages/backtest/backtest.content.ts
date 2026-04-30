@@ -2,7 +2,7 @@ import type { BacktestRequest } from "@/schema/app/backtest.schema";
 
 export const backtestContent = {
   actions: {
-    historyButton: "Load recent runs",
+    historyButton: "Refresh history",
     loadLabel: "Load",
     methodologyHref: "/methodology#backtest-reading",
     methodologyLabel: "Read how walk-forward backtest is interpreted",
@@ -12,18 +12,31 @@ export const backtestContent = {
   },
   badges: {
     liveApi: "Live API",
-    sampleRun: "Sample run"
+    noRun: "No run yet",
+    unavailable: "Unavailable"
   },
   emptyState: {
+    currentRunDescription:
+      "No persisted backtest run is available yet. Run a backtest to generate the first live result set.",
+    currentRunTitle: "No backtest run yet",
+    fallbackDescription:
+      "Live backtest data could not be loaded. No sample run is being rendered in place of the API.",
+    fallbackTitle: "Backtest unavailable",
     historyDescription: "Run a backtest first, then load recent runs to reuse persisted results.",
     historyTitle: "No stored history loaded",
-    fallbackTitle: "Backtest API fallback"
+    historyUnavailableDescription:
+      "Recent persisted runs could not be loaded from the API during this request.",
+    historyUnavailableTitle: "Backtest history unavailable",
+    resultsDescription:
+      "Generate or load a persisted backtest run to inspect walk-forward outcomes.",
+    resultsTitle: "No backtest outcomes"
   },
   errorMessages: {
     historyUnavailable:
       "Backtest history is not available yet, so recent persisted runs cannot be loaded.",
-    runUnavailable:
-      "Backtest API is not available yet, so this view is showing the checked sample run.",
+    initialUnavailable:
+      "Live backtest data could not be loaded from the API. No sample run is being shown in place of persisted results.",
+    runUnavailable: "Backtest execution failed, so the current live run was left unchanged.",
     selectedRunUnavailable: "Unable to load the selected persisted backtest run."
   },
   filters: {
@@ -56,8 +69,8 @@ export const backtestContent = {
     computed: "Computed",
     coverage: "Coverage",
     currentCandidates: {
-      label: "Candidates",
-      hint: "How many generated candidates were tested per draw."
+      hint: "How many generated candidates were tested per draw.",
+      label: "Candidates"
     },
     currentHitRate: {
       hint: "Share of historical windows that produced at least one hit.",

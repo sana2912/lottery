@@ -4,14 +4,14 @@ import type { ResultsReadModel } from "@/schema/app/results.schema";
 
 export function toResultsModel(
   response: DrawListResponse,
-  fallback: ResultsReadModel,
+  shell: ResultsReadModel,
   content: ResultsContent
 ): ResultsReadModel {
   const latestDraw = response.draws[0];
   const prizeCount = response.draws.reduce((total, draw) => total + draw.prizes.length, 0);
 
   return {
-    ...fallback,
+    ...shell,
     draws: response.draws.map((draw) => ({
       coverage: draw.coverage,
       drawDate: draw.drawDate,
@@ -47,6 +47,20 @@ export function toResultsModel(
         value: String(prizeCount)
       }
     ]
+  };
+}
+
+export function toResultsShellModel(shell: ResultsReadModel, note: string): ResultsReadModel {
+  return {
+    ...shell,
+    draws: [],
+    generatedAt: new Date().toISOString(),
+    mockNote: note,
+    source: "mock",
+    stats: shell.stats.map((stat) => ({
+      ...stat,
+      value: stat.label === "Latest draw" ? "-" : "0"
+    }))
   };
 }
 

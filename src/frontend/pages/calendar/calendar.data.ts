@@ -2,7 +2,7 @@ import { apiGet } from "@/lib/api/http";
 import { apiRoutes } from "@/lib/api/routes";
 import { type CalendarReadModel, calendarReadModelSchema } from "@/schema/app/calendar.schema";
 
-export const calendarFallback = calendarReadModelSchema.parse({
+const calendarShell = calendarReadModelSchema.parse({
   generatedAt: "2026-04-28T00:00:00.000Z",
   monthlyInsights: [
     {
@@ -49,13 +49,41 @@ export const calendarFallback = calendarReadModelSchema.parse({
   source: "mock"
 });
 
-export async function getCalendarModel(): Promise<CalendarReadModel> {
+export type CalendarPageData =
+  | { model: CalendarReadModel; state: "error" }
+  | { model: CalendarReadModel; state: "ready" }
+  | { model: CalendarReadModel; state: "empty" };
+
+export async function getCalendarPageData(): Promise<CalendarPageData> {
   try {
-    return await apiGet<CalendarReadModel>(apiRoutes.calendar, {
+    const model = await apiGet<CalendarReadModel>(apiRoutes.calendar, {
       cache: "no-store",
       schema: calendarReadModelSchema
     });
+
+    return {
+      model,
+      state: model.draws.length > 0 ? "ready" : "empty"
+    };
   } catch {
-    return calendarFallback;
+    return {
+      model: {
+        ...calendarShell,
+        draws: [],
+        generatedAt: new Date().toISOString(),
+        monthlyInsights: [],
+        nextDraw: {
+          ...calendarShell.nextDraw,
+          drawDate: "-",
+          drawNo: undefined
+        },
+        source: "mock"
+      },
+      state: "error"
+    };
   }
+}
+
+export async function getCalendarModel(): Promise<CalendarReadModel> {
+  return (await getCalendarPageData()).model;
 }
