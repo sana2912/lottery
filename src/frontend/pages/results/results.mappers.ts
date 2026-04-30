@@ -1,5 +1,5 @@
 import type { ResultsContent } from "@/frontend/pages/results/results.content";
-import type { Draw, DrawListResponse } from "@/schema/app/draw.schema";
+import type { DrawListResponse } from "@/schema/app/draw.schema";
 import type { ResultsReadModel } from "@/schema/app/results.schema";
 
 export function toResultsModel(
@@ -57,47 +57,9 @@ export function toResultsShellModel(shell: ResultsReadModel, note: string): Resu
     generatedAt: new Date().toISOString(),
     mockNote: note,
     source: "mock",
-    stats: shell.stats.map((stat) => ({
+    stats: shell.stats.map((stat, index) => ({
       ...stat,
-      value: stat.label === "Latest draw" ? "-" : "0"
+      value: index === 0 ? "-" : "0"
     }))
   };
-}
-
-export function getMockDraw(id: string, fallback: ResultsReadModel): Draw | null {
-  const draw = fallback.draws.find((item) => item.id === id);
-
-  if (!draw) {
-    return null;
-  }
-
-  return {
-    coverage: draw.coverage,
-    drawDate: draw.drawDate,
-    drawDateIso: draw.drawDateIso,
-    drawNo: draw.drawNo,
-    id: draw.id,
-    lotteryType: draw.lotteryType,
-    prizes: draw.prizes.map((prize, index) => ({
-      id: `${draw.id}-${prize.prizeType}-${index}`,
-      label: prize.label,
-      number: prize.value,
-      type: prize.prizeType
-    })),
-    status: draw.status,
-    statusLabel: draw.statusLabel,
-    sourceStatus: toSourceStatus(draw.status)
-  };
-}
-
-function toSourceStatus(status: ResultsReadModel["draws"][number]["status"]) {
-  if (status === "complete") {
-    return "VERIFIED";
-  }
-
-  if (status === "partial") {
-    return "PARTIAL";
-  }
-
-  return "IMPORTED";
 }
