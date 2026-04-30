@@ -411,12 +411,15 @@ function drawListResponse() {
         drawNo: "08/2026",
         id: "draw-1",
         lotteryType: "THAI_GOVERNMENT",
+        publishedAt: "2026-04-16T09:00:00.000Z",
         prizes: [
           { id: "p1", label: "First prize", number: "123456", type: "FIRST" },
           { id: "p2", label: "Two-digit", number: "09", type: "TWO_DIGIT" }
         ],
         status: "complete" as const,
-        statusLabel: "Complete"
+        statusLabel: "Complete",
+        sourceStatus: "VERIFIED" as const,
+        sourceUrl: "https://example.com/draws/2026-04-16"
       }
     ],
     filters: {
@@ -504,7 +507,18 @@ function predictionResponse(input: {
   count: number;
   lotteryType: "THAI_GOVERNMENT";
   numberLength: 2 | 3 | 6;
-  prizeType: "FIRST" | "THREE_FRONT" | "THREE_BACK" | "TWO_DIGIT" | "NEAR_FIRST" | "OTHER";
+  prizeType:
+    | "FIRST"
+    | "THREE_DIGIT"
+    | "THREE_FRONT"
+    | "THREE_BACK"
+    | "TWO_DIGIT"
+    | "NEAR_FIRST"
+    | "PRIZE2"
+    | "PRIZE3"
+    | "PRIZE4"
+    | "PRIZE5"
+    | "OTHER";
   strategyId: "balanced" | "coldRebound" | "hotTrend";
   windowSize: number;
 }) {

@@ -16,10 +16,15 @@ enum LotteryType {
 
 enum LotteryPrizeType {
   FIRST
+  THREE_DIGIT
   THREE_FRONT
   THREE_BACK
   TWO_DIGIT
   NEAR_FIRST
+  PRIZE2
+  PRIZE3
+  PRIZE4
+  PRIZE5
   OTHER
 }
 
@@ -29,11 +34,21 @@ enum WatchlistSource {
   NOTEBOOK
 }
 
+enum SourceStatus {
+  IMPORTED
+  PARTIAL
+  VERIFIED
+}
+
 model LotteryDraw {
   id              String           @id @default(uuid(7)) @map("_id") @db.Uuid
   lotteryType     LotteryType      @default(THAI_GOVERNMENT)
   drawDate        DateTime
   drawNo          String?
+  sourceUrl       String?
+  sourceStatus    SourceStatus     @default(IMPORTED)
+  publishedAt     DateTime?
+  metadata        Json?
   prizes          LotteryPrize[]
   backtestResults BacktestResult[]
   createdAt       DateTime         @default(now())
@@ -41,6 +56,8 @@ model LotteryDraw {
 
   @@unique([lotteryType, drawDate])
   @@index([drawDate])
+  @@index([sourceStatus])
+  @@index([publishedAt])
   @@map("lottery_draws")
 }
 

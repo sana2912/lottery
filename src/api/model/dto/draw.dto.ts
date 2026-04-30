@@ -10,7 +10,11 @@ type DrawDtoInput = {
   id: string;
   drawDate: Date | string;
   lotteryType: string;
+  metadata?: unknown;
+  publishedAt?: Date | null | string;
   prizes?: readonly PrizeDtoInput[];
+  sourceStatus?: null | string;
+  sourceUrl?: null | string;
 };
 
 type PrizeDtoInput = {
@@ -30,6 +34,9 @@ type DrawListDtoInput = {
 export function toApiDraw(draw: DrawDtoInput): ApiDraw {
   const prizes = [...(draw.prizes ?? [])].sort(sortPrizeInput).map(toApiDrawPrize);
   const drawDateIso = normalizeDateString(draw.drawDate);
+  const sourceStatus = getSourceStatus(draw.sourceStatus, prizes.length);
+  const status = getDrawStatus(sourceStatus, prizes.length);
+  const metadata = getMetadata(draw.metadata);
 
   return {
     id: draw.id,
@@ -38,9 +45,13 @@ export function toApiDraw(draw: DrawDtoInput): ApiDraw {
     drawDateIso,
     drawNo: draw.drawNo ?? "",
     lotteryType: draw.lotteryType,
+    metadata,
+    publishedAt: draw.publishedAt ? normalizeDateString(draw.publishedAt) : undefined,
     prizes,
-    status: prizes.length > 0 ? "complete" : "partial",
-    statusLabel: prizes.length > 0 ? "Complete" : "Partial"
+    status,
+    statusLabel: getStatusLabel(status),
+    sourceStatus,
+    sourceUrl: draw.sourceUrl ?? undefined
   };
 }
 
@@ -76,6 +87,47 @@ function normalizeDateString(value: Date | string): string {
   return value instanceof Date ? value.toISOString() : value;
 }
 
+function getSourceStatus(sourceStatus: null | string | undefined, prizeCount: number) {
+  if (sourceStatus === "IMPORTED" || sourceStatus === "PARTIAL" || sourceStatus === "VERIFIED") {
+    return sourceStatus;
+  }
+
+  return prizeCount > 0 ? "VERIFIED" : "PARTIAL";
+}
+
+function getDrawStatus(
+  sourceStatus: ReturnType<typeof getSourceStatus>,
+  prizeCount: number
+): ApiDraw["status"] {
+  if (prizeCount === 0 || sourceStatus === "PARTIAL") {
+    return "partial";
+  }
+
+  if (sourceStatus === "IMPORTED") {
+    return "imported";
+  }
+
+  return "complete";
+}
+
+function getStatusLabel(status: ApiDraw["status"]) {
+  const labels = {
+    complete: "Complete",
+    imported: "Imported",
+    partial: "Partial"
+  };
+
+  return labels[status];
+}
+
+function getMetadata(metadata: unknown): Record<string, unknown> | undefined {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return undefined;
+  }
+
+  return metadata as Record<string, unknown>;
+}
+
 function formatDrawDate(value: Date | string): string {
   const date = value instanceof Date ? value : new Date(value);
 
@@ -89,6 +141,11 @@ function getPrizeLabel(type: string, position?: null | number): string {
     FIRST: "First prize",
     NEAR_FIRST: "Near first prize",
     OTHER: "Other prize",
+    PRIZE2: "Prize 2",
+    PRIZE3: "Prize 3",
+    PRIZE4: "Prize 4",
+    PRIZE5: "Prize 5",
+    THREE_DIGIT: "Three-digit",
     THREE_BACK: "Three-digit back",
     THREE_FRONT: "Three-digit front",
     TWO_DIGIT: "Two-digit"
@@ -113,9 +170,14 @@ function getPrizeTypeOrder(type: string): number {
   const order: Record<string, number> = {
     FIRST: 1,
     NEAR_FIRST: 2,
-    THREE_FRONT: 3,
-    THREE_BACK: 4,
-    TWO_DIGIT: 5,
+    PRIZE2: 3,
+    PRIZE3: 4,
+    PRIZE4: 5,
+    PRIZE5: 6,
+    THREE_DIGIT: 7,
+    THREE_FRONT: 8,
+    THREE_BACK: 9,
+    TWO_DIGIT: 10,
     OTHER: 99
   };
 

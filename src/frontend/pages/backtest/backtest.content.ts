@@ -117,8 +117,13 @@ export const backtestContent = {
   prizeOptions: [
     { label: "Two digit", value: "TWO_DIGIT" },
     { label: "First", value: "FIRST" },
+    { label: "Three digit", value: "THREE_DIGIT" },
     { label: "Three front", value: "THREE_FRONT" },
-    { label: "Three back", value: "THREE_BACK" }
+    { label: "Three back", value: "THREE_BACK" },
+    { label: "Prize 2", value: "PRIZE2" },
+    { label: "Prize 3", value: "PRIZE3" },
+    { label: "Prize 4", value: "PRIZE4" },
+    { label: "Prize 5", value: "PRIZE5" }
   ] satisfies ReadonlyArray<{ label: string; value: BacktestRequest["prizeType"] }>,
   chartTitle: "Hit sequence"
 } as const;

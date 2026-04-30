@@ -1,4 +1,5 @@
 export type ApiDrawStatus = "complete" | "partial" | "imported";
+export type ApiDrawSourceStatus = "IMPORTED" | "PARTIAL" | "VERIFIED";
 
 export interface ApiDrawPrize {
   id: string;
@@ -14,8 +15,12 @@ export interface ApiDraw {
   drawDateIso: string;
   drawNo: string;
   lotteryType: string;
+  metadata?: Record<string, unknown>;
+  publishedAt?: string;
   status: ApiDrawStatus;
   statusLabel: string;
+  sourceStatus: ApiDrawSourceStatus;
+  sourceUrl?: string;
   coverage: string;
   prizes: ApiDrawPrize[];
 }

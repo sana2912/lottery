@@ -1,0 +1,763 @@
+## Data Field Dictionary แบบละเอียด
+
+section นี้อธิบาย field ที่มีอยู่แล้วและ field ที่ควรเพิ่มในอนาคต โดยใช้ภาษาง่าย ๆ ว่าแต่ละ field คืออะไร เก็บอะไร ทำไมต้องมี และเอาไปใช้กับ feature ไหน
+
+### หลักการตั้ง field สำหรับโปรเจกต์นี้
+
+- เลขหวยต้องเก็บเป็น `String` เสมอ เพราะเลขอาจมีศูนย์นำหน้า เช่น `007`, `09`, `000123`
+- ทุกข้อมูลควรผูกกับ `lotteryType` เพื่อรองรับหวยหลายประเภทในอนาคต
+- ทุกสถิติควรมี context เช่น `prizeType`, `dateRange`, `windowSize` ไม่อย่างนั้นตัวเลขจะตีความผิดง่าย
+- ข้อมูล raw เช่น `draws` และ `prizes` ควรเก็บถาวร ส่วนข้อมูลสถิติ เช่น `digit_stats` และ `number_stats` จะคำนวณใหม่ได้
+- Field ที่เป็น score ควรมี explanation หรือ breakdown คู่กันเสมอ เพื่อให้ผู้ใช้รู้ว่าคะแนนมาจากอะไร
+
+### LotteryDraw หรือ draws
+
+ตารางนี้คือ “หนึ่งงวดหวย” เช่น งวดวันที่ 1 เมษายน 2026 เป็นแกนหลักที่ข้อมูลอื่นจะอ้างอิงถึง
+
+| Field          | สถานะ    | เก็บอะไร                                           | ทำไมต้องมี                                                  | ใช้กับ feature              |
+| -------------- | -------- | -------------------------------------------------- | ----------------------------------------------------------- | --------------------------- |
+| `id`           | มีแล้ว   | รหัสภายในของงวด ใช้ UUID v7                        | ใช้อ้างอิงงวดแบบไม่พึ่งวันที่อย่างเดียว และเชื่อมกับ prizes | Results, Backtest, Calendar |
+| `lotteryType`  | มีแล้ว   | ประเภทหวย เช่น `THAI_GOVERNMENT`                   | อนาคตถ้ามีหลายประเภทหวยจะไม่ปนกัน                           | ทุกหน้า                     |
+| `drawDate`     | มีแล้ว   | วันที่ออกผลรางวัล                                  | ใช้เรียงงวด กรองปี/เดือน ทำ calendar และ backtest           | Results, Calendar, Backtest |
+| `drawNo`       | มีแล้ว   | เลขงวดหรือรหัสงวด ถ้าแหล่งข้อมูลมี                 | ช่วยค้นหาและแสดงข้อมูลแบบที่ผู้ใช้คุ้นเคย                   | Results                     |
+| `prizes`       | มีแล้ว   | relation ไปยังรางวัลในงวดนั้น                      | ทำให้ดึงรางวัลทั้งหมดของงวดเดียวได้                         | Results, Analytics          |
+| `createdAt`    | มีแล้ว   | เวลาที่ record ถูกสร้างในระบบ                      | ใช้ audit ว่าข้อมูลเข้าระบบเมื่อไหร่                        | Admin/internal, data audit  |
+| `updatedAt`    | มีแล้ว   | เวลาที่ record ถูกแก้ล่าสุด                        | ใช้ตรวจว่าข้อมูลถูกแก้หรือ sync ใหม่เมื่อไหร่               | Data audit                  |
+| `sourceUrl`    | ควรเพิ่ม | URL หรือ reference ของแหล่งข้อมูล                  | เพิ่มความน่าเชื่อถือ และย้อนตรวจได้                         | Results, Methodology        |
+| `sourceStatus` | ควรเพิ่ม | สถานะข้อมูล เช่น `verified`, `partial`, `imported` | บอกว่าข้อมูลงวดนี้ครบและตรวจแล้วหรือยัง                     | Results, Dashboard          |
+| `publishedAt`  | ควรเพิ่ม | เวลาที่ผลถูกเผยแพร่จากแหล่งต้นทาง                  | ใช้แยกเวลาประกาศจริงกับเวลาที่เรา import                    | Results, Calendar           |
+| `metadata`     | ควรเพิ่ม | JSON ข้อมูลเสริม เช่น หมายเหตุวันเลื่อน            | ยืดหยุ่นสำหรับข้อมูลพิเศษโดยไม่ต้องเพิ่ม column บ่อย        | Calendar, Data audit        |
+
+ตัวอย่างการใช้จริง:
+
+- หน้า Results ใช้ `drawDate` เพื่อ filter เดือนเมษายน 2026
+- หน้า Calendar ใช้ `drawDate` เพื่อหา pattern เดือนเดียวกันในอดีต
+- Backtest ใช้ `drawDate` เพื่อเรียงลำดับเวลาและป้องกันการใช้ข้อมูลอนาคต
+
+### LotteryPrize หรือ prizes
+
+ตารางนี้คือ “รางวัลแต่ละรายการในงวด” เช่น รางวัลที่ 1 คือ `123456`, เลขท้าย 2 ตัวคือ `89`
+
+| Field       | สถานะ  | เก็บอะไร                               | ทำไมต้องมี                                                    | ใช้กับ feature                 |
+| ----------- | ------ | -------------------------------------- | ------------------------------------------------------------- | ------------------------------ |
+| `id`        | มีแล้ว | รหัสภายในของรางวัล                     | ใช้อ้างอิงรางวัลแต่ละแถว                                      | Results                        |
+| `drawId`    | มีแล้ว | id ของงวดที่รางวัลนี้อยู่              | เชื่อม prize กลับไป draw                                      | Results, Analytics             |
+| `draw`      | มีแล้ว | relation ไปยัง `LotteryDraw`           | ช่วย query รางวัลพร้อมข้อมูลงวด                               | Results                        |
+| `type`      | มีแล้ว | ประเภทรางวัล เช่น `FIRST`, `TWO_DIGIT` | แยกเลข 2 ตัว 3 ตัว 6 ตัวไม่ให้ปนกัน                           | Results, Analytics, Prediction |
+| `position`  | มีแล้ว | ลำดับของรางวัลในประเภทเดียวกัน         | ใช้กรณีมีหลายเลขในรางวัลประเภทเดียว เช่น เลขหน้า 3 ตัวหลายชุด | Results                        |
+| `number`    | มีแล้ว | เลขรางวัลแบบ string                    | รักษาศูนย์นำหน้า และใช้ค้นหา/แตก digit                        | ทุก feature ที่เกี่ยวกับเลข    |
+| `createdAt` | มีแล้ว | เวลาที่ prize ถูกสร้าง                 | ใช้ audit/import tracking                                     | Data audit                     |
+| `updatedAt` | มีแล้ว | เวลาที่ prize ถูกแก้ล่าสุด             | ใช้ตรวจความเปลี่ยนแปลงของข้อมูล                               | Data audit                     |
+
+ข้อควรจำ:
+
+- `number` ห้ามแปลงเป็น number type เพราะ `007` จะกลายเป็น `7`
+- การวิเคราะห์เลข 2 ตัวควรใช้เฉพาะ prize type ที่เป็นเลข 2 ตัว หรือสร้าง rule ที่ระบุชัดว่าใช้เลขท้าย 2 จากรางวัลที่ 1 หรือไม่
+
+### LotteryType enum
+
+ใช้บอกว่าข้อมูลเป็นหวยประเภทไหน
+
+| Value             | ความหมาย             | ทำไมต้องมี                                                   |
+| ----------------- | -------------------- | ------------------------------------------------------------ |
+| `THAI_GOVERNMENT` | สลากกินแบ่งรัฐบาลไทย | เป็นค่าเริ่มต้นของ MVP และทำให้โครงสร้างรองรับหวยอื่นในอนาคต |
+
+ในอนาคตอาจเพิ่มหวยประเภทอื่นได้ เช่น lottery ต่างประเทศ หรือหวยชุดอื่น แต่ต้องแยก schedule, prize type และ methodology ให้ชัด
+
+### LotteryPrizeType enum
+
+ใช้บอกว่ารางวัลเป็นประเภทอะไร
+
+| Value         | ความหมาย                   | ใช้ทำอะไร                                                             |
+| ------------- | -------------------------- | --------------------------------------------------------------------- |
+| `FIRST`       | รางวัลที่ 1 เลข 6 ตัว      | วิเคราะห์เลข 6 ตัว และดึงเลขท้ายบางตำแหน่งถ้า strategy ระบุ           |
+| `THREE_FRONT` | เลขหน้า 3 ตัว              | ใช้ search และ analytics ของเลข 3 ตัว                                 |
+| `THREE_BACK`  | เลขท้าย 3 ตัว              | ใช้ search และ analytics ของเลข 3 ตัว                                 |
+| `TWO_DIGIT`   | เลขท้าย 2 ตัว              | ใช้กับ feature ที่คนใช้บ่อยที่สุด เช่น search 2 ตัว, prediction 2 ตัว |
+| `NEAR_FIRST`  | รางวัลข้างเคียงรางวัลที่ 1 | เก็บผลย้อนหลังให้ครบ แต่ MVP อาจยังไม่ใช้ใน prediction                |
+| `OTHER`       | รางวัลอื่น ๆ               | รองรับข้อมูลครบชุดโดยไม่ต้องรื้อ schema                               |
+
+### UserWatchlistItem หรือ watchlist
+
+ตารางนี้คือ “เลขที่ผู้ใช้สนใจ” เช่น ผู้ใช้ save `47` พร้อม tag `เลขบ้าน`
+
+| Field                | สถานะ                | เก็บอะไร                                      | ทำไมต้องมี                              | ใช้กับ feature            |
+| -------------------- | -------------------- | --------------------------------------------- | --------------------------------------- | ------------------------- |
+| `id`                 | มีแล้ว               | รหัส watchlist item                           | ใช้ edit/delete เลขที่บันทึก            | Watchlist                 |
+| `number`             | มีแล้ว               | เลขที่ผู้ใช้สนใจ เช่น `47`, `583`             | เป็นหัวใจของ watchlist                  | Watchlist, Compare        |
+| `source`             | มีแล้ว               | ที่มาของเลข เช่น manual, prediction, notebook | บอกว่าเลขนี้ผู้ใช้ใส่เองหรือมาจากระบบ   | Watchlist                 |
+| `tags`               | มีแล้ว               | ป้ายกำกับ เช่น `เลขบ้าน`, `เลขฝัน`            | ช่วยจัดหมวดเลขส่วนตัว                   | Watchlist, Global search  |
+| `note`               | มีแล้ว               | note ส่วนตัวของผู้ใช้                         | เก็บบริบทที่ระบบคำนวณให้ไม่ได้          | Watchlist                 |
+| `createdAt`          | มีแล้ว               | วันที่บันทึกเลข                               | ใช้เรียงรายการและดู history             | Watchlist                 |
+| `updatedAt`          | มีแล้ว               | วันที่แก้ไขล่าสุด                             | ใช้ sync UI และ audit                   | Watchlist                 |
+| `lotteryType`        | ควรเพิ่ม             | ประเภทหวยของเลขนี้                            | เลขเดียวกันอาจอยู่คนละบริบทถ้ามีหลายหวย | Watchlist                 |
+| `numberLength`       | ควรเพิ่ม             | ความยาวเลข เช่น 2, 3, 6                       | ช่วยเลือก analytics ที่ถูกต้อง          | Watchlist, Compare        |
+| `sourcePredictionId` | ควรเพิ่ม             | prediction result ที่ทำให้ save เลขนี้        | ย้อนดูได้ว่าเลขมาจากสูตรไหน             | Prediction Lab, Watchlist |
+| `lastViewedAt`       | ควรเพิ่ม             | ผู้ใช้เปิดดูเลขนี้ล่าสุดเมื่อไหร่             | ใช้จัดลำดับหรือทำ notification ในอนาคต  | Watchlist                 |
+| `archivedAt`         | ควรเพิ่ม             | เวลาที่ผู้ใช้ archive เลข                     | ซ่อนเลขโดยไม่ลบประวัติ                  | Watchlist                 |
+| `userId`             | ควรเพิ่มเมื่อมี auth | เจ้าของ watchlist item                        | รองรับหลายผู้ใช้จริง                    | Watchlist                 |
+
+ตัวอย่างการใช้จริง:
+
+- ผู้ใช้ save `47` จาก Prediction Lab ระบบตั้ง `source = PREDICTION`
+- ผู้ใช้ใส่ tag `เลขบ้าน` ทำให้ global search หา tag นี้เจอ
+- หน้า Watchlist enrich เลข `47` ด้วย `number_stats` เพื่อบอกว่าเคยออกกี่ครั้งและล่าสุดเมื่อไหร่
+
+### WatchlistSource enum
+
+ใช้บอกที่มาของเลขใน watchlist
+
+| Value        | ความหมาย                  | ตัวอย่าง                             |
+| ------------ | ------------------------- | ------------------------------------ |
+| `MANUAL`     | ผู้ใช้กรอกเอง             | พิมพ์ `47` ใน Watchlist              |
+| `PREDICTION` | มาจาก Prediction Lab      | กด save เลขที่ระบบแนะนำ              |
+| `NOTEBOOK`   | มาจากบันทึก/ไอเดียส่วนตัว | อนาคตถ้ามี notebook หรือ import note |
+
+### PredictionRun หรือ predictions
+
+ตารางนี้คือ “การ generate เลขหนึ่งครั้ง” เช่น ผู้ใช้เลือกสูตร Balanced แล้วกด generate ได้เลขออกมา 10 ตัว
+
+| Field            | สถานะ    | เก็บอะไร                                         | ทำไมต้องมี                         | ใช้กับ feature              |
+| ---------------- | -------- | ------------------------------------------------ | ---------------------------------- | --------------------------- |
+| `id`             | มีแล้ว   | รหัสของ prediction run                           | ใช้อ้างอิงชุดผลลัพธ์หนึ่งครั้ง     | Prediction Lab              |
+| `strategy`       | มีแล้ว   | ชื่อสูตร เช่น `balanced`                         | บอกว่าผลนี้มาจากสูตรไหน            | Prediction Lab, Backtest    |
+| `params`         | มีแล้ว   | JSON parameter เช่น window size, candidate count | ทำให้ run เดิม reproduce ได้       | Prediction Lab, Backtest    |
+| `items`          | มีแล้ว   | relation ไป prediction results                   | ดึงเลขทั้งหมดใน run เดียวกัน       | Prediction Lab              |
+| `createdAt`      | มีแล้ว   | วันที่ generate                                  | ใช้ history และ audit              | Prediction Lab              |
+| `updatedAt`      | มีแล้ว   | วันที่แก้ไขล่าสุด                                | ใช้ audit                          | Internal                    |
+| `strategyId`     | ควรเพิ่ม | id ของ strategy definition                       | แยกชื่อสูตรกับ version/config จริง | Prediction, Backtest        |
+| `targetDrawDate` | ควรเพิ่ม | งวดที่ต้องการทำนาย                               | ทำให้รู้ว่าผลนี้ตั้งใจใช้กับงวดไหน | Prediction Lab, Watchlist   |
+| `lotteryType`    | ควรเพิ่ม | ประเภทหวย                                        | ไม่ให้ผลหลายหวยปนกัน               | ทุก prediction              |
+| `numberLength`   | ควรเพิ่ม | ความยาวเลขที่ generate                           | แยกสูตร 2/3/6 ตัว                  | Prediction Lab              |
+| `inputWindow`    | ควรเพิ่ม | ใช้ข้อมูลย้อนหลังช่วงไหน เช่น 120 งวด            | ช่วยอธิบาย score และ reproduce     | Prediction Lab, Methodology |
+| `version`        | ควรเพิ่ม | version ของ scoring engine                       | กันผลเก่ากับสูตรใหม่ปนกัน          | Prediction, Backtest        |
+| `status`         | ควรเพิ่ม | `completed`, `failed`, `running`                 | รองรับงานคำนวณที่ใช้เวลานาน        | Prediction, Backtest        |
+
+### PredictionResult
+
+ตารางนี้คือ “เลขแต่ละตัวที่อยู่ใน prediction run” เช่น run หนึ่งมีเลขแนะนำ `47`, `83`, `09`
+
+| Field            | สถานะ    | เก็บอะไร                             | ทำไมต้องมี                             | ใช้กับ feature            |
+| ---------------- | -------- | ------------------------------------ | -------------------------------------- | ------------------------- |
+| `id`             | มีแล้ว   | รหัสผลลัพธ์แต่ละเลข                  | ใช้อ้างอิง result เฉพาะตัว             | Prediction Lab            |
+| `runId`          | มีแล้ว   | id ของ prediction run                | ผูกเลขกลับไปยัง run ที่สร้างมัน        | Prediction Lab            |
+| `run`            | มีแล้ว   | relation ไป `PredictionRun`          | query ข้อมูล run พร้อม result          | Prediction Lab            |
+| `number`         | มีแล้ว   | เลขที่แนะนำ                          | สิ่งที่ผู้ใช้เห็นและ save ได้          | Prediction Lab, Watchlist |
+| `score`          | มีแล้ว   | คะแนนรวม เช่น 82                     | ใช้จัดอันดับเลข                        | Prediction, Compare       |
+| `reasons`        | มีแล้ว   | เหตุผลเป็นข้อความ เช่น hot trend สูง | ทำให้ผลลัพธ์อธิบายได้                  | Explain score             |
+| `createdAt`      | มีแล้ว   | วันที่สร้าง result                   | audit/history                          | Internal                  |
+| `updatedAt`      | มีแล้ว   | วันที่แก้ result                     | audit                                  | Internal                  |
+| `scoreBreakdown` | ควรเพิ่ม | คะแนนย่อย เช่น hot 30, overdue 20    | ผู้ใช้รู้ว่าคะแนนมาจากอะไร             | Prediction, Compare       |
+| `rank`           | ควรเพิ่ม | ลำดับในชุดผลลัพธ์                    | แสดง top 1, top 2 และใช้ backtest rank | Prediction, Backtest      |
+| `confidence`     | ควรเพิ่ม | ความมั่นใจ เช่น low/medium/high      | แยก score สูงออกจากความมั่นใจสูง       | Prediction, Compare       |
+
+ตัวอย่าง `scoreBreakdown`:
+
+```json
+{
+  "hotTrend": 28,
+  "overdue": 12,
+  "positionSupport": 24,
+  "pairSupport": 10,
+  "patternSupport": 8
+}
+```
+
+### digit_stats
+
+ตารางหรือ read model นี้คือ “สถิติเลขโดด 0-9” ใช้ตอบคำถามว่าเลข 7 ออกบ่อยไหม ออกตำแหน่งไหน และหายไปนานหรือยัง
+
+| Field              | สถานะ    | เก็บอะไร                            | ทำไมต้องมี                             | ใช้กับ feature        |
+| ------------------ | -------- | ----------------------------------- | -------------------------------------- | --------------------- |
+| `lotteryType`      | ควรเพิ่ม | ประเภทหวย                           | แยกข้อมูลแต่ละหวย                      | Analytics             |
+| `prizeType`        | ควรเพิ่ม | ประเภทรางวัลที่นำมาคำนวณ            | เลข 2 ตัวกับ 6 ตัวมีบริบทต่างกัน       | Analytics             |
+| `digit`            | ควรเพิ่ม | เลขโดด 0-9                          | หน่วยวิเคราะห์หลักของหน้านี้           | Analytics             |
+| `position`         | ควรเพิ่ม | ตำแหน่งหลัก เช่น หลักสิบ หลักหน่วย  | ดูว่า digit แข็งแรงในตำแหน่งไหน        | Analytics, Prediction |
+| `windowSize`       | ควรเพิ่ม | จำนวนงวดย้อนหลังที่ใช้ เช่น 50, 120 | ทำให้รู้ว่าสถิติอิงช่วงไหน             | Analytics             |
+| `drawCount`        | ควรเพิ่ม | จำนวนงวดที่ใช้คำนวณ                 | ใช้วัด sample size                     | Analytics, Confidence |
+| `hitCount`         | ควรเพิ่ม | จำนวนครั้งที่ digit ปรากฏ           | เป็นฐานของ frequency                   | Analytics             |
+| `frequencyPercent` | ควรเพิ่ม | hit count แปลงเป็นเปอร์เซ็นต์       | ผู้ใช้เปรียบเทียบง่ายกว่า count ดิบ    | Analytics             |
+| `lastSeenDrawDate` | ควรเพิ่ม | วันที่ digit นี้ออกล่าสุด           | ใช้บอก recency                         | Analytics, Watchlist  |
+| `missingDrawCount` | ควรเพิ่ม | หายไปกี่งวดแล้ว                     | ใช้หา overdue                          | Analytics, Prediction |
+| `trendDirection`   | ควรเพิ่ม | แนวโน้ม เช่น up/down/flat           | บอกว่าช่วงล่าสุด digit นี้มาแรงขึ้นไหม | Dashboard             |
+| `computedAt`       | ควรเพิ่ม | เวลาที่คำนวณสถิตินี้                | ใช้ cache invalidation และ audit       | Internal              |
+
+ตัวอย่าง:
+
+- `digit = 7`, `position = units`, `windowSize = 120`, `hitCount = 18`
+- แปลว่าใน 120 งวดล่าสุด เลข 7 เคยออกที่หลักหน่วย 18 ครั้ง
+
+### number_stats
+
+ตารางหรือ read model นี้คือ “สถิติของเลขเป็นชุด” เช่น `47`, `583`, `123456`
+
+| Field              | สถานะ    | เก็บอะไร                                 | ทำไมต้องมี                                        | ใช้กับ feature              |
+| ------------------ | -------- | ---------------------------------------- | ------------------------------------------------- | --------------------------- |
+| `number`           | ควรเพิ่ม | เลขชุด เช่น `47`                         | ตัวหลักที่ผู้ใช้ค้นหา/save/compare                | Results, Watchlist, Compare |
+| `numberLength`     | ควรเพิ่ม | ความยาวเลข 2, 3, 6                       | แยกบริบทการวิเคราะห์                              | Analytics, Prediction       |
+| `lotteryType`      | ควรเพิ่ม | ประเภทหวย                                | รองรับหลายหวย                                     | ทุกหน้า                     |
+| `prizeType`        | ควรเพิ่ม | ประเภทรางวัล                             | ทำให้รู้ว่า `47` มาจากเลขท้าย 2 หรือ segment อื่น | Results, Analytics          |
+| `drawCount`        | ควรเพิ่ม | จำนวนงวดที่ใช้คำนวณ                      | วัดฐานข้อมูล                                      | Analytics                   |
+| `hitCount`         | ควรเพิ่ม | จำนวนครั้งที่เลขนี้ออก                   | บอกว่าเคยออกบ่อยแค่ไหน                            | Watchlist, Compare          |
+| `frequencyPercent` | ควรเพิ่ม | hit count เป็นเปอร์เซ็นต์                | เปรียบเทียบเลขหลายตัวง่าย                         | Compare                     |
+| `lastSeenDrawDate` | ควรเพิ่ม | ออกล่าสุดวันไหน                          | ตอบคำถามผู้ใช้ทันที                               | Watchlist                   |
+| `missingDrawCount` | ควรเพิ่ม | ไม่ออกมากี่งวด                           | ใช้ overdue score                                 | Prediction                  |
+| `averageGap`       | ควรเพิ่ม | ค่าเฉลี่ยระยะห่างระหว่างครั้งที่ออก      | ช่วยดู rhythm ในอดีต                              | Analytics                   |
+| `maxGap`           | ควรเพิ่ม | เคยหายไปนานสุดกี่งวด                     | ใช้ risk/overdue context                          | Watchlist                   |
+| `trendScore`       | ควรเพิ่ม | คะแนนแนวโน้มล่าสุด                       | ใช้ hot trend strategy                            | Prediction                  |
+| `patternFlags`     | ควรเพิ่ม | pattern เช่น double, ascending, odd/even | ใช้ Patterns และ score                            | Patterns, Prediction        |
+| `computedAt`       | ควรเพิ่ม | เวลาที่คำนวณ                             | ใช้ cache และตรวจ freshness                       | Internal                    |
+
+ตัวอย่าง:
+
+- `number = 47`, `hitCount = 6`, `lastSeenDrawDate = 2025-11-16`, `missingDrawCount = 9`
+- แปลว่าเลข 47 เคยออก 6 ครั้งในช่วงข้อมูลที่เลือก และหายไป 9 งวดจากครั้งล่าสุด
+
+### strategies
+
+ตารางนี้คือ “นิยามสูตร” ไม่ใช่ผลลัพธ์ เช่น สูตร Hot trend หรือ Balanced
+
+| Field           | สถานะ    | เก็บอะไร                                   | ทำไมต้องมี                              | ใช้กับ feature       |
+| --------------- | -------- | ------------------------------------------ | --------------------------------------- | -------------------- |
+| `id`            | ควรเพิ่ม | รหัส strategy                              | อ้างอิงสูตรแบบ stable                   | Prediction, Backtest |
+| `name`          | ควรเพิ่ม | ชื่อที่แสดงใน UI                           | ให้ผู้ใช้เลือกสูตรได้ง่าย               | Prediction Lab       |
+| `description`   | ควรเพิ่ม | คำอธิบายสูตร                               | ใช้ใน Methodology และ tooltip           | Methodology          |
+| `type`          | ควรเพิ่ม | กลุ่มสูตร เช่น statistical, ml, simulation | แยกสูตรพื้นฐานกับ advanced              | Prediction, Backtest |
+| `defaultParams` | ควรเพิ่ม | config เริ่มต้น เช่น window 120            | ทำให้ run สูตรได้โดยไม่ต้องกรอกทุกอย่าง | Prediction           |
+| `isActive`      | ควรเพิ่ม | เปิด/ปิดสูตร                               | ซ่อนสูตรที่ยังทดลองหรือ deprecated      | Prediction           |
+| `version`       | ควรเพิ่ม | version ของสูตร                            | backtest เก่า/ใหม่เทียบกันได้           | Backtest             |
+| `createdAt`     | ควรเพิ่ม | วันที่สร้างสูตร                            | audit                                   | Internal             |
+| `updatedAt`     | ควรเพิ่ม | วันที่แก้สูตร                              | audit และ versioning                    | Internal             |
+
+### backtest_runs
+
+ตารางนี้คือ “การทดสอบสูตรย้อนหลังหนึ่งครั้ง” เช่น ทดสอบ Balanced ระหว่างปี 2022-2025
+
+| Field               | สถานะ    | เก็บอะไร                   | ทำไมต้องมี                                  | ใช้กับ feature |
+| ------------------- | -------- | -------------------------- | ------------------------------------------- | -------------- |
+| `strategyId`        | ควรเพิ่ม | สูตรที่ทดสอบ               | รู้ว่าผลนี้เป็นของสูตรไหน                   | Backtest       |
+| `params`            | ควรเพิ่ม | config ที่ใช้ทดสอบ         | reproduce ผลได้                             | Backtest       |
+| `lotteryType`       | ควรเพิ่ม | ประเภทหวย                  | แยกข้อมูลหลายหวย                            | Backtest       |
+| `prizeType`         | ควรเพิ่ม | ประเภทรางวัลที่ทดสอบ       | เลข 2/3/6 ตัวต้องวัดแยกกัน                  | Backtest       |
+| `numberLength`      | ควรเพิ่ม | ความยาวเลข                 | ใช้เทียบ strategy อย่างยุติธรรม             | Backtest       |
+| `startDrawDate`     | ควรเพิ่ม | วันเริ่ม test              | กำหนดช่วงข้อมูลย้อนหลัง                     | Backtest       |
+| `endDrawDate`       | ควรเพิ่ม | วันจบ test                 | กำหนดช่วงข้อมูลย้อนหลัง                     | Backtest       |
+| `candidateCount`    | ควรเพิ่ม | generate กี่เลขต่อหนึ่งงวด | hit rate จะเปลี่ยนตามจำนวนเลขที่แนะนำ       | Backtest       |
+| `hitRate`           | ควรเพิ่ม | อัตรางวดที่ทายโดน          | metric หลักที่ผู้ใช้เข้าใจง่าย              | Backtest       |
+| `longestMissStreak` | ควรเพิ่ม | พลาดติดกันนานสุดกี่งวด     | สะท้อนความเสี่ยงมากกว่า hit rate อย่างเดียว | Backtest       |
+| `computedAt`        | ควรเพิ่ม | เวลาที่คำนวณ               | บอก freshness และ audit                     | Backtest       |
+
+### backtest_results
+
+ตารางนี้คือ “ผลของแต่ละงวดภายใน backtest run”
+
+| Field              | สถานะ    | เก็บอะไร                             | ทำไมต้องมี                     | ใช้กับ feature |
+| ------------------ | -------- | ------------------------------------ | ------------------------------ | -------------- |
+| `runId`            | ควรเพิ่ม | backtest run ที่ result นี้สังกัด    | รวมผลรายงวดเป็นชุดเดียว        | Backtest       |
+| `drawId`           | ควรเพิ่ม | งวดที่กำลังทดสอบ                     | เทียบกับผลจริงของงวดนั้น       | Backtest       |
+| `generatedNumbers` | ควรเพิ่ม | เลขที่ strategy แนะนำในงวดนั้น       | ใช้ตรวจว่าทายอะไรไว้           | Backtest       |
+| `actualNumbers`    | ควรเพิ่ม | เลขจริงของงวดนั้น                    | ใช้ตัดสิน hit/miss             | Backtest       |
+| `isHit`            | ควรเพิ่ม | งวดนี้ทายโดนหรือไม่                  | คำนวณ hit rate                 | Backtest       |
+| `hitNumbers`       | ควรเพิ่ม | เลขที่โดนจริง ถ้ามี                  | แสดงรายละเอียดผู้ใช้           | Backtest       |
+| `rankOfHit`        | ควรเพิ่ม | ถ้าโดน เลขที่โดนอยู่ลำดับที่เท่าไหร่ | วัดว่า strategy จัดอันดับดีไหม | Backtest       |
+
+ตัวอย่าง:
+
+- `generatedNumbers = ["47", "83", "09"]`
+- `actualNumbers = ["83"]`
+- `isHit = true`
+- `rankOfHit = 2`
+
+แปลว่า strategy ทายโดน เพราะเลขจริง `83` อยู่ในรายการแนะนำลำดับที่ 2
+
+## API และ module ที่ควรวาง
+
+ใช้ boundary เดิมของโปรเจกต์:
+
+- `src/api/router`: route definition
+- `src/api/service`: business logic
+- `src/api/model/dto`: DTO
+- `src/schema/api`: API interface
+- `src/schema/app`: Zod schema สำหรับ frontend/app
+- `src/frontend/pages`: route-level page
+- `src/frontend/components`: composed UI
+- `src/frontend/chart-primitives`: D3 chart foundation
+
+Endpoint ที่แนะนำ:
+
+- `GET /api/draws`
+- `GET /api/draws/:id`
+- `GET /api/analytics/summary`
+- `GET /api/analytics/digits`
+- `GET /api/analytics/numbers`
+- `GET /api/analytics/patterns`
+- `POST /api/predictions`
+- `GET /api/predictions/:id`
+- `POST /api/backtests`
+- `GET /api/backtests/:id`
+- `GET /api/watchlist`
+- `POST /api/watchlist`
+- `PATCH /api/watchlist/:id`
+- `DELETE /api/watchlist/:id`
+- `GET /api/search`
+- `GET /api/calendar`
+- `POST /api/compare`
+
+## Shared MVP Features
+
+### Global search
+
+คืออะไร:
+
+- ช่องค้นหาเลขหรือข้อความจากทุกหน้า เช่น ค้นหา `47`, `583`, tag, note, draw date
+
+ประโยชน์:
+
+- ทำให้เว็บรู้สึกเป็น product จริง ผู้ใช้ไม่ต้องจำว่าเลขอยู่หน้าไหน
+
+วิธีทำ:
+
+- ทำ `GlobalSearch` เป็น client component
+- สร้าง `/api/search?q=...`
+- ค้นจาก draws, prizes, number_stats, watchlist tags
+- แยก result type เช่น draw, number, watchlist
+
+Advance:
+
+- ทำ fuzzy search
+- ทำ recent searches
+- ทำ command palette
+- ทำ search index แยกถ้าข้อมูลใหญ่
+
+### Date/draw range selector
+
+คืออะไร:
+
+- ตัวเลือกช่วงงวด เช่น 50 งวดล่าสุด, ปีนี้, custom date range
+
+ประโยชน์:
+
+- สถิติทุกอย่างเปลี่ยนตามช่วงข้อมูล ผู้ใช้เห็นบริบทมากขึ้น
+
+วิธีทำ:
+
+- สร้าง shared filter state เช่น `lotteryType`, `startDate`, `endDate`, `windowSize`
+- ส่ง filter นี้ไป API ทุกหน้า analytics/prediction/backtest
+
+Advance:
+
+- save preset
+- compare ranges
+- sync filter กับ URL query string
+
+### Lottery type selector
+
+คืออะไร:
+
+- ตัวเลือกประเภทหวย เผื่ออนาคตมีหลายประเภท
+
+ประโยชน์:
+
+- โครงสร้างพร้อมขยายโดยไม่ต้องรื้อ API
+
+วิธีทำ:
+
+- ใช้ enum `LotteryType`
+- ใส่ใน query ของทุก endpoint
+- MVP เริ่มที่ `THAI_GOVERNMENT`
+
+Advance:
+
+- รองรับ lottery type หลายประเทศ
+- แยก timezone, schedule, prize taxonomy ต่อ type
+
+### Save number to watchlist
+
+คืออะไร:
+
+- ปุ่มบันทึกเลขจาก Prediction, Compare, Analytics เข้า Watchlist
+
+ประโยชน์:
+
+- เปลี่ยน dashboard จากอ่านเฉย ๆ เป็น workflow ส่วนตัวของผู้ใช้
+
+วิธีทำ:
+
+- `POST /api/watchlist`
+- ส่ง `number`, `tags`, `note`, `source`
+- หน้าอื่นเรียก mutation เดียวกัน
+
+Advance:
+
+- auth และ user-specific watchlist
+- notification ก่อนงวดออก
+- alert เมื่อเลขใน watchlist มี signal เปลี่ยน
+
+### Explain score
+
+คืออะไร:
+
+- อธิบายว่าคะแนนของเลขมาจากอะไร เช่น hot 35 คะแนน, overdue 20 คะแนน, position 30 คะแนน
+
+ประโยชน์:
+
+- เพิ่มความน่าเชื่อถือ และลดความรู้สึกว่าเว็บสุ่มเลขมั่ว
+
+วิธีทำ:
+
+- ทุก prediction result มี `scoreBreakdown`
+- UI แสดงเป็น row หรือ popover
+- `reasons` เป็นภาษาคนอ่านได้
+
+Advance:
+
+- interactive explanation
+- show historical examples
+- compare explanation ระหว่างเลขหลายชุด
+
+### Empty state, loading skeleton, responsive, light/dark
+
+คืออะไร:
+
+- สถานะ UI เมื่อยังไม่มีข้อมูล, กำลังโหลด, เปิดบนมือถือ, หรือสลับ theme
+
+ประโยชน์:
+
+- ทำให้ MVP ดู production และลดความงงของผู้ใช้
+
+วิธีทำ:
+
+- สร้าง reusable components เช่น `EmptyState`, `LoadingSkeleton`, `FilterToolbar`
+- ใช้ design tokens จาก `globals.css`
+- light mode ทำก่อน dark mode ค่อยเพิ่มด้วย CSS variables
+
+Advance:
+
+- skeleton เฉพาะ chart/table
+- persisted theme
+- mobile bottom nav หรือ collapsible sidebar
+
+## Navigation MVP
+
+โปรเจกต์มี navigation หลักใน `src/lib/app/navigation.ts` แล้ว ควรรักษา order นี้ไว้ใน MVP เพราะเรียงจาก overview ไป trust/documentation ได้ดี:
+
+1. Dashboard: ภาพรวม
+2. Results: ผลย้อนหลัง
+3. Analytics: วิเคราะห์
+4. Patterns: แพตเทิร์น
+5. Prediction Lab: ห้องทดลองทำนาย
+6. Backtest: ทดสอบย้อนหลัง
+7. Watchlist: รายการเฝ้าดู
+8. Compare: เปรียบเทียบ
+9. Calendar: ปฏิทิน
+10. Methodology: วิธีคำนวณ
+
+## Feature Explanation แบบเข้าใจง่าย
+
+section นี้อธิบาย feature ในมุมผู้ใช้และ product ก่อนเข้าแผน implement เชิงเทคนิค จุดประสงค์คือให้ dev ที่ไม่ถนัดสถิติยังเข้าใจว่าแต่ละหน้ากำลังช่วยผู้ใช้อย่างไร
+
+### Dashboard แบบเข้าใจง่าย
+
+ภาพจำง่าย ๆ:
+
+- เหมือนหน้า home ของ banking app หรือ investment app ที่เปิดมาแล้วเห็นภาพรวมทันที ไม่ต้องกดหลายหน้า
+
+ผู้ใช้ใช้ทำอะไร:
+
+- ดูงวดล่าสุด
+- ดูเลขที่ระบบมองว่าน่าสนใจ
+- ดูเลข hot, cold, overdue แบบสรุป
+- กดไปดูรายละเอียดใน Results, Analytics, Prediction Lab หรือ Backtest
+
+ตัวอย่างสถานการณ์:
+
+- ผู้ใช้เปิดเว็บก่อนวันหวยออก อยากรู้ว่าตอนนี้เลขไหนกำลังถูกพูดถึงจากข้อมูลย้อนหลัง
+- Dashboard ควรตอบเร็ว ๆ ว่า “งวดล่าสุดคืออะไร”, “เลขไหนมาแรง”, “เลขไหนหายไปนาน”, “มี prediction summary อะไร”
+
+ข้อมูลที่อยู่เบื้องหลัง:
+
+- `LotteryDraw` สำหรับงวดล่าสุด
+- `LotteryPrize` สำหรับผลรางวัลงวดล่าสุด
+- `digit_stats` สำหรับ hot/cold digit
+- `number_stats` สำหรับ overdue numbers
+- `PredictionRun` และ `PredictionResult` สำหรับ prediction summary ล่าสุด
+
+สิ่งที่ควรระวัง:
+
+- Dashboard ไม่ควรคำนวณเองทุกอย่างใน component
+- ควรรับข้อมูลจาก `DashboardSummaryDto` ที่ backend/service เตรียมไว้
+- ตัวเลขแนะนำต้องมี link ไป explanation หรือ methodology
+
+### Results แบบเข้าใจง่าย
+
+ภาพจำง่าย ๆ:
+
+- เหมือนสมุดทะเบียนผลหวยย้อนหลังที่ค้นหาได้
+
+ผู้ใช้ใช้ทำอะไร:
+
+- ดูผลรางวัลย้อนหลัง
+- filter ตามปี เดือน งวด หรือประเภทหวย
+- ค้นเลข 2 ตัว 3 ตัว 6 ตัว
+- กดเข้าไปดูรายละเอียดงวด
+- ตรวจว่าข้อมูลในระบบครบแค่ไหน
+
+ตัวอย่างสถานการณ์:
+
+- ผู้ใช้สงสัยว่าเลข `47` เคยออกเมื่อไหร่
+- เขาพิมพ์ `47` แล้วระบบแสดงงวดที่เกี่ยวข้อง พร้อมบอกว่าเป็นเลขท้าย 2 ตัวหรืออยู่ในรางวัลประเภทไหน
+
+ข้อมูลที่อยู่เบื้องหลัง:
+
+- `LotteryDraw` คือรายการงวด
+- `LotteryPrize` คือเลขรางวัลในแต่ละงวด
+- `sourceStatus` ในอนาคตใช้บอกว่าข้อมูล verified หรือยัง
+
+สิ่งที่ควรระวัง:
+
+- เลขต้อง search แบบ string เพื่อรักษาศูนย์นำหน้า
+- ต้องแยก search ตามความยาวเลข ไม่อย่างนั้นค้น `09` อาจชนกับเลข 6 ตัวที่มี `09` อยู่ข้างในแบบไม่ตั้งใจ
+- Results เป็นฐานความจริงของระบบ ถ้าหน้านี้ผิด analytics และ prediction จะผิดตาม
+
+### Number Analytics แบบเข้าใจง่าย
+
+ภาพจำง่าย ๆ:
+
+- เหมือนหน้ารายงานว่าตัวเลข 0-9 แต่ละตัวมีพฤติกรรมอย่างไร
+
+ผู้ใช้ใช้ทำอะไร:
+
+- ดูว่าเลขโดดตัวไหนออกบ่อย
+- ดูว่าเลขโดดตัวไหนหายไปนาน
+- ดูว่าเลขบางตัวเด่นในตำแหน่งไหน เช่น หลักสิบหรือหลักหน่วย
+- เปรียบเทียบ hot/cold แบบเห็นภาพ
+
+ตัวอย่างสถานการณ์:
+
+- ผู้ใช้อยากรู้ว่าเลข `7` ช่วงหลังออกบ่อยจริงไหม
+- Analytics ควรบอกได้ว่าเลข `7` ออกกี่ครั้งใน 120 งวดล่าสุด ออกตำแหน่งไหนบ่อย และออกล่าสุดเมื่อไหร่
+
+ข้อมูลที่อยู่เบื้องหลัง:
+
+- `LotteryPrize.number` ถูกแตกเป็น digit
+- `digit_stats` เก็บผลนับเลข 0-9
+- `number_stats` ใช้เมื่อต้องดูเลขเป็นชุด เช่น `47`
+
+สิ่งที่ควรระวัง:
+
+- ต้องบอกช่วงข้อมูลเสมอ เช่น 50 งวดล่าสุดหรือ 120 งวดล่าสุด
+- Hot ในช่วงสั้นกับ hot ระยะยาวอาจไม่เหมือนกัน
+- ค่า frequency ควรแสดงคู่กับจำนวนงวดที่ใช้คำนวณ
+
+### Patterns แบบเข้าใจง่าย
+
+ภาพจำง่าย ๆ:
+
+- เหมือนแปลเลขดิบให้กลายเป็นภาษาที่คนดูสูตรเข้าใจ เช่น คู่/คี่ สูง/ต่ำ เลขเบิ้ล เลขเรียง
+
+ผู้ใช้ใช้ทำอะไร:
+
+- ดูว่า pattern แบบไหนเกิดบ่อย
+- ดู pattern แยกตามวันที่ 1 หรือ 16
+- ดู pattern รายเดือน
+- ใช้ pattern เป็นเหตุผลประกอบ prediction score
+
+ตัวอย่างสถานการณ์:
+
+- ผู้ใช้อยากรู้ว่าเลขท้าย 2 ตัวช่วงหลังออกคู่หรือคี่มากกว่ากัน
+- Patterns ควรแสดงสัดส่วนคู่/คี่ และบอกได้ว่าข้อมูลอิงกี่งวด
+
+ข้อมูลที่อยู่เบื้องหลัง:
+
+- `LotteryPrize.number`
+- `patternFlags` ใน `number_stats`
+- `drawDate` เพื่อแยกวันที่ 1/16 และเดือน
+
+สิ่งที่ควรระวัง:
+
+- Pattern เป็น descriptive insight ไม่ใช่หลักฐานว่ารอบหน้าจะออกแบบเดิม
+- ต้องเทียบกับ baseline เช่น random หรือค่าเฉลี่ยระยะยาว เพื่อไม่ให้ตีความเกินจริง
+
+### Prediction Lab แบบเข้าใจง่าย
+
+ภาพจำง่าย ๆ:
+
+- เหมือนห้องทดลองสูตร ผู้ใช้เลือกสูตรแล้วระบบ generate เลขพร้อมเหตุผล
+
+ผู้ใช้ใช้ทำอะไร:
+
+- เลือกสูตร เช่น Hot trend, Cold rebound, Balanced
+- เลือกความยาวเลข เช่น 2 ตัว 3 ตัว 6 ตัว
+- กด generate เลขแนะนำ
+- ดู score และเหตุผลของแต่ละเลข
+- save เลขที่สนใจเข้า Watchlist
+
+ตัวอย่างสถานการณ์:
+
+- ผู้ใช้เลือกสูตร Balanced และให้ระบบแนะนำเลข 10 ตัว
+- ระบบแสดง `47` score 82 พร้อมเหตุผลว่า hot trend ดี, position support ดี, แต่ confidence medium เพราะข้อมูลช่วงล่าสุดยังไม่มาก
+
+ข้อมูลที่อยู่เบื้องหลัง:
+
+- `strategies` กำหนดสูตร
+- `digit_stats` และ `number_stats` เป็น input ของคะแนน
+- `PredictionRun` เก็บการ generate หนึ่งครั้ง
+- `PredictionResult` เก็บเลขแต่ละตัวพร้อม score และ reasons
+
+สิ่งที่ควรระวัง:
+
+- ห้ามแสดงเหมือนเป็นเลขล็อกหรือการันตี
+- ทุก score ต้อง explain ได้
+- ทุก strategy ควรเอาไป backtest ได้
+
+### Backtest แบบเข้าใจง่าย
+
+ภาพจำง่าย ๆ:
+
+- เหมือนเอาสูตรไปย้อนสอบในอดีตว่า ถ้าเราใช้สูตรนี้มาตั้งแต่ปีก่อน ผลจะเป็นอย่างไร
+
+ผู้ใช้ใช้ทำอะไร:
+
+- เลือก strategy
+- เลือกช่วงข้อมูลย้อนหลัง
+- ดูว่าสูตรทายโดนบ่อยแค่ไหน
+- ดูว่าสูตรเคยพลาดติดกันนานสุดกี่งวด
+- เทียบหลายสูตรในหน้าเดียว
+
+ตัวอย่างสถานการณ์:
+
+- ผู้ใช้สงสัยว่าสูตร Hot trend ดีกว่า Balanced ไหม
+- Backtest ควรแสดงว่าแต่ละสูตร hit rate เท่าไหร่ longest miss streak เท่าไหร่ และดีกว่า random baseline หรือไม่
+
+ข้อมูลที่อยู่เบื้องหลัง:
+
+- `LotteryDraw` และ `LotteryPrize` สำหรับข้อมูลจริงย้อนหลัง
+- `strategies` สำหรับสูตรที่ทดสอบ
+- `backtest_runs` เก็บผลสรุปการทดสอบ
+- `backtest_results` เก็บผลรายงวด
+
+สิ่งที่ควรระวัง:
+
+- ต้องใช้ walk-forward backtest เท่านั้น
+- ห้ามใช้ข้อมูลของงวดเป้าหมายมาคำนวณเลขที่จะทายงวดนั้น
+- Hit rate ต้องอ่านคู่กับ candidate count เพราะแนะนำ 100 เลขย่อมมีโอกาสโดนมากกว่าแนะนำ 5 เลข
+
+### Watchlist แบบเข้าใจง่าย
+
+ภาพจำง่าย ๆ:
+
+- เหมือนสมุดจดเลขส่วนตัว แต่ระบบช่วยเติมสถิติให้
+
+ผู้ใช้ใช้ทำอะไร:
+
+- บันทึกเลขที่สนใจ
+- ใส่ tag เช่น เลขบ้าน เลขฝัน เลขสูตร
+- เขียน note
+- ดูว่าเลขนั้นเคยออกกี่ครั้ง ออกล่าสุดเมื่อไหร่ และหายไปกี่งวด
+
+ตัวอย่างสถานการณ์:
+
+- ผู้ใช้บันทึกเลข `47` พร้อม tag `เลขบ้าน`
+- Watchlist แสดงว่า `47` เคยออก 6 ครั้ง ล่าสุดวันที่ไหน และตอนนี้อยู่กลุ่ม hot/warm/cold อะไร
+
+ข้อมูลที่อยู่เบื้องหลัง:
+
+- `UserWatchlistItem` เก็บเลข tag note และ source
+- `number_stats` enrich ข้อมูลสถิติของเลขนั้น
+- `PredictionResult` ใช้เชื่อมกลับถ้าเลขมาจาก Prediction Lab
+
+สิ่งที่ควรระวัง:
+
+- watchlist เป็นข้อมูลส่วนตัว ถ้ามี auth ต้องผูก `userId`
+- note และ tag ไม่ควรเอาไปเปิดเผยในส่วน public
+- ถ้ายังไม่มี auth ให้ทำเป็น MVP local/global ชัดเจน
+
+### Compare แบบเข้าใจง่าย
+
+ภาพจำง่าย ๆ:
+
+- เหมือนเอาเลขหลายตัวมาวางบนโต๊ะ แล้วชั่งน้ำหนักว่าตัวไหนเด่นด้านไหน
+
+ผู้ใช้ใช้ทำอะไร:
+
+- ใส่เลขหลายชุดเพื่อเทียบกัน
+- ดูว่าเลขไหน hot กว่า
+- ดูว่าเลขไหน overdue กว่า
+- ดูว่าเลขไหนมี pattern support มากกว่า
+- ดู score breakdown แบบ side-by-side
+
+ตัวอย่างสถานการณ์:
+
+- ผู้ใช้ลังเลระหว่าง `47`, `83`, `09`
+- Compare ควรแสดงว่า `47` hot กว่า, `83` overdue กว่า, `09` มี position support ต่ำกว่า
+
+ข้อมูลที่อยู่เบื้องหลัง:
+
+- `number_stats`
+- `digit_stats`
+- scoring engine เดียวกับ Prediction Lab
+- `scoreBreakdown`
+
+สิ่งที่ควรระวัง:
+
+- Compare ไม่ควรบอกว่าเลขไหน “ต้องซื้อ”
+- ควรบอกว่าเลขไหนมี signal ด้านไหน เพื่อให้ผู้ใช้ตัดสินใจเอง
+
+### Calendar แบบเข้าใจง่าย
+
+ภาพจำง่าย ๆ:
+
+- เหมือนปฏิทินหวยที่ไม่ได้บอกแค่วันออก แต่บอก insight ของเดือนนั้นด้วย
+
+ผู้ใช้ใช้ทำอะไร:
+
+- ดูงวดถัดไป
+- ดู countdown
+- ดู pattern ของเดือนนี้จากอดีต
+- ดูว่าเลขหรือ pattern ไหนเด่นในเดือนเดียวกัน
+
+ตัวอย่างสถานการณ์:
+
+- วันนี้ใกล้งวดวันที่ 16
+- Calendar แสดง countdown และ insight ว่าในเดือนนี้จากอดีต เลขคู่/คี่ หรือ digit group ไหนเด่นกว่าปกติ
+
+ข้อมูลที่อยู่เบื้องหลัง:
+
+- `LotteryDraw.drawDate`
+- calendar helper สำหรับหางวดวันที่ 1/16
+- `digit_stats`, `number_stats`, `patterns` ที่ filter ตามเดือน
+
+สิ่งที่ควรระวัง:
+
+- ต้องรองรับกรณีวันออกหวยเลื่อน
+- Insight รายเดือนมี sample size น้อย ต้องสื่อสารความไม่แน่นอน
+
+### Methodology แบบเข้าใจง่าย
+
+ภาพจำง่าย ๆ:
+
+- เหมือนคู่มืออธิบายว่าเว็บคิดเลขยังไง และข้อจำกัดคืออะไร
+
+ผู้ใช้ใช้ทำอะไร:
+
+- อ่านว่า Hot คืออะไร
+- อ่านว่า Cold คืออะไร
+- อ่านว่า Backtest ต้องดูยังไง
+- เข้าใจว่า Prediction score ไม่ใช่การการันตี
+
+ตัวอย่างสถานการณ์:
+
+- ผู้ใช้เห็นเลข `47` ได้ score 82 แล้วสงสัยว่าทำไม
+- Methodology ควรอธิบายว่า score มาจาก hot trend, overdue, position support, pair support และ pattern support อย่างไร
+
+ข้อมูลที่อยู่เบื้องหลัง:
+
+- เนื้อหา static ที่ version ได้
+- ตัวอย่างจาก `PredictionResult.scoreBreakdown`
+- ผล Backtest summary ต่อ strategy ในอนาคต
+
+สิ่งที่ควรระวัง:
+
+- ภาษาต้องไม่ technical เกินไป
+- ต้องมี responsible prediction copy ชัดเจน
+- ควร link จากทุกหน้าที่มี score หรือคำศัพท์สถิติ

@@ -71,6 +71,19 @@ export function getMockDraw(id: string, fallback: ResultsReadModel): Draw | null
       type: prize.prizeType
     })),
     status: draw.status,
-    statusLabel: draw.statusLabel
+    statusLabel: draw.statusLabel,
+    sourceStatus: toSourceStatus(draw.status)
   };
+}
+
+function toSourceStatus(status: ResultsReadModel["draws"][number]["status"]) {
+  if (status === "complete") {
+    return "VERIFIED";
+  }
+
+  if (status === "partial") {
+    return "PARTIAL";
+  }
+
+  return "IMPORTED";
 }
