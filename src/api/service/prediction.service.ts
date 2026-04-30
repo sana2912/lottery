@@ -5,6 +5,7 @@ import { getPredictionStrategy } from "@/api/service/prediction/strategy-registr
 import type { PredictionRequest } from "@/schema/app/prediction.schema";
 
 export async function generate(input: PredictionRequest) {
+  const generatedAt = new Date();
   const strategy = getPredictionStrategy(input.strategyId);
   const numberStats = await analyticsService.getNumberStats({
     lotteryType: input.lotteryType,
@@ -14,6 +15,16 @@ export async function generate(input: PredictionRequest) {
     prizeType: input.prizeType,
     windowSize: input.windowSize
   });
+
+  if (numberStats.length === 0) {
+    return toApiPredictionResponse({
+      generatedAt,
+      input,
+      results: [],
+      source: "api"
+    });
+  }
+
   const rankedResults = numberStats
     .map((stat, index) =>
       scoreNumber({
@@ -31,7 +42,7 @@ export async function generate(input: PredictionRequest) {
     }));
 
   return toApiPredictionResponse({
-    generatedAt: new Date(),
+    generatedAt,
     input,
     results: rankedResults,
     source: "api"

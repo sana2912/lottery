@@ -170,6 +170,80 @@ describe("backtest.service", () => {
     expect(backtestHistoryResponseSchema.parse(history)).toEqual(history);
     expect(history.items).toHaveLength(1);
   });
+
+  test("caps backtest draw queries at the current date when endDate is omitted", async () => {
+    let argsSeen: unknown;
+
+    (globalThis as { prisma?: unknown }).prisma = {
+      $transaction: async (
+        callback: (tx: {
+          backtestResult: {
+            createMany: (args: { data: Array<Record<string, unknown>> }) => Promise<void>;
+          };
+          backtestRun: { create: (args: { data: Record<string, unknown> }) => Promise<void> };
+        }) => Promise<void>
+      ) =>
+        callback({
+          backtestResult: {
+            createMany: async () => {}
+          },
+          backtestRun: {
+            create: async () => {}
+          }
+        }),
+      backtestRun: {
+        findUnique: async () => ({
+          averageHitRank: null,
+          candidateCount: 5,
+          computedAt: new Date("2026-04-29T00:00:00.000Z"),
+          coverage: 0,
+          endDrawDate: new Date("2026-04-29T00:00:00.000Z"),
+          hitRate: 0,
+          id: "run-1",
+          longestMissStreak: 0,
+          lotteryType: "THAI_GOVERNMENT",
+          numberLength: 2,
+          params: {},
+          prizeType: "TWO_DIGIT",
+          results: [],
+          startDrawDate: new Date("2026-04-29T00:00:00.000Z"),
+          strategyId: "balanced",
+          strategyName: "Balanced",
+          version: "prediction-engine-v1"
+        })
+      },
+      lotteryDraw: {
+        findMany: async (args: unknown) => {
+          argsSeen = args;
+          return [];
+        }
+      }
+    };
+
+    await runBacktest({
+      candidateCount: 5,
+      endDate: undefined,
+      lotteryType: "THAI_GOVERNMENT",
+      numberLength: 2,
+      page: 1,
+      pageSize: 20,
+      params: {},
+      prizeType: "TWO_DIGIT",
+      q: undefined,
+      startDate: undefined,
+      strategyId: "balanced",
+      windowSize: 20
+    });
+
+    expect(argsSeen).toMatchObject({
+      where: {
+        drawDate: {
+          lte: expect.any(Date)
+        },
+        lotteryType: "THAI_GOVERNMENT"
+      }
+    });
+  });
 });
 
 function draw(id: string, drawDate: string, number: string) {

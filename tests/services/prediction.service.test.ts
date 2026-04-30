@@ -34,6 +34,42 @@ describe("prediction.service", () => {
     expect(response.results.map((item) => item.number)).toEqual(["11", "09"]);
     expect(response.results.map((item) => item.rank)).toEqual([1, 2]);
   });
+
+  test("returns an empty result set when analytics has no candidates", async () => {
+    mutableAnalyticsService.getNumberStats = async () => [];
+
+    const response = await predictionService.generate({
+      count: 5,
+      lotteryType: "THAI_GOVERNMENT",
+      numberLength: 2,
+      prizeType: "TWO_DIGIT",
+      strategyId: "balanced",
+      windowSize: 120
+    });
+
+    expect(predictionResponseSchema.parse(response)).toEqual(response);
+    expect(response.results).toEqual([]);
+  });
+
+  test("returns only available candidates when analytics returns fewer than requested", async () => {
+    mutableAnalyticsService.getNumberStats = async () => [
+      stat("09", 1, ["odd", "high", "ascending"], 12.5, 20, 80),
+      stat("11", 1, ["odd", "low", "double", "mirror"], 12.5, 20, 80)
+    ];
+
+    const response = await predictionService.generate({
+      count: 5,
+      lotteryType: "THAI_GOVERNMENT",
+      numberLength: 2,
+      prizeType: "TWO_DIGIT",
+      strategyId: "balanced",
+      windowSize: 120
+    });
+
+    expect(predictionResponseSchema.parse(response)).toEqual(response);
+    expect(response.results).toHaveLength(2);
+    expect(response.results.map((item) => item.rank)).toEqual([1, 2]);
+  });
 });
 
 function stat(

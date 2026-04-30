@@ -7,6 +7,7 @@ import {
 } from "@/api/service/analytics/number-stats";
 import { getPrisma } from "@/api/service/prisma";
 import type { DateTimeFilter } from "@/generated/prisma/commonInputTypes";
+import type { LotteryDrawWhereInput } from "@/generated/prisma/models/LotteryDraw";
 import type { LotteryPrizeWhereInput } from "@/generated/prisma/models/LotteryPrize";
 import type { FilterContext } from "@/schema/app/query.schema";
 
@@ -53,41 +54,77 @@ export const analyticsService = {
 
 async function getPrizeWindow(query: AnalyticsQuery) {
   const prisma = getPrisma();
+  const draws = await prisma.lotteryDraw.findMany({
+    orderBy: {
+      drawDate: "desc"
+    },
+    select: {
+      id: true
+    },
+    take: query.windowSize,
+    where: buildDrawWhere(query)
+  });
+
+  if (draws.length === 0) {
+    return [];
+  }
+
+  const drawIds = draws.map((draw) => draw.id);
 
   return prisma.lotteryPrize.findMany({
     include: {
       draw: true
     },
-    orderBy: {
-      draw: {
-        drawDate: "desc"
+    orderBy: [
+      {
+        draw: {
+          drawDate: "desc"
+        }
+      },
+      {
+        position: "asc"
+      },
+      {
+        number: "asc"
       }
-    },
-    take: query.windowSize,
-    where: buildPrizeWhere(query)
+    ],
+    where: buildPrizeWhere(query, drawIds)
   });
 }
 
-function buildPrizeWhere(query: AnalyticsQuery): LotteryPrizeWhereInput {
-  const drawDate = buildDrawDateFilter(query);
-  const draw: LotteryPrizeWhereInput["draw"] = {
-    is: {
-      lotteryType: query.lotteryType
-    }
-  };
-
-  if (drawDate && "is" in draw && draw.is) {
-    draw.is.drawDate = drawDate;
-  }
-
+function buildPrizeWhere(
+  query: AnalyticsQuery,
+  drawIds: readonly string[]
+): LotteryPrizeWhereInput {
   return {
-    draw,
+    drawId: {
+      in: [...drawIds]
+    },
     type: query.prizeType
   };
 }
 
+function buildDrawWhere(query: AnalyticsQuery): LotteryDrawWhereInput {
+  const where: LotteryDrawWhereInput = {
+    lotteryType: query.lotteryType
+  };
+  const drawDate = buildDrawDateFilter(query);
+
+  if (drawDate) {
+    where.drawDate = drawDate;
+  }
+
+  return where;
+}
+
 function buildDrawDateFilter(query: AnalyticsQuery): DateTimeFilter<"LotteryDraw"> | undefined {
   const filter: DateTimeFilter<"LotteryDraw"> = {};
+  const yearMonthRange = buildYearMonthRange(query.year, query.month);
+
+  if (yearMonthRange) {
+    filter.gte = yearMonthRange.start;
+    filter.lt = yearMonthRange.end;
+  }
 
   if (query.startDate) {
     filter.gte = new Date(query.startDate);
@@ -95,9 +132,32 @@ function buildDrawDateFilter(query: AnalyticsQuery): DateTimeFilter<"LotteryDraw
 
   if (query.endDate) {
     filter.lte = new Date(query.endDate);
+  } else {
+    filter.lte = new Date();
   }
 
   return Object.keys(filter).length > 0 ? filter : undefined;
+}
+
+function buildYearMonthRange(
+  year: number | undefined,
+  month: number | undefined
+): { end: Date; start: Date } | undefined {
+  if (!year) {
+    return undefined;
+  }
+
+  if (!month) {
+    return {
+      end: new Date(Date.UTC(year + 1, 0, 1)),
+      start: new Date(Date.UTC(year, 0, 1))
+    };
+  }
+
+  return {
+    end: new Date(Date.UTC(year, month, 1)),
+    start: new Date(Date.UTC(year, month - 1, 1))
+  };
 }
 
 function getDrawCount(prizes: Awaited<ReturnType<typeof getPrizeWindow>>) {
