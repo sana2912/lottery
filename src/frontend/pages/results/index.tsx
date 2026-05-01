@@ -25,7 +25,7 @@ import {
 import type { SearchQuery } from "@/schema/app/query.schema";
 import type { ResultsReadModel } from "@/schema/app/results.schema";
 
-function StatCard({ stat }: { stat: ResultsReadModel["stats"][number] }) {
+function StatCard({ stat }: Readonly<{ stat: ResultsReadModel["stats"][number] }>) {
   const isNumericValue = /^\d+$/.test(stat.value);
 
   return (

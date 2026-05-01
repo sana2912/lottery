@@ -1,12 +1,12 @@
 ﻿import { cn } from "@/lib/app/cn";
 
-export type MetricCardProps = {
+export type MetricCardProps = Readonly<{
   label: string;
   value: string;
   hint?: string;
   tone?: "default" | "hot" | "cold" | "overdue" | "prediction" | "backtest" | "watchlist";
   trend?: string;
-};
+}>;
 
 const toneClasses = {
   default: "border-[var(--color-border-default)]",

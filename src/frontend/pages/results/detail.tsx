@@ -14,9 +14,9 @@ import {
   TableRow
 } from "@/frontend/primitives";
 
-type ResultsDetailPageProps = {
+type ResultsDetailPageProps = Readonly<{
   id: string;
-};
+}>;
 
 export async function ResultsDetailPage({ id }: ResultsDetailPageProps) {
   const detail = await getDrawDetail(id);

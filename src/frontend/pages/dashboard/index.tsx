@@ -158,35 +158,35 @@ export async function DashboardPage() {
           ) : null}
           <div className="mt-5 grid gap-4 md:grid-cols-3">
             {state === "ready"
-              ? signals.map((signal) => (
-                  <article
-                    className="rounded-none border border-[var(--color-border-soft)] bg-[var(--color-bg-elevated)] p-5"
-                    key={signal.id}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <Badge
-                        variant={
-                          signal.tone === "hot"
-                            ? "hot"
-                            : signal.tone === "cold"
-                              ? "cold"
-                              : "overdue"
-                        }
-                      >
-                        {signal.label}
-                      </Badge>
-                      <span className="text-sm font-bold text-[var(--color-text-muted)]">
-                        {signal.score}
-                      </span>
-                    </div>
-                    <p className="mt-5 font-mono text-4xl font-bold tracking-normal text-[var(--color-text-primary)]">
-                      {signal.number}
-                    </p>
-                    <p className="mt-3 text-sm leading-6 text-[var(--color-text-secondary)]">
-                      {signal.reason}
-                    </p>
-                  </article>
-                ))
+              ? signals.map((signal) => {
+                  let badgeVariant: React.ComponentProps<typeof Badge>["variant"] = "overdue";
+
+                  if (signal.tone === "hot") {
+                    badgeVariant = "hot";
+                  } else if (signal.tone === "cold") {
+                    badgeVariant = "cold";
+                  }
+
+                  return (
+                    <article
+                      className="rounded-none border border-[var(--color-border-soft)] bg-[var(--color-bg-elevated)] p-5"
+                      key={signal.id}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <Badge variant={badgeVariant}>{signal.label}</Badge>
+                        <span className="text-sm font-bold text-[var(--color-text-muted)]">
+                          {signal.score}
+                        </span>
+                      </div>
+                      <p className="mt-5 font-mono text-4xl font-bold tracking-normal text-[var(--color-text-primary)]">
+                        {signal.number}
+                      </p>
+                      <p className="mt-3 text-sm leading-6 text-[var(--color-text-secondary)]">
+                        {signal.reason}
+                      </p>
+                    </article>
+                  );
+                })
               : null}
           </div>
         </Card>

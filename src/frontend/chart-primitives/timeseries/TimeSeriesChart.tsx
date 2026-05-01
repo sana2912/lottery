@@ -6,10 +6,10 @@ export type TimeSeriesPoint = {
   value: number;
 };
 
-export type TimeSeriesChartProps = {
+export type TimeSeriesChartProps = Readonly<{
   points: readonly TimeSeriesPoint[];
   title?: string;
-};
+}>;
 
 export function TimeSeriesChart({ points, title = "Time series" }: TimeSeriesChartProps) {
   const maxValue = Math.max(...points.map((point) => point.value), 1);

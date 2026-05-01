@@ -8,9 +8,9 @@ import { Input } from "@/frontend/primitives";
 import { appConfig } from "@/lib/app/constants";
 import { userNavigation } from "@/lib/app/navigation";
 
-export type AppShellProps = {
+export type AppShellProps = Readonly<{
   children: React.ReactNode;
-};
+}>;
 
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();

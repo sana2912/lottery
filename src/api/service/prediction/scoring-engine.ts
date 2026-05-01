@@ -81,7 +81,7 @@ function getPairScore(number: string) {
     return 0;
   }
 
-  const uniqueDigits = new Set([...number]).size;
+  const uniqueDigits = new Set(number).size;
 
   return clamp((1 - uniqueDigits / number.length) * 100);
 }

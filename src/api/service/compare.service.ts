@@ -105,8 +105,7 @@ function getPatternFlags(number: string): ApiPatternFlag[] {
   const lastDigit = digits.at(-1);
 
   if (lastDigit !== undefined) {
-    flags.push(lastDigit % 2 === 0 ? "even" : "odd");
-    flags.push(lastDigit >= 5 ? "high" : "low");
+    flags.push(lastDigit % 2 === 0 ? "even" : "odd", lastDigit >= 5 ? "high" : "low");
   }
 
   if (new Set(digits).size === 1 && digits.length > 1) {

@@ -1,3 +1,1 @@
-import { PatternsPage } from "@/frontend/pages/patterns";
-
-export default PatternsPage;
+export { PatternsPage as default } from "@/frontend/pages/patterns";

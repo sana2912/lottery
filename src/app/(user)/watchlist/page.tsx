@@ -1,3 +1,1 @@
-import { WatchlistPage } from "@/frontend/pages/watchlist";
-
-export default WatchlistPage;
+export { WatchlistPage as default } from "@/frontend/pages/watchlist";

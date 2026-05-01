@@ -1,7 +1,7 @@
-type PagePlaceholderProps = {
+type PagePlaceholderProps = Readonly<{
   title: string;
   description: string;
-};
+}>;
 
 export function PagePlaceholder({ title, description }: PagePlaceholderProps) {
   return (

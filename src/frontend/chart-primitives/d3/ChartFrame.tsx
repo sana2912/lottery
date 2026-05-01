@@ -1,11 +1,11 @@
 import type * as React from "react";
 import { cn } from "@/lib/app/cn";
 
-export type ChartFrameProps = {
+export type ChartFrameProps = Readonly<{
   title?: string;
   children?: React.ReactNode;
   className?: string;
-};
+}>;
 
 export function ChartFrame({ children, className, title }: ChartFrameProps) {
   return (

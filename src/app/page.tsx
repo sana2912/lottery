@@ -1,3 +1,1 @@
-import { HomePage } from "@/frontend/pages/home";
-
-export default HomePage;
+export { HomePage as default } from "@/frontend/pages/home";

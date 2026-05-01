@@ -45,7 +45,7 @@ export function LoadingSkeleton({
   );
 }
 
-function CardSkeleton({ lines }: { lines: number }) {
+function CardSkeleton({ lines }: Readonly<{ lines: number }>) {
   const visibleLines = cardLineWidths.slice(0, lines);
 
   return (
@@ -79,7 +79,7 @@ function ChartSkeleton() {
   );
 }
 
-function TableSkeleton({ lines }: { lines: number }) {
+function TableSkeleton({ lines }: Readonly<{ lines: number }>) {
   const visibleRows = tableRows.slice(0, lines);
 
   return (

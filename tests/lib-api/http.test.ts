@@ -17,7 +17,13 @@ describe("apiRequest", () => {
 
     const response = await apiRequest<{ ok: boolean }>("/api/test", {
       fetcher: createFetcher(async (input, init) => {
-        requestUrl = String(input);
+        if (typeof input === "string") {
+          requestUrl = input;
+        } else if (input instanceof URL) {
+          requestUrl = input.toString();
+        } else {
+          requestUrl = input.url;
+        }
 
         expect(init?.method).toBe("GET");
 

@@ -61,11 +61,11 @@ export function WatchlistPage() {
   }, []);
 
   useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      void loadWatchlist();
+    const timeoutId = globalThis.setTimeout(() => {
+      loadWatchlist().catch(() => {});
     }, 0);
 
-    return () => window.clearTimeout(timeoutId);
+    return () => globalThis.clearTimeout(timeoutId);
   }, [loadWatchlist]);
 
   async function handleAddItem() {

@@ -1,3 +1,1 @@
-import { PredictionLabPage } from "@/frontend/pages/prediction-lab";
-
-export default PredictionLabPage;
+export { PredictionLabPage as default } from "@/frontend/pages/prediction-lab";
