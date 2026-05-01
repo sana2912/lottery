@@ -12,14 +12,16 @@ export function parseCompareSearchParams(
 ): CompareFormState {
   const record = toSearchParamRecord(searchParams);
   const numbersValue = record.numbers;
-  const numbers = Array.isArray(numbersValue)
-    ? numbersValue
-    : typeof numbersValue === "string"
-      ? numbersValue
-          .split(/[\n,]+/)
-          .map((value) => value.trim())
-          .filter(Boolean)
-      : undefined;
+  let numbers: string[] | undefined;
+
+  if (Array.isArray(numbersValue)) {
+    numbers = numbersValue;
+  } else if (typeof numbersValue === "string") {
+    numbers = numbersValue
+      .split(/[\n,]+/)
+      .map((value) => value.trim())
+      .filter(Boolean);
+  }
   const parsed = compareRequestSchema.safeParse({
     ...record,
     ...(numbers ? { numbers } : {})

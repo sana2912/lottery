@@ -62,13 +62,13 @@ export function PredictionLabPage() {
         }
 
         setPrediction(latestPrediction);
-        setRunState(
-          !latestPrediction
-            ? "empty"
-            : latestPrediction.results.length > 0
-              ? "ready"
-              : "noCandidates"
-        );
+        if (!latestPrediction) {
+          setRunState("empty");
+        } else if (latestPrediction.results.length > 0) {
+          setRunState("ready");
+        } else {
+          setRunState("noCandidates");
+        }
       } catch {
         if (!isActive) {
           return;

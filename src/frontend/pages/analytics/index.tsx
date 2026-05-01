@@ -28,9 +28,9 @@ import {
 
 export async function AnalyticsPage({
   searchParams
-}: {
+}: Readonly<{
   searchParams?: Record<string, string | string[] | undefined>;
-}) {
+}>) {
   const query = parseAnalyticsSearchParams(searchParams);
   const { model: analytics, state } = await getAnalyticsPageData(query);
   const topDigits = getTopDigits(analytics);

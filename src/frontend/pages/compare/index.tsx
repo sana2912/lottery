@@ -39,9 +39,9 @@ import { type CompareReadModel, compareRequestSchema } from "@/schema/app/compar
 
 export function ComparePage({
   searchParams
-}: {
+}: Readonly<{
   searchParams?: Record<string, string | string[] | undefined>;
-}) {
+}>) {
   const router = useRouter();
   const [formState, setFormState] = useState(() =>
     parseCompareSearchParams(searchParams, defaultCompareFormState)
@@ -113,13 +113,19 @@ export function ComparePage({
             />
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
-            <Badge variant={compareState === "ready" ? "success" : "warning"}>
-              {compareState === "ready"
-                ? compareContent.badges.liveApi
-                : compareState === "empty"
-                  ? compareContent.badges.waiting
-                  : compareContent.badges.unavailable}
-            </Badge>
+            {(() => {
+              let statusLabel: string = compareContent.badges.unavailable;
+              let statusVariant: React.ComponentProps<typeof Badge>["variant"] = "warning";
+
+              if (compareState === "ready") {
+                statusLabel = compareContent.badges.liveApi;
+                statusVariant = "success";
+              } else if (compareState === "empty") {
+                statusLabel = compareContent.badges.waiting;
+              }
+
+              return <Badge variant={statusVariant}>{statusLabel}</Badge>;
+            })()}
             {compare?.strategyId ? <Badge variant="prediction">{compare.strategyId}</Badge> : null}
           </div>
         </Card>

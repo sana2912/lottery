@@ -51,9 +51,9 @@ function StatCard({ stat }: Readonly<{ stat: ResultsReadModel["stats"][number] }
 
 export async function ResultsPage({
   searchParams
-}: {
+}: Readonly<{
   searchParams?: Record<string, string | string[] | undefined>;
-}) {
+}>) {
   const query = parseResultsSearchParams(searchParams);
   const { model: resultsModel, state } = await getResultsPageData(query);
   const filterPills = getResultsFilterPills(query);

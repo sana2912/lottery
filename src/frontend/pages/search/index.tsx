@@ -199,11 +199,11 @@ function SearchGroupCard({
   children,
   eyebrow,
   title
-}: {
+}: Readonly<{
   children: ReactNode;
   eyebrow: string;
   title: string;
-}) {
+}>) {
   return (
     <Card className="p-6">
       <SectionHeading eyebrow={eyebrow} title={title} />

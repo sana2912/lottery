@@ -246,16 +246,19 @@ function toSignal(
       ? Math.min(100, stat.missingDrawCount * 4)
       : Math.round(stat.frequencyPercent);
 
+  let reason = "Missing longer than neighboring numbers in the same evaluation window.";
+
+  if (tone === "hot") {
+    reason = "Repeated more often than the current two-digit sample average.";
+  } else if (tone === "cold") {
+    reason = "Appears less often than the rest of the current two-digit sample.";
+  }
+
   return {
     id: `signal-${tone}-${stat.number}`,
     label,
     number: stat.number,
-    reason:
-      tone === "hot"
-        ? "Repeated more often than the current two-digit sample average."
-        : tone === "cold"
-          ? "Appears less often than the rest of the current two-digit sample."
-          : "Missing longer than neighboring numbers in the same evaluation window.",
+    reason,
     score,
     tone
   };

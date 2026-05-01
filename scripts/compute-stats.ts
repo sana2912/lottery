@@ -17,14 +17,24 @@ async function main() {
   const plan = await getComputePlan(options);
   const summaries = [];
 
-  for (const context of plan.contexts) {
-    summaries.push(await recomputeMaterializedStatsContext(context));
-  }
+  console.info(
+    `Compute stats: recomputing ${plan.contexts.length} context${
+      plan.contexts.length === 1 ? "" : "s"
+    }.`
+  );
 
-  for (const summary of summaries) {
+  for (const [index, context] of plan.contexts.entries()) {
+    const label = `[${index + 1}/${plan.contexts.length}] prizeType=${context.prizeType} window=${context.windowSize}`;
+    const startedAt = Date.now();
+
+    console.info(`${label} starting...`);
+    const summary = await recomputeMaterializedStatsContext(context);
+    const durationMs = Date.now() - startedAt;
+
+    summaries.push(summary);
     console.info(
       [
-        `Computed ${summary.prizeType} window=${summary.windowSize}.`,
+        `${label} done in ${Math.round(durationMs / 1000)}s.`,
         `Draws: ${summary.drawCount}.`,
         `Digit stats: ${summary.digitStats}.`,
         `Number stats: ${summary.numberStats}.`,

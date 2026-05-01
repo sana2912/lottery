@@ -157,7 +157,7 @@ async function loadDrawSeedFileFromCsvDirectory(inputPath: string) {
   const csvFiles = entries
     .filter((entry) => entry.isFile() && extname(entry.name).toLowerCase() === ".csv")
     .map((entry) => resolve(inputPath, entry.name))
-    .sort();
+    .sort((a, b) => a.localeCompare(b));
 
   if (csvFiles.length === 0) {
     throw new Error(`No CSV files found in ${inputPath}.`);
@@ -280,16 +280,25 @@ function toDrawUpdateInput(
 }
 
 function getDrawMetadata(draw: LotteryDrawSeedInput, seedFile: LotteryDrawSeedFile) {
-  const metadata =
-    !seedFile.source?.metadata && !seedFile.source?.name
-      ? draw.metadata
-      : {
-          ...(seedFile.source.name ? { sourceName: seedFile.source.name } : {}),
-          ...(seedFile.source.metadata ?? {}),
-          ...(draw.metadata ?? {})
-        };
+  if (!seedFile.source?.metadata && !seedFile.source?.name) {
+    return draw.metadata ? stripUndefinedValues(draw.metadata) : undefined;
+  }
 
-  return metadata ? stripUndefinedValues(metadata) : undefined;
+  const metadata: Record<string, unknown> = {};
+
+  if (seedFile.source?.name) {
+    metadata.sourceName = seedFile.source.name;
+  }
+
+  if (seedFile.source?.metadata) {
+    Object.assign(metadata, seedFile.source.metadata);
+  }
+
+  if (draw.metadata) {
+    Object.assign(metadata, draw.metadata);
+  }
+
+  return Object.keys(metadata).length > 0 ? stripUndefinedValues(metadata) : undefined;
 }
 
 function getDrawSourceStatus(

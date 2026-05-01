@@ -1,11 +1,10 @@
-import { randomUUID } from "node:crypto";
 import {
   buildAnalyticsReadModelFromPrizes,
   getPrizeWindow
 } from "@/api/service/analytics/analytics-engine";
 import { summarizePatterns } from "@/api/service/analytics/number-stats";
 import { getPrisma } from "@/api/service/prisma";
-import { Prisma } from "@/generated/prisma/client";
+import { type LotteryPrizeType, type LotteryType, Prisma } from "@/generated/prisma/client";
 import type { ApiAnalyticsReadModel, ApiDigitStat, ApiNumberStat } from "@/schema/api/analytics";
 import type { FilterContext } from "@/schema/app/query.schema";
 
@@ -257,89 +256,44 @@ export async function recomputeMaterializedStatsContext(
   `;
 
   for (const digitChunk of chunk(readModel.digitStats, SNAPSHOT_INSERT_CHUNK_SIZE)) {
-    for (const stat of digitChunk) {
-      await prisma.$executeRaw`
-        INSERT INTO "digit_stat_snapshots" (
-          "_id",
-          "lotteryType",
-          "prizeType",
-          "windowSize",
-          "digit",
-          "position",
-          "drawCount",
-          "hitCount",
-          "frequencyPercent",
-          "lastSeenDrawDate",
-          "missingDrawCount",
-          "trendDirection",
-          "computedAt",
-          "createdAt",
-          "updatedAt"
-        ) VALUES (
-          ${randomUUID()}::uuid,
-          ${stat.lotteryType}::"LotteryType",
-          ${stat.prizeType}::"LotteryPrizeType",
-          ${stat.windowSize},
-          ${stat.digit},
-          ${stat.position ?? null},
-          ${stat.drawCount},
-          ${stat.hitCount},
-          ${stat.frequencyPercent},
-          ${stat.lastSeenDrawDate ? new Date(stat.lastSeenDrawDate) : null},
-          ${stat.missingDrawCount},
-          ${stat.trendDirection},
-          ${computedAt},
-          CURRENT_TIMESTAMP,
-          CURRENT_TIMESTAMP
-        )
-      `;
-    }
+    await prisma.digitStatSnapshot.createMany({
+      data: digitChunk.map((stat) => ({
+        computedAt,
+        digit: stat.digit,
+        drawCount: stat.drawCount,
+        frequencyPercent: stat.frequencyPercent,
+        hitCount: stat.hitCount,
+        lastSeenDrawDate: stat.lastSeenDrawDate ? new Date(stat.lastSeenDrawDate) : null,
+        lotteryType: stat.lotteryType as LotteryType,
+        missingDrawCount: stat.missingDrawCount,
+        position: stat.position ?? null,
+        prizeType: stat.prizeType as LotteryPrizeType,
+        trendDirection: stat.trendDirection,
+        windowSize: stat.windowSize
+      }))
+    });
   }
 
   for (const numberChunk of chunk(readModel.numberStats, SNAPSHOT_INSERT_CHUNK_SIZE)) {
-    for (const stat of numberChunk) {
-      await prisma.$executeRaw`
-        INSERT INTO "number_stat_snapshots" (
-          "_id",
-          "lotteryType",
-          "prizeType",
-          "windowSize",
-          "number",
-          "numberLength",
-          "drawCount",
-          "hitCount",
-          "frequencyPercent",
-          "lastSeenDrawDate",
-          "missingDrawCount",
-          "averageGap",
-          "maxGap",
-          "trendScore",
-          "patternFlags",
-          "computedAt",
-          "createdAt",
-          "updatedAt"
-        ) VALUES (
-          ${randomUUID()}::uuid,
-          ${stat.lotteryType}::"LotteryType",
-          ${stat.prizeType}::"LotteryPrizeType",
-          ${stat.windowSize},
-          ${stat.number},
-          ${stat.numberLength},
-          ${stat.drawCount},
-          ${stat.hitCount},
-          ${stat.frequencyPercent},
-          ${stat.lastSeenDrawDate ? new Date(stat.lastSeenDrawDate) : null},
-          ${stat.missingDrawCount},
-          ${stat.averageGap ?? null},
-          ${stat.maxGap ?? null},
-          ${stat.trendScore},
-          ${JSON.stringify(stat.patternFlags)}::jsonb,
-          ${computedAt},
-          CURRENT_TIMESTAMP,
-          CURRENT_TIMESTAMP
-        )
-      `;
-    }
+    await prisma.numberStatSnapshot.createMany({
+      data: numberChunk.map((stat) => ({
+        averageGap: stat.averageGap ?? null,
+        computedAt,
+        drawCount: stat.drawCount,
+        frequencyPercent: stat.frequencyPercent,
+        hitCount: stat.hitCount,
+        lastSeenDrawDate: stat.lastSeenDrawDate ? new Date(stat.lastSeenDrawDate) : null,
+        lotteryType: stat.lotteryType as LotteryType,
+        maxGap: stat.maxGap ?? null,
+        missingDrawCount: stat.missingDrawCount,
+        number: stat.number,
+        numberLength: stat.numberLength,
+        patternFlags: stat.patternFlags,
+        prizeType: stat.prizeType as LotteryPrizeType,
+        trendScore: stat.trendScore,
+        windowSize: stat.windowSize
+      }))
+    });
   }
 
   return {
