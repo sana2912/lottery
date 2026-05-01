@@ -6,16 +6,18 @@ export type SidebarItem = {
   label: string;
 };
 
-export type SidebarProps = {
+export type SidebarProps = Readonly<{
   items: readonly SidebarItem[];
   pathname: string;
-};
+}>;
 
-type MobileNavigationProps = SidebarProps & {
-  id: string;
-  open: boolean;
-  onNavigate?: () => void;
-};
+type MobileNavigationProps = Readonly<
+  SidebarProps & {
+    id: string;
+    open: boolean;
+    onNavigate?: () => void;
+  }
+>;
 
 export function Sidebar({ items, pathname }: SidebarProps) {
   return (

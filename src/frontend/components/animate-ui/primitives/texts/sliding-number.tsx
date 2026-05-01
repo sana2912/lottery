@@ -1,6 +1,6 @@
 "use client";
 
-/* eslint-disable react-hooks/refs, react-hooks/set-state-in-effect -- Animate UI registry component keeps previous digit state for spring transitions. */
+/* eslint-disable react-hooks/preserve-manual-memoization, react-hooks/refs, react-hooks/set-state-in-effect -- Animate UI registry component keeps previous digit state for spring transitions. */
 
 import {
   type HTMLMotionProps,
@@ -17,13 +17,13 @@ import { type UseIsInViewOptions, useIsInView } from "@/frontend/hooks/use-is-in
 
 const DIGITS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
-type SlidingNumberRollerProps = {
+type SlidingNumberRollerProps = Readonly<{
   prevValue: number;
   value: number;
   place: number;
   transition: SpringOptions;
   delay?: number;
-};
+}>;
 
 function SlidingNumberRoller({
   prevValue,
@@ -73,12 +73,12 @@ function SlidingNumberRoller({
   );
 }
 
-type SlidingNumberDisplayProps = {
+type SlidingNumberDisplayProps = Readonly<{
   motionValue: MotionValue<number>;
   number: number;
   height: number;
   transition: SpringOptions;
-};
+}>;
 
 function SlidingNumberDisplay({
   motionValue,
@@ -201,7 +201,7 @@ function SlidingNumber({
       return () => unsubscribe();
     }
 
-    setEffectiveNumber(initiallyStable ? initialNumeric : !isInView ? 0 : initialNumeric);
+    setEffectiveNumber(initiallyStable || isInView ? initialNumeric : 0);
   }, [
     hasAnimated,
     springVal,
@@ -260,8 +260,8 @@ function SlidingNumber({
     [newDecStrRaw]
   );
 
-  const newDecValue = newDecStrRaw ? parseInt(newDecStrRaw, 10) : 0;
-  const prevDecValue = adjustedPrevDec ? parseInt(adjustedPrevDec, 10) : 0;
+  const newDecValue = newDecStrRaw ? Number.parseInt(newDecStrRaw, 10) : 0;
+  const prevDecValue = adjustedPrevDec ? Number.parseInt(adjustedPrevDec, 10) : 0;
 
   return (
     <motion.span
@@ -278,15 +278,15 @@ function SlidingNumber({
       {intPlaces.map((place, idx) => {
         const digitsToRight = intPlaces.length - idx - 1;
         const isSeparatorPosition =
-          typeof thousandSeparator !== "undefined" && digitsToRight > 0 && digitsToRight % 3 === 0;
+          thousandSeparator !== undefined && digitsToRight > 0 && digitsToRight % 3 === 0;
 
         return (
           <React.Fragment key={`int-${place}`}>
             <SlidingNumberRoller
               place={place}
-              prevValue={parseInt(adjustedPrevInt, 10)}
+              prevValue={Number.parseInt(adjustedPrevInt, 10)}
               transition={transition}
-              value={parseInt(newIntStr ?? "0", 10)}
+              value={Number.parseInt(newIntStr ?? "0", 10)}
             />
             {isSeparatorPosition ? <span>{thousandSeparator}</span> : null}
           </React.Fragment>

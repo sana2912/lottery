@@ -11,9 +11,18 @@ export const predictionLabContent = {
     savedToWatchlist: "Saved to global watchlist"
   },
   emptyStates: {
+    loading: {
+      description: "Loading the latest persisted prediction run from the live API.",
+      title: "Loading prediction run"
+    },
+    noCandidates: {
+      description:
+        "The latest prediction run completed, but no candidates met the current historical criteria.",
+      title: "No candidates in latest run"
+    },
     noRun: {
       description:
-        "Choose a strategy and generate candidates to inspect score breakdowns and reasons.",
+        "No persisted prediction run is available yet. Generate candidates to inspect score breakdowns and reasons.",
       title: "No prediction run yet"
     },
     predictionError: {
@@ -25,7 +34,7 @@ export const predictionLabContent = {
   },
   errorMessages: {
     predictionUnavailable:
-      "Prediction API is not available yet. Check database seed data and API runtime.",
+      "Prediction API is unavailable or returned an invalid response. Check database seed data and API runtime.",
     watchlistSaveFailed: "Unable to save this number to the global watchlist."
   },
   hero: {

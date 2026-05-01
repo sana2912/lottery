@@ -1,5 +1,4 @@
 import {
-  Activity,
   BarChart3,
   BookmarkCheck,
   BookOpen,
@@ -11,9 +10,9 @@ import {
   Search,
   Shapes
 } from "lucide-react";
-import homeMockJson from "@/frontend/pages/home/home.mock.json";
 
-export const homeContent = homeMockJson;
+export { Activity as homeFallbackFeatureIcon } from "lucide-react";
+export { default as homeContent } from "@/frontend/pages/home/home.mock.json";
 
 export const homeFeatureIconMap = {
   analytics: BarChart3,
@@ -27,5 +26,3 @@ export const homeFeatureIconMap = {
   results: Search,
   watchlist: BookmarkCheck
 } as const;
-
-export const homeFallbackFeatureIcon = Activity;

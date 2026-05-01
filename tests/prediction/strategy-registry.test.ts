@@ -42,7 +42,7 @@ describe("prediction strategy registry", () => {
   });
 
   test("exposes a complete registry with weights that sum to one", () => {
-    const ids = Object.keys(predictionStrategies).sort();
+    const ids = Object.keys(predictionStrategies).sort((a, b) => a.localeCompare(b));
 
     expect(ids).toEqual(["balanced", "coldRebound", "hotTrend"]);
 

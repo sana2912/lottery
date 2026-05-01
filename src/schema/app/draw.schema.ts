@@ -1,6 +1,8 @@
 import { z } from "zod";
+import { sourceStatusSchema } from "@/schema/app/source.schema";
 
 export const drawStatusSchema = z.enum(["complete", "partial", "imported"]);
+export const drawMetadataSchema = z.record(z.string(), z.unknown());
 
 export const drawPrizeSchema = z.object({
   id: z.string(),
@@ -16,8 +18,12 @@ export const drawSchema = z.object({
   drawDateIso: z.string(),
   drawNo: z.string(),
   lotteryType: z.string(),
+  metadata: drawMetadataSchema.optional(),
+  publishedAt: z.string().optional(),
   status: drawStatusSchema,
   statusLabel: z.string(),
+  sourceStatus: sourceStatusSchema,
+  sourceUrl: z.string().optional(),
   coverage: z.string(),
   prizes: z.array(drawPrizeSchema)
 });

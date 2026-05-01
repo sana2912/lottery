@@ -2,10 +2,15 @@ export type ApiLotteryType = "THAI_GOVERNMENT";
 
 export type ApiLotteryPrizeType =
   | "FIRST"
+  | "THREE_DIGIT"
   | "THREE_FRONT"
   | "THREE_BACK"
   | "TWO_DIGIT"
   | "NEAR_FIRST"
+  | "PRIZE2"
+  | "PRIZE3"
+  | "PRIZE4"
+  | "PRIZE5"
   | "OTHER";
 
 export type ApiNumberLength = 2 | 3 | 6;

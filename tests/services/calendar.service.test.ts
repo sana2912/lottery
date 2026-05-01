@@ -7,11 +7,16 @@ afterEach(() => {
 });
 
 describe("calendar.service", () => {
-  test("maps recent draws, builds next draw rhythm, and includes monthly insights", async () => {
+  test("maps recent draws, uses future persisted draws as next draw, and includes monthly insights", async () => {
     const calls: unknown[] = [];
 
     (globalThis as { prisma?: unknown }).prisma = {
       lotteryDraw: {
+        findFirst: async () => ({
+          drawDate: new Date("2026-05-02T00:00:00.000Z"),
+          drawNo: "09/2026",
+          id: "draw-3"
+        }),
         findMany: async (args: { include?: { prizes: boolean } }) => {
           calls.push(args);
 
@@ -54,12 +59,17 @@ describe("calendar.service", () => {
     expect(response.nextDraw.status).toBe("upcoming");
     expect(response.nextDraw.isNextDraw).toBe(true);
     expect(response.draws[0]).toEqual(response.nextDraw);
+    expect(response.nextDraw.id).toBe("draw-3");
+    expect(response.draws.some((draw) => draw.id === "draw-3" && draw.status === "past")).toBe(
+      false
+    );
     expect(response.monthlyInsights.length).toBeGreaterThan(0);
   });
 
   test("returns a safe calendar read model when the database is empty", async () => {
     (globalThis as { prisma?: unknown }).prisma = {
       lotteryDraw: {
+        findFirst: async () => null,
         findMany: async () => []
       }
     };

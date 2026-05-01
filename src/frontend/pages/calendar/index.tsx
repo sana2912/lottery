@@ -2,7 +2,7 @@ import { CalendarDays, Clock3, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { EmptyState, MetricCard } from "@/frontend/components";
 import { calendarContent } from "@/frontend/pages/calendar/calendar.content";
-import { getCalendarModel } from "@/frontend/pages/calendar/calendar.data";
+import { getCalendarPageData } from "@/frontend/pages/calendar/calendar.data";
 import { getDaysUntilNextDraw } from "@/frontend/pages/calendar/calendar.mappers";
 import {
   Badge,
@@ -18,7 +18,7 @@ import {
 } from "@/frontend/primitives";
 
 export async function CalendarPage() {
-  const calendar = await getCalendarModel();
+  const { model: calendar, state } = await getCalendarPageData();
   const daysUntilNextDraw = getDaysUntilNextDraw(calendar);
 
   return (
@@ -66,7 +66,7 @@ export async function CalendarPage() {
             <Badge variant={calendar.source === "api" ? "success" : "warning"}>
               {calendar.source === "api"
                 ? calendarContent.badges.liveApi
-                : calendarContent.badges.mockFallback}
+                : calendarContent.badges.unavailable}
             </Badge>
           </div>
         </Card>
@@ -99,51 +99,73 @@ export async function CalendarPage() {
             description={calendarContent.cards.schedule.description}
           />
 
-          <div className="mt-5 overflow-hidden rounded-none border border-[var(--color-border-soft)]">
-            <Table>
-              <TableHeader className="bg-[var(--color-bg-subtle)]">
-                <TableRow className="border-b border-[var(--color-border-soft)] hover:bg-transparent">
-                  <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                    {calendarContent.scheduleTable.headers.date}
-                  </TableHead>
-                  <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                    {calendarContent.scheduleTable.headers.drawNumber}
-                  </TableHead>
-                  <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                    {calendarContent.scheduleTable.headers.status}
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {calendar.draws.map((draw) => (
-                  <TableRow
-                    className="border-b border-[var(--color-border-soft)] hover:bg-[var(--color-bg-subtle)]/50"
-                    key={draw.id}
-                  >
-                    <TableCell className="px-4 py-3 font-medium text-[var(--color-text-primary)]">
-                      <div className="flex items-center gap-2">
-                        <CalendarDays className="size-4 text-[var(--color-text-muted)]" />
-                        {draw.drawDate}
-                      </div>
-                    </TableCell>
-                    <TableCell className="px-4 py-3 text-[var(--color-text-secondary)]">
-                      {draw.drawNo ?? "-"}
-                    </TableCell>
-                    <TableCell className="px-4 py-3">
-                      <div className="flex flex-wrap gap-2">
-                        <Badge variant={draw.status === "upcoming" ? "brand" : "neutral"}>
-                          {draw.status}
-                        </Badge>
-                        {draw.isNextDraw ? (
-                          <Badge variant="success">{calendarContent.badges.nextDraw}</Badge>
-                        ) : null}
-                      </div>
-                    </TableCell>
+          {state === "error" ? (
+            <div className="mt-5">
+              <EmptyState
+                description={calendarContent.emptyStates.calendarError.description}
+                icon={<Clock3 />}
+                title={calendarContent.emptyStates.calendarError.title}
+              />
+            </div>
+          ) : null}
+
+          {state === "empty" ? (
+            <div className="mt-5">
+              <EmptyState
+                description={calendarContent.emptyStates.calendar.description}
+                icon={<CalendarDays />}
+                title={calendarContent.emptyStates.calendar.title}
+              />
+            </div>
+          ) : null}
+
+          {state === "ready" ? (
+            <div className="mt-5 overflow-hidden rounded-none border border-[var(--color-border-soft)]">
+              <Table>
+                <TableHeader className="bg-[var(--color-bg-subtle)]">
+                  <TableRow className="border-b border-[var(--color-border-soft)] hover:bg-transparent">
+                    <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
+                      {calendarContent.scheduleTable.headers.date}
+                    </TableHead>
+                    <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
+                      {calendarContent.scheduleTable.headers.drawNumber}
+                    </TableHead>
+                    <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
+                      {calendarContent.scheduleTable.headers.status}
+                    </TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {calendar.draws.map((draw) => (
+                    <TableRow
+                      className="border-b border-[var(--color-border-soft)] hover:bg-[var(--color-bg-subtle)]/50"
+                      key={draw.id}
+                    >
+                      <TableCell className="px-4 py-3 font-medium text-[var(--color-text-primary)]">
+                        <div className="flex items-center gap-2">
+                          <CalendarDays className="size-4 text-[var(--color-text-muted)]" />
+                          {draw.drawDate}
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-4 py-3 text-[var(--color-text-secondary)]">
+                        {draw.drawNo ?? "-"}
+                      </TableCell>
+                      <TableCell className="px-4 py-3">
+                        <div className="flex flex-wrap gap-2">
+                          <Badge variant={draw.status === "upcoming" ? "brand" : "neutral"}>
+                            {draw.status}
+                          </Badge>
+                          {draw.isNextDraw ? (
+                            <Badge variant="success">{calendarContent.badges.nextDraw}</Badge>
+                          ) : null}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : null}
         </Card>
 
         <Card className="p-6">

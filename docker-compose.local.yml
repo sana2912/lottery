@@ -8,7 +8,7 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-lottery}:${POSTGRES_PASSWORD:-lottery}@postgres:5432/${POSTGRES_DB:-lottery}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-lottery}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-lottery}
       HOSTNAME: 0.0.0.0
       NODE_ENV: production
       PORT: 3000
@@ -22,7 +22,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-lottery}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lottery}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_USER: ${POSTGRES_USER:-lottery}
     ports:
       - "8888:5432"

@@ -16,10 +16,15 @@ enum LotteryType {
 
 enum LotteryPrizeType {
   FIRST
+  THREE_DIGIT
   THREE_FRONT
   THREE_BACK
   TWO_DIGIT
   NEAR_FIRST
+  PRIZE2
+  PRIZE3
+  PRIZE4
+  PRIZE5
   OTHER
 }
 
@@ -29,11 +34,21 @@ enum WatchlistSource {
   NOTEBOOK
 }
 
+enum SourceStatus {
+  IMPORTED
+  PARTIAL
+  VERIFIED
+}
+
 model LotteryDraw {
   id              String           @id @default(uuid(7)) @map("_id") @db.Uuid
   lotteryType     LotteryType      @default(THAI_GOVERNMENT)
   drawDate        DateTime
   drawNo          String?
+  sourceUrl       String?
+  sourceStatus    SourceStatus     @default(IMPORTED)
+  publishedAt     DateTime?
+  metadata        Json?
   prizes          LotteryPrize[]
   backtestResults BacktestResult[]
   createdAt       DateTime         @default(now())
@@ -41,6 +56,8 @@ model LotteryDraw {
 
   @@unique([lotteryType, drawDate])
   @@index([drawDate])
+  @@index([sourceStatus])
+  @@index([publishedAt])
   @@map("lottery_draws")
 }
 
@@ -74,30 +91,95 @@ model UserWatchlistItem {
 }
 
 model PredictionRun {
-  id        String             @id @default(uuid(7)) @map("_id") @db.Uuid
-  strategy  String
-  params    Json?
-  items     PredictionResult[]
-  createdAt DateTime           @default(now())
-  updatedAt DateTime           @updatedAt
+  id           String             @id @default(uuid(7)) @map("_id") @db.Uuid
+  strategy     String
+  lotteryType  LotteryType?
+  prizeType    LotteryPrizeType?
+  numberLength Int?
+  windowSize   Int?
+  count        Int?
+  generatedAt  DateTime?
+  version      String?
+  params       Json?
+  items        PredictionResult[]
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
 
   @@index([strategy])
+  @@index([lotteryType, prizeType])
+  @@index([generatedAt])
   @@map("prediction_runs")
 }
 
 model PredictionResult {
-  id        String        @id @default(uuid(7)) @map("_id") @db.Uuid
-  runId     String        @db.Uuid
-  run       PredictionRun @relation(fields: [runId], references: [id])
-  number    String
-  score     Float
-  reasons   String[]
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
+  id             String        @id @default(uuid(7)) @map("_id") @db.Uuid
+  runId          String        @db.Uuid
+  run            PredictionRun @relation(fields: [runId], references: [id])
+  number         String
+  score          Float
+  reasons        String[]
+  inputWindow    Int?
+  numberLength   Int?
+  rank           Int?
+  scoreBreakdown Json?
+  strategyId     String?
+  strategyName   String?
+  version        String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   @@index([runId])
+  @@index([runId, rank])
   @@index([number])
   @@map("prediction_results")
+}
+
+model DigitStatSnapshot {
+  id               String      @id @default(uuid(7)) @map("_id") @db.Uuid
+  lotteryType      LotteryType
+  prizeType        LotteryPrizeType
+  windowSize       Int
+  digit            String
+  position         Int?
+  drawCount        Int
+  hitCount         Int
+  frequencyPercent Float
+  lastSeenDrawDate DateTime?
+  missingDrawCount Int
+  trendDirection   String
+  computedAt       DateTime
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  @@index([lotteryType, prizeType, windowSize, computedAt])
+  @@index([lotteryType, prizeType, windowSize, digit, position])
+  @@map("digit_stat_snapshots")
+}
+
+model NumberStatSnapshot {
+  id               String      @id @default(uuid(7)) @map("_id") @db.Uuid
+  lotteryType      LotteryType
+  prizeType        LotteryPrizeType
+  windowSize       Int
+  number           String
+  numberLength     Int
+  drawCount        Int
+  hitCount         Int
+  frequencyPercent Float
+  lastSeenDrawDate DateTime?
+  missingDrawCount Int
+  averageGap       Float?
+  maxGap           Float?
+  trendScore       Float
+  patternFlags     Json?
+  computedAt       DateTime
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  @@index([lotteryType, prizeType, windowSize, computedAt])
+  @@index([lotteryType, prizeType, windowSize, number], map: "number_stat_snapshots_window_number_idx")
+  @@index([lotteryType, prizeType, windowSize, numberLength], map: "number_stat_snapshots_window_number_length_idx")
+  @@map("number_stat_snapshots")
 }
 
 model BacktestRun {

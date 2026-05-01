@@ -4,10 +4,15 @@ export const lotteryTypeSchema = z.enum(["THAI_GOVERNMENT"]);
 
 export const lotteryPrizeTypeSchema = z.enum([
   "FIRST",
+  "THREE_DIGIT",
   "THREE_FRONT",
   "THREE_BACK",
   "TWO_DIGIT",
   "NEAR_FIRST",
+  "PRIZE2",
+  "PRIZE3",
+  "PRIZE4",
+  "PRIZE5",
   "OTHER"
 ]);
 

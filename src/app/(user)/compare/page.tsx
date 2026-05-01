@@ -1,3 +1,1 @@
-import { ComparePage } from "@/frontend/pages/compare";
-
-export default ComparePage;
+export { default } from "@/frontend/pages/compare/route";

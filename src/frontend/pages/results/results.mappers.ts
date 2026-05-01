@@ -1,17 +1,17 @@
 import type { ResultsContent } from "@/frontend/pages/results/results.content";
-import type { Draw, DrawListResponse } from "@/schema/app/draw.schema";
+import type { DrawListResponse } from "@/schema/app/draw.schema";
 import type { ResultsReadModel } from "@/schema/app/results.schema";
 
 export function toResultsModel(
   response: DrawListResponse,
-  fallback: ResultsReadModel,
+  shell: ResultsReadModel,
   content: ResultsContent
 ): ResultsReadModel {
   const latestDraw = response.draws[0];
   const prizeCount = response.draws.reduce((total, draw) => total + draw.prizes.length, 0);
 
   return {
-    ...fallback,
+    ...shell,
     draws: response.draws.map((draw) => ({
       coverage: draw.coverage,
       drawDate: draw.drawDate,
@@ -50,27 +50,16 @@ export function toResultsModel(
   };
 }
 
-export function getMockDraw(id: string, fallback: ResultsReadModel): Draw | null {
-  const draw = fallback.draws.find((item) => item.id === id);
-
-  if (!draw) {
-    return null;
-  }
-
+export function toResultsShellModel(shell: ResultsReadModel, note: string): ResultsReadModel {
   return {
-    coverage: draw.coverage,
-    drawDate: draw.drawDate,
-    drawDateIso: draw.drawDateIso,
-    drawNo: draw.drawNo,
-    id: draw.id,
-    lotteryType: draw.lotteryType,
-    prizes: draw.prizes.map((prize, index) => ({
-      id: `${draw.id}-${prize.prizeType}-${index}`,
-      label: prize.label,
-      number: prize.value,
-      type: prize.prizeType
-    })),
-    status: draw.status,
-    statusLabel: draw.statusLabel
+    ...shell,
+    draws: [],
+    generatedAt: new Date().toISOString(),
+    mockNote: note,
+    source: "mock",
+    stats: shell.stats.map((stat, index) => ({
+      ...stat,
+      value: index === 0 ? "-" : "0"
+    }))
   };
 }

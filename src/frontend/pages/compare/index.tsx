@@ -2,17 +2,19 @@
 
 import { AlertCircle, Loader2, Scale3d } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { TimeSeriesChart } from "@/frontend/chart-primitives";
 import { EmptyState, FilterToolbar, LoadingSkeleton, MetricCard } from "@/frontend/components";
 import { compareContent } from "@/frontend/pages/compare/compare.content";
-import { compareFallback } from "@/frontend/pages/compare/compare.data";
+import { runCompareRequest } from "@/frontend/pages/compare/compare.data";
 import {
   type CompareFormState,
   defaultCompareFormState,
   toCompareChartPoints,
   toComparePayload
 } from "@/frontend/pages/compare/compare.mappers";
+import { buildCompareHref, parseCompareSearchParams } from "@/frontend/pages/compare/compare.query";
 import {
   Badge,
   Button,
@@ -33,21 +35,23 @@ import {
   TableRow,
   Textarea
 } from "@/frontend/primitives";
-import { apiPost } from "@/lib/api/http";
-import { apiRoutes } from "@/lib/api/routes";
-import {
-  type CompareReadModel,
-  compareReadModelSchema,
-  compareRequestSchema
-} from "@/schema/app/compare.schema";
+import { type CompareReadModel, compareRequestSchema } from "@/schema/app/compare.schema";
 
-export function ComparePage() {
-  const [formState, setFormState] = useState(defaultCompareFormState);
+export function ComparePage({
+  searchParams
+}: Readonly<{
+  searchParams?: Record<string, string | string[] | undefined>;
+}>) {
+  const router = useRouter();
+  const [formState, setFormState] = useState(() =>
+    parseCompareSearchParams(searchParams, defaultCompareFormState)
+  );
+  const [compareState, setCompareState] = useState<"empty" | "error" | "ready">("empty");
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [compare, setCompare] = useState<CompareReadModel>(compareFallback);
+  const [compare, setCompare] = useState<CompareReadModel | null>(null);
 
-  const chartPoints = useMemo(() => toCompareChartPoints(compare), [compare]);
+  const chartPoints = useMemo(() => (compare ? toCompareChartPoints(compare) : []), [compare]);
 
   async function handleCompare() {
     setIsPending(true);
@@ -55,15 +59,14 @@ export function ComparePage() {
 
     try {
       const payload = compareRequestSchema.parse(toComparePayload(formState));
-
-      const response = await apiPost<CompareReadModel>(apiRoutes.compare, payload, {
-        schema: compareReadModelSchema
-      });
+      router.replace(buildCompareHref(formState));
+      const response = await runCompareRequest(payload);
 
       setCompare(response);
+      setCompareState(response.candidates.length > 0 ? "ready" : "empty");
     } catch {
       setError(compareContent.errorMessage);
-      setCompare(compareFallback);
+      setCompareState(compare ? "ready" : "error");
     } finally {
       setIsPending(false);
     }
@@ -101,21 +104,29 @@ export function ComparePage() {
               hint={compareContent.metrics.topScore.hint}
               label={compareContent.metrics.topScore.label}
               tone="prediction"
-              value={String(compare.candidates[0]?.score ?? 0)}
+              value={String(compare?.candidates[0]?.score ?? 0)}
             />
             <MetricCard
               hint={compareContent.metrics.candidates.hint}
               label={compareContent.metrics.candidates.label}
-              value={String(compare.candidates.length)}
+              value={String(compare?.candidates.length ?? 0)}
             />
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
-            <Badge variant={compare.source === "api" ? "success" : "warning"}>
-              {compare.source === "api"
-                ? compareContent.badges.liveApi
-                : compareContent.badges.sampleSet}
-            </Badge>
-            {compare.strategyId ? <Badge variant="prediction">{compare.strategyId}</Badge> : null}
+            {(() => {
+              let statusLabel: string = compareContent.badges.unavailable;
+              let statusVariant: React.ComponentProps<typeof Badge>["variant"] = "warning";
+
+              if (compareState === "ready") {
+                statusLabel = compareContent.badges.liveApi;
+                statusVariant = "success";
+              } else if (compareState === "empty") {
+                statusLabel = compareContent.badges.waiting;
+              }
+
+              return <Badge variant={statusVariant}>{statusLabel}</Badge>;
+            })()}
+            {compare?.strategyId ? <Badge variant="prediction">{compare.strategyId}</Badge> : null}
           </div>
         </Card>
       </section>
@@ -280,7 +291,7 @@ export function ComparePage() {
           <LoadingSkeleton lines={2} />
           <LoadingSkeleton lines={2} />
         </section>
-      ) : (
+      ) : compare ? (
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <MetricCard
             label={compareContent.metrics.sampleSize}
@@ -300,46 +311,63 @@ export function ComparePage() {
             value={new Date(compare.generatedAt).toLocaleDateString("th-TH")}
           />
         </section>
+      ) : (
+        <section>
+          <EmptyState
+            description={
+              compareState === "error"
+                ? compareContent.emptyState.fallbackDescription
+                : compareContent.emptyState.emptyDescription
+            }
+            title={
+              compareState === "error"
+                ? compareContent.emptyState.fallbackTitle
+                : compareContent.emptyState.emptyTitle
+            }
+          />
+        </section>
       )}
 
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
-        <TimeSeriesChart points={chartPoints} title={compareContent.chartTitle} />
+      {compare && compare.candidates.length > 0 ? (
+        <section className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
+          <TimeSeriesChart points={chartPoints} title={compareContent.chartTitle} />
 
-        <Card className="p-6">
-          <SectionHeading
-            eyebrow={compareContent.sections.explainableRanking.eyebrow}
-            title={compareContent.sections.explainableRanking.title}
-            description={compareContent.sections.explainableRanking.description}
-          />
-          <div className="mt-4">
-            <Button asChild className="px-0" variant="link">
-              <Link href={compareContent.actions.methodologyHref}>
-                {compareContent.actions.rankingMethodologyLabel}
-              </Link>
-            </Button>
-          </div>
-          <div className="mt-5 space-y-3">
-            {compare.candidates.map((candidate) => (
-              <div
-                className="rounded-none border border-[var(--color-border-soft)] bg-[var(--color-bg-canvas)] p-4"
-                key={candidate.number}
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <p className="font-mono text-2xl font-bold text-[var(--color-text-primary)]">
-                    {candidate.number}
+          <Card className="p-6">
+            <SectionHeading
+              description={compareContent.sections.explainableRanking.description}
+              eyebrow={compareContent.sections.explainableRanking.eyebrow}
+              title={compareContent.sections.explainableRanking.title}
+            />
+            <div className="mt-4">
+              <Button asChild className="px-0" variant="link">
+                <Link href={compareContent.actions.methodologyHref}>
+                  {compareContent.actions.rankingMethodologyLabel}
+                </Link>
+              </Button>
+            </div>
+            <div className="mt-5 space-y-3">
+              {compare.candidates.map((candidate) => (
+                <div
+                  className="rounded-none border border-[var(--color-border-soft)] bg-[var(--color-bg-canvas)] p-4"
+                  key={candidate.number}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="font-mono text-2xl font-bold text-[var(--color-text-primary)]">
+                      {candidate.number}
+                    </p>
+                    <Badge variant={candidate.rank === 1 ? "success" : "neutral"}>
+                      {compareContent.badges.rankLabel} {candidate.rank}
+                    </Badge>
+                  </div>
+                  <p className="mt-2 text-sm text-[var(--color-text-muted)]">
+                    {candidate.reasons.join(" ")}
                   </p>
-                  <Badge variant={candidate.rank === 1 ? "success" : "neutral"}>
-                    {compareContent.badges.rankLabel} {candidate.rank}
-                  </Badge>
                 </div>
-                <p className="mt-2 text-sm text-[var(--color-text-muted)]">
-                  {candidate.reasons.join(" ")}
-                </p>
-              </div>
-            ))}
-          </div>
-        </Card>
-      </section>
+              ))}
+            </div>
+          </Card>
+        </section>
+      ) : null}
 
       <Card className="p-6">
         <SectionHeading
@@ -348,63 +376,72 @@ export function ComparePage() {
           description={compareContent.sections.results.description}
         />
 
-        <div className="mt-5 overflow-hidden rounded-none border border-[var(--color-border-soft)]">
-          <Table>
-            <TableHeader className="bg-[var(--color-bg-subtle)]">
-              <TableRow className="border-b border-[var(--color-border-soft)] hover:bg-transparent">
-                <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                  {compareContent.sections.results.tableHeaders.number}
-                </TableHead>
-                <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                  {compareContent.sections.results.tableHeaders.score}
-                </TableHead>
-                <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                  {compareContent.sections.results.tableHeaders.rank}
-                </TableHead>
-                <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                  {compareContent.sections.results.tableHeaders.breakdown}
-                </TableHead>
-                <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                  {compareContent.sections.results.tableHeaders.reasons}
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {compare.candidates.map((candidate) => (
-                <TableRow
-                  className="border-b border-[var(--color-border-soft)] hover:bg-[var(--color-bg-subtle)]/50"
-                  key={candidate.number}
-                >
-                  <TableCell className="px-4 py-3 font-mono text-lg font-semibold text-[var(--color-text-primary)]">
-                    {candidate.number}
-                  </TableCell>
-                  <TableCell className="px-4 py-3 text-[var(--color-text-secondary)]">
-                    {candidate.score}
-                  </TableCell>
-                  <TableCell className="px-4 py-3 text-[var(--color-text-secondary)]">
-                    {candidate.rank}
-                  </TableCell>
-                  <TableCell className="px-4 py-3">
-                    <div className="flex flex-wrap gap-1.5">
-                      {Object.entries(candidate.scoreBreakdown).map(([label, value]) => (
-                        <Badge key={`${candidate.number}-${label}`} variant="brand">
-                          {label}: {value}
-                        </Badge>
-                      ))}
-                    </div>
-                  </TableCell>
-                  <TableCell className="px-4 py-3 text-[var(--color-text-secondary)]">
-                    <ul className="space-y-1">
-                      {candidate.reasons.map((reason) => (
-                        <li key={reason}>{reason}</li>
-                      ))}
-                    </ul>
-                  </TableCell>
+        {compare && compare.candidates.length > 0 ? (
+          <div className="mt-5 overflow-hidden rounded-none border border-[var(--color-border-soft)]">
+            <Table>
+              <TableHeader className="bg-[var(--color-bg-subtle)]">
+                <TableRow className="border-b border-[var(--color-border-soft)] hover:bg-transparent">
+                  <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
+                    {compareContent.sections.results.tableHeaders.number}
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
+                    {compareContent.sections.results.tableHeaders.score}
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
+                    {compareContent.sections.results.tableHeaders.rank}
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
+                    {compareContent.sections.results.tableHeaders.breakdown}
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
+                    {compareContent.sections.results.tableHeaders.reasons}
+                  </TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+              </TableHeader>
+              <TableBody>
+                {compare.candidates.map((candidate) => (
+                  <TableRow
+                    className="border-b border-[var(--color-border-soft)] hover:bg-[var(--color-bg-subtle)]/50"
+                    key={candidate.number}
+                  >
+                    <TableCell className="px-4 py-3 font-mono text-lg font-semibold text-[var(--color-text-primary)]">
+                      {candidate.number}
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-[var(--color-text-secondary)]">
+                      {candidate.score}
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-[var(--color-text-secondary)]">
+                      {candidate.rank}
+                    </TableCell>
+                    <TableCell className="px-4 py-3">
+                      <div className="flex flex-wrap gap-1.5">
+                        {Object.entries(candidate.scoreBreakdown).map(([label, value]) => (
+                          <Badge key={`${candidate.number}-${label}`} variant="brand">
+                            {label}: {value}
+                          </Badge>
+                        ))}
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-[var(--color-text-secondary)]">
+                      <ul className="space-y-1">
+                        {candidate.reasons.map((reason) => (
+                          <li key={reason}>{reason}</li>
+                        ))}
+                      </ul>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        ) : (
+          <div className="mt-5">
+            <EmptyState
+              description={compareContent.emptyState.resultsDescription}
+              title={compareContent.emptyState.resultsTitle}
+            />
+          </div>
+        )}
       </Card>
     </main>
   );

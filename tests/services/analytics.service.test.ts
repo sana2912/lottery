@@ -11,13 +11,92 @@ afterEach(() => {
 });
 
 describe("analytics.service", () => {
-  test("queries the expected prize window and returns a schema-valid read model", async () => {
-    let argsSeen: unknown;
+  test("returns materialized stats when a canonical cached context exists", async () => {
+    const queryCalls: string[] = [];
 
     (globalThis as { prisma?: unknown }).prisma = {
+      $queryRaw: async (...args: unknown[]) => {
+        const sql = getSqlText(args[0]);
+        queryCalls.push(sql);
+
+        if (sql.includes('FROM "number_stat_snapshots"') && sql.includes("LIMIT 1")) {
+          return [{ computedAt: new Date("2026-04-29T00:00:00.000Z") }];
+        }
+
+        if (sql.includes('FROM "digit_stat_snapshots"')) {
+          return [
+            {
+              computedAt: new Date("2026-04-29T00:00:00.000Z"),
+              digit: "0",
+              drawCount: 30,
+              frequencyPercent: 20,
+              hitCount: 6,
+              lastSeenDrawDate: new Date("2026-04-16T00:00:00.000Z"),
+              lotteryType: "THAI_GOVERNMENT",
+              missingDrawCount: 1,
+              position: 1,
+              prizeType: "TWO_DIGIT",
+              trendDirection: "up",
+              windowSize: 30
+            }
+          ];
+        }
+
+        if (sql.includes('FROM "number_stat_snapshots"')) {
+          return [
+            {
+              averageGap: 15,
+              computedAt: new Date("2026-04-29T00:00:00.000Z"),
+              drawCount: 30,
+              frequencyPercent: 13.33,
+              hitCount: 4,
+              lastSeenDrawDate: new Date("2026-04-16T00:00:00.000Z"),
+              lotteryType: "THAI_GOVERNMENT",
+              maxGap: 21,
+              missingDrawCount: 1,
+              number: "09",
+              numberLength: 2,
+              patternFlags: ["odd", "high"],
+              prizeType: "TWO_DIGIT",
+              trendScore: 39.33,
+              windowSize: 30
+            }
+          ];
+        }
+
+        return [];
+      }
+    };
+
+    const model = await getAnalyticsReadModel({
+      lotteryType: "THAI_GOVERNMENT",
+      numberLength: 2,
+      page: 1,
+      pageSize: 20,
+      prizeType: "TWO_DIGIT",
+      windowSize: 30
+    });
+
+    expect(queryCalls.some((sql) => sql.includes('FROM "number_stat_snapshots"'))).toBe(true);
+    expect(analyticsReadModelSchema.parse(model)).toEqual(model);
+    expect(model.summary.drawCount).toBe(30);
+    expect(model.numberStats[0]?.number).toBe("09");
+  });
+
+  test("queries the expected prize window and returns a schema-valid read model", async () => {
+    let drawArgsSeen: unknown;
+    let prizeArgsSeen: unknown;
+
+    (globalThis as { prisma?: unknown }).prisma = {
+      lotteryDraw: {
+        findMany: async (args: unknown) => {
+          drawArgsSeen = args;
+          return [{ id: "draw-2" }, { id: "draw-1" }];
+        }
+      },
       lotteryPrize: {
         findMany: async (args: unknown) => {
-          argsSeen = args;
+          prizeArgsSeen = args;
           return [
             prize("draw-2", "2026-04-16T00:00:00.000Z", "09", "TWO_DIGIT"),
             prize("draw-1", "2026-04-01T00:00:00.000Z", "11", "TWO_DIGIT")
@@ -38,23 +117,37 @@ describe("analytics.service", () => {
     };
     const model = await getAnalyticsReadModel(query);
 
-    expect(argsSeen).toMatchObject({
-      include: { draw: true },
+    expect(drawArgsSeen).toMatchObject({
       orderBy: {
-        draw: {
-          drawDate: "desc"
-        }
+        drawDate: "desc"
       },
       take: 50,
       where: {
-        draw: {
-          is: {
-            drawDate: {
-              gte: new Date("2026-04-01"),
-              lte: new Date("2026-04-30")
-            },
-            lotteryType: "THAI_GOVERNMENT"
+        drawDate: {
+          gte: new Date("2026-04-01"),
+          lte: new Date("2026-04-30")
+        },
+        lotteryType: "THAI_GOVERNMENT"
+      }
+    });
+    expect(prizeArgsSeen).toMatchObject({
+      include: { draw: true },
+      orderBy: [
+        {
+          draw: {
+            drawDate: "desc"
           }
+        },
+        {
+          position: "asc"
+        },
+        {
+          number: "asc"
+        }
+      ],
+      where: {
+        drawId: {
+          in: ["draw-2", "draw-1"]
         },
         type: "TWO_DIGIT"
       }
@@ -72,6 +165,9 @@ describe("analytics.service", () => {
 
   test("returns an empty safe read model when no prizes match", async () => {
     (globalThis as { prisma?: unknown }).prisma = {
+      lotteryDraw: {
+        findMany: async () => []
+      },
       lotteryPrize: {
         findMany: async () => []
       }
@@ -90,6 +186,112 @@ describe("analytics.service", () => {
     expect(model.numberStats).toEqual([]);
     expect(model.patternSummaries).toEqual([]);
   });
+
+  test("limits analytics by distinct draws instead of raw prize row count", async () => {
+    let drawArgsSeen: unknown;
+    let prizeArgsSeen: unknown;
+
+    (globalThis as { prisma?: unknown }).prisma = {
+      lotteryDraw: {
+        findMany: async (args: unknown) => {
+          drawArgsSeen = args;
+          return [{ id: "draw-3" }, { id: "draw-2" }];
+        }
+      },
+      lotteryPrize: {
+        findMany: async (args: unknown) => {
+          prizeArgsSeen = args;
+          return [
+            prize("draw-3", "2026-04-16T00:00:00.000Z", "111", "THREE_DIGIT"),
+            prize("draw-3", "2026-04-16T00:00:00.000Z", "222", "THREE_DIGIT"),
+            prize("draw-2", "2026-04-01T00:00:00.000Z", "333", "THREE_DIGIT"),
+            prize("draw-2", "2026-04-01T00:00:00.000Z", "444", "THREE_DIGIT")
+          ];
+        }
+      }
+    };
+
+    const model = await getAnalyticsReadModel({
+      lotteryType: "THAI_GOVERNMENT",
+      page: 1,
+      pageSize: 20,
+      prizeType: "THREE_DIGIT",
+      windowSize: 2
+    });
+
+    expect(drawArgsSeen).toMatchObject({ take: 2 });
+    expect(prizeArgsSeen).toMatchObject({
+      where: {
+        drawId: {
+          in: ["draw-3", "draw-2"]
+        },
+        type: "THREE_DIGIT"
+      }
+    });
+    expect(model.summary.drawCount).toBe(2);
+    expect(model.numberStats).toHaveLength(4);
+  });
+
+  test("falls back to on-demand analytics when materialized rows are unavailable", async () => {
+    let drawArgsSeen: unknown;
+
+    (globalThis as { prisma?: unknown }).prisma = {
+      $queryRaw: async () => [],
+      lotteryDraw: {
+        findMany: async (args: unknown) => {
+          drawArgsSeen = args;
+          return [{ id: "draw-2" }];
+        }
+      },
+      lotteryPrize: {
+        findMany: async () => [prize("draw-2", "2026-04-16T00:00:00.000Z", "09", "TWO_DIGIT")]
+      }
+    };
+
+    const model = await getAnalyticsReadModel({
+      lotteryType: "THAI_GOVERNMENT",
+      numberLength: 2,
+      page: 1,
+      pageSize: 20,
+      prizeType: "TWO_DIGIT",
+      windowSize: 30
+    });
+
+    expect(drawArgsSeen).toMatchObject({ take: 30 });
+    expect(model.numberStats[0]?.number).toBe("09");
+  });
+
+  test("caps analytics windows at the current date when no end date is provided", async () => {
+    let drawArgsSeen: unknown;
+
+    (globalThis as { prisma?: unknown }).prisma = {
+      lotteryDraw: {
+        findMany: async (args: unknown) => {
+          drawArgsSeen = args;
+          return [];
+        }
+      },
+      lotteryPrize: {
+        findMany: async () => []
+      }
+    };
+
+    await getAnalyticsReadModel({
+      lotteryType: "THAI_GOVERNMENT",
+      page: 1,
+      pageSize: 20,
+      windowSize: 20
+    });
+
+    expect(drawArgsSeen).toMatchObject({
+      where: {
+        drawDate: {
+          lte: expect.any(Date)
+        },
+        lotteryType: "THAI_GOVERNMENT"
+      }
+    });
+  });
 });
 
 function prize(drawId: string, drawDate: string, number: string, type: string) {
@@ -103,4 +305,8 @@ function prize(drawId: string, drawDate: string, number: string, type: string) {
     number,
     type
   };
+}
+
+function getSqlText(template: unknown) {
+  return Array.isArray(template) ? template.join("?") : String(template);
 }

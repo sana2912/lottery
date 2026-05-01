@@ -14,14 +14,14 @@ import {
   TableRow
 } from "@/frontend/primitives";
 
-type ResultsDetailPageProps = {
+type ResultsDetailPageProps = Readonly<{
   id: string;
-};
+}>;
 
 export async function ResultsDetailPage({ id }: ResultsDetailPageProps) {
-  const draw = await getDrawDetail(id);
+  const detail = await getDrawDetail(id);
 
-  if (!draw) {
+  if (detail.state === "notFound") {
     return (
       <main className="space-y-6">
         <Card className="p-6">
@@ -39,6 +39,27 @@ export async function ResultsDetailPage({ id }: ResultsDetailPageProps) {
       </main>
     );
   }
+
+  if (detail.state === "error") {
+    return (
+      <main className="space-y-6">
+        <Card className="p-6">
+          <SectionHeading
+            eyebrow={resultsContent.detail.errorEyebrow}
+            title={resultsContent.detail.errorTitle}
+          />
+          <p className="mt-4 text-sm leading-6 text-[var(--color-text-secondary)]">
+            {resultsContent.detail.errorDescription}
+          </p>
+          <Button asChild className="mt-6" variant="outline">
+            <Link href="/results">{resultsContent.detail.backLabel}</Link>
+          </Button>
+        </Card>
+      </main>
+    );
+  }
+
+  const { draw } = detail;
 
   return (
     <main className="space-y-6">

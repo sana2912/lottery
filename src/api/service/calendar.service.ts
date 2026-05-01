@@ -25,12 +25,27 @@ type CalendarInsightDraw = {
 export async function getCalendarReadModel() {
   const prisma = getPrisma();
   const computedAt = new Date();
-  const [recentDraws, monthlyDraws] = await Promise.all([
+  const [nextPersistedDraw, recentDraws, monthlyDraws] = await Promise.all([
+    prisma.lotteryDraw.findFirst({
+      orderBy: {
+        drawDate: "asc"
+      },
+      where: {
+        drawDate: {
+          gt: computedAt
+        }
+      }
+    }),
     prisma.lotteryDraw.findMany({
       orderBy: {
         drawDate: "desc"
       },
-      take: 10
+      take: 10,
+      where: {
+        drawDate: {
+          lte: computedAt
+        }
+      }
     }),
     prisma.lotteryDraw.findMany({
       include: {
@@ -39,19 +54,25 @@ export async function getCalendarReadModel() {
       orderBy: {
         drawDate: "desc"
       },
-      take: 96
+      take: 96,
+      where: {
+        drawDate: {
+          lte: computedAt
+        }
+      }
     })
   ]);
 
-  const nextDrawDate = getNextDrawDate(computedAt);
-  const nextDraw = {
-    drawDate: formatCalendarDate(nextDrawDate),
-    drawDateIso: nextDrawDate,
-    drawNo: buildNextDrawNumber(nextDrawDate),
-    id: `upcoming-${nextDrawDate.toISOString().slice(0, 10)}`,
-    isNextDraw: true,
-    status: "upcoming" as const
-  };
+  const nextDraw = nextPersistedDraw
+    ? {
+        drawDate: formatCalendarDate(nextPersistedDraw.drawDate),
+        drawDateIso: nextPersistedDraw.drawDate,
+        drawNo: nextPersistedDraw.drawNo ?? undefined,
+        id: nextPersistedDraw.id,
+        isNextDraw: true,
+        status: "upcoming" as const
+      }
+    : buildSyntheticNextDraw(computedAt, recentDraws[0]?.drawDate);
 
   return toApiCalendarReadModel({
     draws: [
@@ -154,16 +175,30 @@ function countNumbers(numbers: readonly string[]) {
   return counts;
 }
 
-function getNextDrawDate(reference: Date) {
-  const utcYear = reference.getUTCFullYear();
-  const utcMonth = reference.getUTCMonth();
-  const utcDay = reference.getUTCDate();
+function getNextDrawDate(reference: Date, latestPastDrawDate?: Date) {
+  const anchor = latestPastDrawDate ?? reference;
+  const utcYear = anchor.getUTCFullYear();
+  const utcMonth = anchor.getUTCMonth();
+  const utcDay = anchor.getUTCDate();
 
   if (utcDay < 16) {
     return new Date(Date.UTC(utcYear, utcMonth, 16));
   }
 
   return new Date(Date.UTC(utcYear, utcMonth + 1, 1));
+}
+
+function buildSyntheticNextDraw(reference: Date, latestPastDrawDate?: Date) {
+  const nextDrawDate = getNextDrawDate(reference, latestPastDrawDate);
+
+  return {
+    drawDate: formatCalendarDate(nextDrawDate),
+    drawDateIso: nextDrawDate,
+    drawNo: buildNextDrawNumber(nextDrawDate),
+    id: `upcoming-${nextDrawDate.toISOString().slice(0, 10)}`,
+    isNextDraw: true,
+    status: "upcoming" as const
+  };
 }
 
 function buildNextDrawNumber(drawDate: Date) {

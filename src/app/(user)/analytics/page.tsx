@@ -1,3 +1,1 @@
-import { AnalyticsPage } from "@/frontend/pages/analytics";
-
-export default AnalyticsPage;
+export { default } from "@/frontend/pages/analytics/route";

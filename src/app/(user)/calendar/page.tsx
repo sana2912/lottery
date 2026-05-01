@@ -1,3 +1,1 @@
-import { CalendarPage } from "@/frontend/pages/calendar";
-
-export default CalendarPage;
+export { CalendarPage as default } from "@/frontend/pages/calendar";

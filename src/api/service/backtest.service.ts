@@ -196,6 +196,8 @@ function buildDrawDateFilter(input: BacktestRequest): DateTimeFilter<"LotteryDra
 
   if (input.endDate) {
     filter.lte = new Date(input.endDate);
+  } else {
+    filter.lte = new Date();
   }
 
   return Object.keys(filter).length > 0 ? filter : undefined;

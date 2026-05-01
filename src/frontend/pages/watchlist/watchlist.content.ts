@@ -52,10 +52,22 @@ export const watchlistContent = {
       hint: "Items currently returned from /api/watchlist.",
       label: "Saved numbers"
     },
+    statCoverage: {
+      hint: "Watchlist items currently enriched with live historical stats.",
+      label: "Enriched items"
+    },
     scope: {
       hint: "Temporary no-auth ownership mode.",
       label: "Scope"
     }
+  },
+  statSummary: {
+    frequencyLabel: "Frequency",
+    hitsLabel: "Hits",
+    lastSeenLabel: "Last seen",
+    missingLabel: "Missing",
+    prizeTypeLabel: "Prize type",
+    unavailable: "No historical stat summary is available for this number yet."
   },
   sections: {
     addNumber: {

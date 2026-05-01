@@ -6,7 +6,7 @@ export const calendarContent = {
   },
   badges: {
     liveApi: "Live API",
-    mockFallback: "Mock fallback",
+    unavailable: "Unavailable",
     nextDraw: "Next draw"
   },
   cards: {
@@ -24,6 +24,15 @@ export const calendarContent = {
     }
   },
   emptyStates: {
+    calendar: {
+      description: "The calendar API returned no draw schedule rows for the current dataset.",
+      title: "No calendar rows"
+    },
+    calendarError: {
+      description:
+        "The calendar service could not be reached or returned an invalid response. Check the API and database connection, then reload this page.",
+      title: "Calendar data unavailable"
+    },
     monthlyInsights: {
       description: "No monthly insight rows are available in the current calendar read model.",
       title: "No monthly insights"

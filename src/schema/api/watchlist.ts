@@ -1,5 +1,21 @@
 export type ApiWatchlistScope = "global";
 export type ApiWatchlistSource = "MANUAL" | "NOTEBOOK" | "PREDICTION";
+export type ApiWatchlistPrizeType =
+  | "FIRST"
+  | "THREE_DIGIT"
+  | "TWO_DIGIT"
+  | "PRIZE2"
+  | "PRIZE3"
+  | "PRIZE4"
+  | "PRIZE5";
+
+export interface ApiWatchlistStatSummary {
+  frequencyPercent: number;
+  hitCount: number;
+  lastSeenDrawDate?: string;
+  missingDrawCount: number;
+  prizeType: ApiWatchlistPrizeType;
+}
 
 export interface ApiWatchlistItem {
   id: string;
@@ -8,6 +24,7 @@ export interface ApiWatchlistItem {
   number: string;
   scope: ApiWatchlistScope;
   source: ApiWatchlistSource;
+  stats?: ApiWatchlistStatSummary;
   tags: string[];
   updatedAt: string;
 }

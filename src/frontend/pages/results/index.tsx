@@ -2,18 +2,18 @@ import Link from "next/link";
 import { EmptyState } from "@/frontend/components";
 import { SlidingNumber } from "@/frontend/components/animate-ui/primitives/texts/sliding-number";
 import { resultsContent } from "@/frontend/pages/results/results.content";
-import { getResultsModel } from "@/frontend/pages/results/results.data";
+import { getResultsPageData } from "@/frontend/pages/results/results.data";
+import {
+  buildResultsHref,
+  getResultsFilterPills,
+  parseResultsSearchParams
+} from "@/frontend/pages/results/results.query";
 import {
   Badge,
   Button,
   Card,
   Input,
   SectionHeading,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
   Table,
   TableBody,
   TableCell,
@@ -22,9 +22,10 @@ import {
   TableRow,
   Textarea
 } from "@/frontend/primitives";
+import type { SearchQuery } from "@/schema/app/query.schema";
 import type { ResultsReadModel } from "@/schema/app/results.schema";
 
-function StatCard({ stat }: { stat: ResultsReadModel["stats"][number] }) {
+function StatCard({ stat }: Readonly<{ stat: ResultsReadModel["stats"][number] }>) {
   const isNumericValue = /^\d+$/.test(stat.value);
 
   return (
@@ -48,8 +49,14 @@ function StatCard({ stat }: { stat: ResultsReadModel["stats"][number] }) {
   );
 }
 
-export async function ResultsPage() {
-  const resultsModel = await getResultsModel();
+export async function ResultsPage({
+  searchParams
+}: Readonly<{
+  searchParams?: Record<string, string | string[] | undefined>;
+}>) {
+  const query = parseResultsSearchParams(searchParams);
+  const { model: resultsModel, state } = await getResultsPageData(query);
+  const filterPills = getResultsFilterPills(query);
 
   return (
     <main className="space-y-6">
@@ -114,122 +121,140 @@ export async function ResultsPage() {
         <Card className="p-6">
           <SectionHeading
             actions={
-              <div className="w-full max-w-sm">
+              <form action="/results" className="flex w-full max-w-sm gap-2">
                 <Input
                   className="h-11 rounded-none border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 py-3 shadow-[var(--shadow-micro)]"
+                  defaultValue={query.q ?? ""}
+                  name="q"
                   placeholder={resultsContent.filters.searchPlaceholder}
                 />
-              </div>
+                {query.prizeType ? (
+                  <input name="prizeType" type="hidden" value={query.prizeType} />
+                ) : null}
+                <Button className="rounded-none px-4 py-[13px]" type="submit">
+                  Apply
+                </Button>
+              </form>
             }
             className="border-b border-[var(--color-border-soft)] pb-5"
             eyebrow={resultsContent.filters.sectionEyebrow}
             title={resultsContent.filters.sectionTitle}
           />
 
-          <div className="mt-5 grid gap-3 md:grid-cols-2">
-            <Select defaultValue={resultsModel.filters.defaultLotteryType}>
-              <SelectTrigger className="h-11 w-full rounded-none border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 shadow-[var(--shadow-micro)]">
-                <SelectValue placeholder={resultsContent.filters.lotteryTypePlaceholder} />
-              </SelectTrigger>
-              <SelectContent>
-                {resultsModel.filters.lotteryTypes.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {type}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select defaultValue={resultsModel.filters.defaultPrizeType}>
-              <SelectTrigger className="h-11 w-full rounded-none border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 shadow-[var(--shadow-micro)]">
-                <SelectValue placeholder={resultsContent.filters.prizeTypePlaceholder} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={resultsContent.filters.allPrizeTypesLabel}>
-                  {resultsContent.filters.allPrizeTypesLabel}
-                </SelectItem>
-                {resultsModel.filters.prizeTypes.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {type}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="mt-5 flex flex-wrap gap-2">
+            {filterPills.map((pill) => (
+              <Badge key={pill} variant="brand">
+                {pill}
+              </Badge>
+            ))}
+            {filterPills.length > 0 ? (
+              <Button asChild className="rounded-none px-3 py-2 text-xs" variant="outline">
+                <Link href="/results">Reset filters</Link>
+              </Button>
+            ) : null}
           </div>
 
           <div className="mt-5 flex flex-wrap gap-3">
             {resultsModel.filters.lotteryTypes.map((type) => (
               <Button
+                asChild
                 className="rounded-none bg-[var(--color-bg-brand-soft)] px-3 py-2 text-xs text-[var(--color-brand)] hover:bg-[var(--color-bg-brand-soft-strong)]"
                 key={type}
                 variant="ghost"
               >
-                {type}
+                <Link
+                  href={buildResultsHref(query, {
+                    lotteryType: type as SearchQuery["lotteryType"],
+                    page: 1
+                  })}
+                >
+                  {type}
+                </Link>
               </Button>
             ))}
 
             {resultsModel.filters.prizeTypes.map((type) => (
               <Button
+                asChild
                 className="rounded-none border-[var(--color-brand-outline)] bg-[var(--color-bg-canvas)] px-3 py-2 text-xs text-[var(--color-brand-outline)] hover:bg-[var(--color-bg-brand-soft)]"
                 key={type}
                 variant="outline"
               >
-                {type}
+                <Link
+                  href={buildResultsHref(query, {
+                    page: 1,
+                    prizeType:
+                      query.prizeType === type ? undefined : (type as SearchQuery["prizeType"])
+                  })}
+                >
+                  {type}
+                </Link>
               </Button>
             ))}
           </div>
 
           <div className="mt-6 space-y-4">
-            {resultsModel.draws.length === 0 ? (
+            {state === "error" ? (
+              <EmptyState
+                description={resultsContent.errorState.description}
+                title={resultsContent.errorState.title}
+              />
+            ) : null}
+
+            {state === "empty" ? (
               <EmptyState
                 description={resultsContent.emptyState.description}
                 title={resultsContent.emptyState.title}
               />
             ) : null}
 
-            {resultsModel.draws.map((draw) => (
-              <article
-                className="rounded-none border border-[var(--color-border-soft)] bg-[var(--color-bg-elevated)] p-5"
-                key={draw.id}
-              >
-                <div className="flex flex-col gap-3 border-b border-[var(--color-border-soft)] pb-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-[var(--color-brand-outline)]">
-                      {draw.drawDate}
-                    </p>
-                    <h3 className="mt-1 text-xl font-bold tracking-normal text-[var(--color-text-primary)]">
-                      Draw {draw.drawNo}
-                    </h3>
-                  </div>
+            {state === "ready"
+              ? resultsModel.draws.map((draw) => (
+                  <article
+                    className="rounded-none border border-[var(--color-border-soft)] bg-[var(--color-bg-elevated)] p-5"
+                    key={draw.id}
+                  >
+                    <div className="flex flex-col gap-3 border-b border-[var(--color-border-soft)] pb-4 lg:flex-row lg:items-start lg:justify-between">
+                      <div>
+                        <p className="text-sm font-semibold text-[var(--color-brand-outline)]">
+                          {draw.drawDate}
+                        </p>
+                        <h3 className="mt-1 text-xl font-bold tracking-normal text-[var(--color-text-primary)]">
+                          Draw {draw.drawNo}
+                        </h3>
+                      </div>
 
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant={draw.status === "complete" ? "success" : "warning"}>
-                      {draw.statusLabel}
-                    </Badge>
-                    <Badge variant="neutral">{draw.coverage}</Badge>
-                    <Button asChild size="sm" variant="outline">
-                      <Link href={`/results/${draw.id}`}>{resultsContent.filters.detailLabel}</Link>
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="mt-4 grid gap-3 md:grid-cols-2">
-                  {draw.prizes.map((prize) => (
-                    <div
-                      className="rounded-none bg-[var(--color-bg-canvas)] px-4 py-3"
-                      key={`${draw.id}-${prize.label}`}
-                    >
-                      <p className="text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                        {prize.label}
-                      </p>
-                      <p className="mt-2 text-lg font-semibold text-[var(--color-text-primary)]">
-                        {prize.value}
-                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        <Badge variant={draw.status === "complete" ? "success" : "warning"}>
+                          {draw.statusLabel}
+                        </Badge>
+                        <Badge variant="neutral">{draw.coverage}</Badge>
+                        <Button asChild size="sm" variant="outline">
+                          <Link href={`/results/${draw.id}`}>
+                            {resultsContent.filters.detailLabel}
+                          </Link>
+                        </Button>
+                      </div>
                     </div>
-                  ))}
-                </div>
-              </article>
-            ))}
+
+                    <div className="mt-4 grid gap-3 md:grid-cols-2">
+                      {draw.prizes.map((prize) => (
+                        <div
+                          className="rounded-none bg-[var(--color-bg-canvas)] px-4 py-3"
+                          key={`${draw.id}-${prize.label}`}
+                        >
+                          <p className="text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
+                            {prize.label}
+                          </p>
+                          <p className="mt-2 text-lg font-semibold text-[var(--color-text-primary)]">
+                            {prize.value}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </article>
+                ))
+              : null}
           </div>
         </Card>
 

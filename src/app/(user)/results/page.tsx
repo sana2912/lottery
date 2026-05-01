@@ -1,3 +1,1 @@
-import { ResultsPage } from "@/frontend/pages/results";
-
-export default ResultsPage;
+export { default } from "@/frontend/pages/results/route";

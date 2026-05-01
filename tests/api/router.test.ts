@@ -4,8 +4,10 @@ import { analyticsService } from "@/api/service/analytics.service";
 import { backtestService } from "@/api/service/backtest.service";
 import { calendarService } from "@/api/service/calendar.service";
 import { compareService } from "@/api/service/compare.service";
+import { dashboardService } from "@/api/service/dashboard.service";
 import { drawService } from "@/api/service/draw.service";
 import { predictionService } from "@/api/service/prediction.service";
+import { searchService } from "@/api/service/search.service";
 import { watchlistService } from "@/api/service/watchlist.service";
 import { analyticsReadModelSchema } from "@/schema/app/analytics.schema";
 import {
@@ -14,8 +16,10 @@ import {
 } from "@/schema/app/backtest.schema";
 import { calendarReadModelSchema } from "@/schema/app/calendar.schema";
 import { compareReadModelSchema } from "@/schema/app/compare.schema";
+import { dashboardReadModelSchema } from "@/schema/app/dashboard.schema";
 import { drawDetailResponseSchema, drawListResponseSchema } from "@/schema/app/draw.schema";
 import { predictionResponseSchema } from "@/schema/app/prediction.schema";
+import { searchReadModelSchema } from "@/schema/app/search.schema";
 import {
   deleteWatchlistItemResponseSchema,
   watchlistItemSchema,
@@ -33,12 +37,17 @@ const mutableAnalyticsService = analyticsService as {
 };
 const mutablePredictionService = predictionService as {
   generate: typeof predictionService.generate;
+  getLatestPrediction: typeof predictionService.getLatestPrediction;
+  getPredictionById: typeof predictionService.getPredictionById;
 };
 const mutableWatchlistService = watchlistService as {
   createWatchlistItem: typeof watchlistService.createWatchlistItem;
   deleteWatchlistItem: typeof watchlistService.deleteWatchlistItem;
   getWatchlist: typeof watchlistService.getWatchlist;
   updateWatchlistItem: typeof watchlistService.updateWatchlistItem;
+};
+const mutableSearchService = searchService as {
+  search: typeof searchService.search;
 };
 const mutableBacktestService = backtestService as {
   getBacktestById: typeof backtestService.getBacktestById;
@@ -51,12 +60,16 @@ const mutableCompareService = compareService as {
 const mutableCalendarService = calendarService as {
   getCalendarReadModel: typeof calendarService.getCalendarReadModel;
 };
+const mutableDashboardService = dashboardService as {
+  getDashboardReadModel: typeof dashboardService.getDashboardReadModel;
+};
 
 const originalServices = {
   analyticsReadModel: analyticsService.getAnalyticsReadModel,
   backtestById: backtestService.getBacktestById,
   calendarReadModel: calendarService.getCalendarReadModel,
   compareNumbers: compareService.compareNumbers,
+  dashboardReadModel: dashboardService.getDashboardReadModel,
   deleteWatchlistItem: watchlistService.deleteWatchlistItem,
   digitStats: analyticsService.getDigitStats,
   drawById: drawService.getDrawById,
@@ -64,7 +77,10 @@ const originalServices = {
   listBacktests: backtestService.listBacktests,
   numberStats: analyticsService.getNumberStats,
   predictionGenerate: predictionService.generate,
+  predictionById: predictionService.getPredictionById,
+  predictionLatest: predictionService.getLatestPrediction,
   runBacktest: backtestService.runBacktest,
+  search: searchService.search,
   updateWatchlistItem: watchlistService.updateWatchlistItem,
   watchlistCreate: watchlistService.createWatchlistItem,
   watchlistGet: watchlistService.getWatchlist
@@ -77,15 +93,19 @@ afterEach(() => {
   mutableAnalyticsService.getDigitStats = originalServices.digitStats;
   mutableAnalyticsService.getNumberStats = originalServices.numberStats;
   mutablePredictionService.generate = originalServices.predictionGenerate;
+  mutablePredictionService.getLatestPrediction = originalServices.predictionLatest;
+  mutablePredictionService.getPredictionById = originalServices.predictionById;
   mutableWatchlistService.createWatchlistItem = originalServices.watchlistCreate;
   mutableWatchlistService.deleteWatchlistItem = originalServices.deleteWatchlistItem;
   mutableWatchlistService.getWatchlist = originalServices.watchlistGet;
   mutableWatchlistService.updateWatchlistItem = originalServices.updateWatchlistItem;
+  mutableSearchService.search = originalServices.search;
   mutableBacktestService.getBacktestById = originalServices.backtestById;
   mutableBacktestService.listBacktests = originalServices.listBacktests;
   mutableBacktestService.runBacktest = originalServices.runBacktest;
   mutableCompareService.compareNumbers = originalServices.compareNumbers;
   mutableCalendarService.getCalendarReadModel = originalServices.calendarReadModel;
+  mutableDashboardService.getDashboardReadModel = originalServices.dashboardReadModel;
 });
 
 describe("api router", () => {
@@ -192,30 +212,60 @@ describe("api router", () => {
   test("prediction routes handle scaffold GET and validated POST body", async () => {
     let receivedBody: unknown;
 
+    mutablePredictionService.getLatestPrediction = async () =>
+      predictionResponseSchema.parse(
+        predictionResponse({
+          count: 3,
+          lotteryType: "THAI_GOVERNMENT",
+          numberLength: 2,
+          prizeType: "TWO_DIGIT",
+          strategyId: "balanced",
+          windowSize: 120
+        })
+      );
+    mutablePredictionService.getPredictionById = async (id) =>
+      id === "missing"
+        ? null
+        : predictionResponseSchema.parse(
+            predictionResponse({
+              count: 3,
+              lotteryType: "THAI_GOVERNMENT",
+              numberLength: 2,
+              prizeType: "TWO_DIGIT",
+              strategyId: "balanced",
+              windowSize: 120
+            })
+          );
     mutablePredictionService.generate = async (input) => {
       receivedBody = input;
       return predictionResponseSchema.parse(predictionResponse(input));
     };
 
-    const getResponse = await request("/api/predictions");
-    const postResponse = await request("/api/predictions", {
-      body: JSON.stringify({
-        count: "3",
-        numberLength: "2",
-        prizeType: "TWO_DIGIT",
-        strategyId: "balanced",
-        windowSize: "120"
-      }),
-      headers: {
-        "content-type": "application/json"
-      },
-      method: "POST"
-    });
+    const [getResponse, detailResponse, missingResponse, postResponse] = await Promise.all([
+      request("/api/predictions"),
+      request("/api/predictions/run-1"),
+      request("/api/predictions/missing"),
+      request("/api/predictions", {
+        body: JSON.stringify({
+          count: "3",
+          numberLength: "2",
+          prizeType: "TWO_DIGIT",
+          strategyId: "balanced",
+          windowSize: "120"
+        }),
+        headers: {
+          "content-type": "application/json"
+        },
+        method: "POST"
+      })
+    ]);
 
-    expect(getResponse.status).toBe(501);
-    expect(await getResponse.json()).toEqual({
-      error: "Not implemented",
-      message: "This endpoint is reserved for the MVP API scaffold."
+    expect(predictionResponseSchema.parse(await getResponse.json())).toBeTruthy();
+    expect(predictionResponseSchema.parse(await detailResponse.json())).toBeTruthy();
+    expect(missingResponse.status).toBe(404);
+    expect(await missingResponse.json()).toEqual({
+      error: "Not found",
+      message: "Prediction run not found"
     });
     expect(receivedBody).toEqual({
       count: 3,
@@ -292,6 +342,29 @@ describe("api router", () => {
     expect(watchlistItemSchema.parse(await postResponse.json())).toBeTruthy();
     expect(watchlistItemSchema.parse(await patchResponse.json())).toBeTruthy();
     expect(deleteWatchlistItemResponseSchema.parse(await deleteResponse.json())).toBeTruthy();
+  });
+
+  test("search route validates query and returns grouped results", async () => {
+    let receivedQuery: unknown;
+
+    mutableSearchService.search = async (query) => {
+      receivedQuery = query;
+      return searchReadModelSchema.parse(searchReadModel());
+    };
+
+    const response = await request("/api/search?q=09&page=2&pageSize=5");
+
+    expect(receivedQuery).toEqual({
+      endDate: undefined,
+      lotteryType: "THAI_GOVERNMENT",
+      month: undefined,
+      page: 2,
+      pageSize: 5,
+      q: "09",
+      startDate: undefined,
+      year: undefined
+    });
+    expect(searchReadModelSchema.parse(await response.json())).toBeTruthy();
   });
 
   test("backtest routes validate body and support list/detail/404", async () => {
@@ -395,6 +468,15 @@ describe("api router", () => {
 
     expect(calendarReadModelSchema.parse(await response.json())).toBeTruthy();
   });
+
+  test("dashboard route returns a schema-valid response", async () => {
+    mutableDashboardService.getDashboardReadModel = async () =>
+      dashboardReadModelSchema.parse(dashboardReadModel());
+
+    const response = await request("/api/dashboard");
+
+    expect(dashboardReadModelSchema.parse(await response.json())).toBeTruthy();
+  });
 });
 
 function request(path: string, init?: RequestInit) {
@@ -411,12 +493,15 @@ function drawListResponse() {
         drawNo: "08/2026",
         id: "draw-1",
         lotteryType: "THAI_GOVERNMENT",
+        publishedAt: "2026-04-16T09:00:00.000Z",
         prizes: [
           { id: "p1", label: "First prize", number: "123456", type: "FIRST" },
           { id: "p2", label: "Two-digit", number: "09", type: "TWO_DIGIT" }
         ],
         status: "complete" as const,
-        statusLabel: "Complete"
+        statusLabel: "Complete",
+        sourceStatus: "VERIFIED" as const,
+        sourceUrl: "https://example.com/draws/2026-04-16"
       }
     ],
     filters: {
@@ -504,7 +589,18 @@ function predictionResponse(input: {
   count: number;
   lotteryType: "THAI_GOVERNMENT";
   numberLength: 2 | 3 | 6;
-  prizeType: "FIRST" | "THREE_FRONT" | "THREE_BACK" | "TWO_DIGIT" | "NEAR_FIRST" | "OTHER";
+  prizeType:
+    | "FIRST"
+    | "THREE_DIGIT"
+    | "THREE_FRONT"
+    | "THREE_BACK"
+    | "TWO_DIGIT"
+    | "NEAR_FIRST"
+    | "PRIZE2"
+    | "PRIZE3"
+    | "PRIZE4"
+    | "PRIZE5"
+    | "OTHER";
   strategyId: "balanced" | "coldRebound" | "hotTrend";
   windowSize: number;
 }) {
@@ -544,6 +640,13 @@ function watchlistItem() {
     number: "09",
     scope: "global" as const,
     source: "MANUAL" as const,
+    stats: {
+      frequencyPercent: 12.5,
+      hitCount: 3,
+      lastSeenDrawDate: "2026-04-16T00:00:00.000Z",
+      missingDrawCount: 2,
+      prizeType: "TWO_DIGIT" as const
+    },
     tags: ["hot"],
     updatedAt: "2026-04-29T00:00:00.000Z"
   };
@@ -678,6 +781,120 @@ function calendarReadModel() {
       isNextDraw: true,
       status: "upcoming" as const
     },
+    source: "api" as const
+  };
+}
+
+function dashboardReadModel() {
+  return {
+    contractRows: [
+      {
+        field: "latestDraw",
+        purpose: "Shows the latest draw.",
+        source: "LotteryDraw + LotteryPrize"
+      }
+    ],
+    generatedAt: "2026-04-29T00:00:00.000Z",
+    hero: {
+      description: "Dashboard summary",
+      eyebrow: "Dashboard contract",
+      primaryActionHref: "/results",
+      primaryActionLabel: "Review historical results",
+      title: "Dashboard"
+    },
+    latestDraw: {
+      drawDate: "16 April 2026",
+      drawDateIso: "2026-04-16T00:00:00.000Z",
+      drawNo: "08/2026",
+      id: "draw-1",
+      lotteryType: "THAI_GOVERNMENT",
+      primaryPrize: {
+        label: "First prize",
+        value: "123456"
+      },
+      secondaryPrizes: [
+        {
+          label: "Two-digit",
+          value: "09"
+        }
+      ],
+      statusLabel: "Complete"
+    },
+    metrics: [
+      {
+        hint: "Distinct draw records included in the current two-digit analytics window.",
+        label: "Draws in sample",
+        tone: "default" as const,
+        trend: "120 draw window",
+        value: "24"
+      }
+    ],
+    predictionSummary: {
+      candidates: [],
+      disclaimer: "Prediction summary unavailable.",
+      generatedAt: "2026-04-29T00:00:00.000Z",
+      title: "Prediction summary unavailable"
+    },
+    signals: [
+      {
+        id: "signal-hot-09",
+        label: "Hot signal",
+        number: "09",
+        reason: "Repeated more often than the current two-digit sample average.",
+        score: 50,
+        tone: "hot" as const
+      }
+    ],
+    source: "api" as const
+  };
+}
+
+function searchReadModel() {
+  return {
+    generatedAt: "2026-04-29T00:00:00.000Z",
+    groups: {
+      draws: [
+        {
+          drawDate: "2026-04-16T00:00:00.000Z",
+          drawNo: "08/2026",
+          id: "draw-1",
+          sourceStatus: "VERIFIED" as const
+        }
+      ],
+      prizes: [
+        {
+          drawDate: "2026-04-16T00:00:00.000Z",
+          drawId: "draw-1",
+          drawNo: "08/2026",
+          id: "prize-1",
+          number: "09",
+          prizeType: "TWO_DIGIT" as const
+        }
+      ],
+      stats: [
+        {
+          frequencyPercent: 12.5,
+          hitCount: 3,
+          lastSeenDrawDate: "2026-04-16T00:00:00.000Z",
+          missingDrawCount: 2,
+          number: "09",
+          prizeType: "TWO_DIGIT" as const,
+          trendScore: 50,
+          windowSize: 120
+        }
+      ],
+      watchlist: [
+        {
+          id: "watch-1",
+          note: "keep",
+          number: "09",
+          source: "MANUAL" as const,
+          tags: ["hot"],
+          updatedAt: "2026-04-29T00:00:00.000Z"
+        }
+      ]
+    },
+    q: "09",
     source: "api" as const
   };
 }

@@ -1,3 +1,1 @@
-import { BacktestPage } from "@/frontend/pages/backtest";
-
-export default BacktestPage;
+export { BacktestPage as default } from "@/frontend/pages/backtest";

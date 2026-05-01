@@ -6,11 +6,11 @@ export type HeatmapCell = {
   value: number;
 };
 
-export type HeatmapProps = {
+export type HeatmapProps = Readonly<{
   cells: readonly HeatmapCell[];
   columns?: number;
   title?: string;
-};
+}>;
 
 export function Heatmap({ cells, columns = 10, title = "Heatmap" }: HeatmapProps) {
   const maxValue = Math.max(...cells.map((cell) => cell.value), 1);
