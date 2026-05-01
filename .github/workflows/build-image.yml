@@ -36,6 +36,9 @@ jobs:
       - name: Check
         run: bun run check
 
+      - name: Test with coverage
+        run: bun test --coverage --coverage-reporter lcov
+
   build:
     name: Build and Push GHCR
     runs-on: ubuntu-latest
