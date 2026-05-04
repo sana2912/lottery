@@ -17,20 +17,18 @@ export async function getPrizeWindow(
   prisma: {
     lotteryDraw: {
       findMany: (args: {
-        orderBy: { drawDate: "desc" };
-        select: { id: true };
+        orderBy: { drawDate: "desc" } | { drawDate: "asc" };
+        select: { drawDate: true; id: true; lotteryType: true };
         take: number;
         where: LotteryDrawWhereInput;
-      }) => Promise<Array<{ id: string }>>;
+      }) => Promise<Array<{ drawDate: Date; id: string; lotteryType: string }>>;
     };
     lotteryPrize: {
       findMany: (args: {
-        include: { draw: true };
-        orderBy: Array<{ draw: { drawDate: "desc" } } | { position: "asc" } | { number: "asc" }>;
+        orderBy: Array<{ drawId: "asc" } | { position: "asc" } | { number: "asc" }>;
         where: LotteryPrizeWhereInput;
       }) => Promise<
         Array<{
-          draw: { drawDate: Date | string; lotteryType: string };
           drawId: string;
           number: string;
           position?: number | null;
@@ -41,32 +39,31 @@ export async function getPrizeWindow(
   },
   query: AnalyticsQuery
 ) {
+  console.time("analytics.draw id query");
   const draws = await prisma.lotteryDraw.findMany({
     orderBy: {
       drawDate: "desc"
     },
     select: {
-      id: true
+      drawDate: true,
+      id: true,
+      lotteryType: true
     },
     take: query.windowSize,
     where: buildDrawWhere(query)
   });
+  console.timeEnd("analytics.draw id query");
 
   if (draws.length === 0) {
     return [];
   }
 
   const drawIds = draws.map((draw) => draw.id);
-
-  return prisma.lotteryPrize.findMany({
-    include: {
-      draw: true
-    },
+  console.time("analytics.prize rows query");
+  const prizes = await prisma.lotteryPrize.findMany({
     orderBy: [
       {
-        draw: {
-          drawDate: "desc"
-        }
+        drawId: "asc"
       },
       {
         position: "asc"
@@ -77,6 +74,43 @@ export async function getPrizeWindow(
     ],
     where: buildPrizeWhere(query, drawIds)
   });
+  console.timeEnd("analytics.prize rows query");
+
+  const drawById = new Map(
+    draws.map((draw) => [
+      draw.id,
+      {
+        drawDate: draw.drawDate,
+        lotteryType: draw.lotteryType
+      }
+    ])
+  );
+  const drawOrderById = new Map(draws.map((draw, index) => [draw.id, index]));
+
+  return prizes
+    .map((prize) => {
+      const draw = drawById.get(prize.drawId);
+
+      if (!draw) {
+        return undefined;
+      }
+
+      return {
+        ...prize,
+        draw
+      };
+    })
+    .flatMap((prize) => (prize ? [prize] : []))
+    .sort((left, right) => {
+      const leftDrawOrder = drawOrderById.get(left.drawId) ?? 0;
+      const rightDrawOrder = drawOrderById.get(right.drawId) ?? 0;
+
+      return (
+        leftDrawOrder - rightDrawOrder ||
+        (left.position ?? 0) - (right.position ?? 0) ||
+        left.number.localeCompare(right.number)
+      );
+    });
 }
 
 export function buildAnalyticsReadModelFromPrizes(

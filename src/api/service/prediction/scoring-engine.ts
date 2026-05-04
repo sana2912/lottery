@@ -25,6 +25,7 @@ export function scoreNumber({
     inputWindow,
     number: stat.number,
     numberLength: stat.numberLength,
+    positionBreakdown: [],
     rank,
     reasons: getReasons(stat, scoreBreakdown),
     score,

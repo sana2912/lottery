@@ -7,15 +7,22 @@ import { getMaterializedAnalyticsReadModel } from "@/api/service/analytics/mater
 import { getPrisma } from "@/api/service/prisma";
 
 export async function getAnalyticsReadModel(query: AnalyticsQuery) {
-  const materialized = await getMaterializedAnalyticsReadModel(query);
+  const materialized = await timeAsync("analytics.materialized snapshot lookup", () =>
+    getMaterializedAnalyticsReadModel(query)
+  );
 
   if (materialized) {
     return materialized;
   }
 
   const prisma = getPrisma();
+  const prizes = await timeAsync("analytics.prize window query", () =>
+    getPrizeWindow(prisma, query)
+  );
 
-  return buildAnalyticsReadModelFromPrizes(await getPrizeWindow(prisma, query), query, new Date());
+  return timeSync("analytics.buildAnalyticsReadModelFromPrizes", () =>
+    buildAnalyticsReadModelFromPrizes(prizes, query, new Date())
+  );
 }
 
 export async function getDigitStats(query: AnalyticsQuery) {
@@ -31,3 +38,23 @@ export const analyticsService = {
   getDigitStats,
   getNumberStats
 } as const;
+
+async function timeAsync<T>(label: string, operation: () => Promise<T>) {
+  console.time(label);
+
+  try {
+    return await operation();
+  } finally {
+    console.timeEnd(label);
+  }
+}
+
+function timeSync<T>(label: string, operation: () => T) {
+  console.time(label);
+
+  try {
+    return operation();
+  } finally {
+    console.timeEnd(label);
+  }
+}

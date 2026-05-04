@@ -47,8 +47,38 @@ describe("apiRequest", () => {
 
     expect(response).toEqual({ ok: true });
     expect(requestUrl).toBe(
-      "/api/test?archived=false&page=2&startDate=2026-04-29T00%3A00%3A00.000Z&tags=hot&tags=cold"
+      "http://localhost:3000/api/test?archived=false&page=2&startDate=2026-04-29T00%3A00%3A00.000Z&tags=hot&tags=cold"
     );
+  });
+
+  test("resolves relative paths against the app origin on the server", async () => {
+    const originalAppUrl = process.env.APP_URL;
+    process.env.APP_URL = "http://example.test";
+
+    let requestUrl = "";
+
+    try {
+      await apiRequest("/api/calendar", {
+        fetcher: createFetcher(async (input) => {
+          requestUrl = typeof input === "string" ? input : input.toString();
+
+          return new Response(JSON.stringify({ ok: true }), {
+            headers: {
+              "content-type": "application/json"
+            },
+            status: 200
+          });
+        })
+      });
+    } finally {
+      if (originalAppUrl === undefined) {
+        delete process.env.APP_URL;
+      } else {
+        process.env.APP_URL = originalAppUrl;
+      }
+    }
+
+    expect(requestUrl).toBe("http://example.test/api/calendar");
   });
 
   test("parses JSON response with the provided schema", async () => {

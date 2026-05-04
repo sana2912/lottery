@@ -32,7 +32,7 @@ export async function apiRequest<T = unknown>(
   path: string,
   { body, fetcher = fetch, headers, json, query, schema, ...init }: ApiRequestOptions<T> = {}
 ): Promise<T> {
-  const response = await fetcher(appendQueryString(path, query), {
+  const response = await fetcher(resolveRequestUrl(appendQueryString(path, query)), {
     ...init,
     body: json === undefined ? body : JSON.stringify(json),
     headers: createHeaders(headers, json !== undefined)
@@ -139,4 +139,17 @@ function appendQueryPrimitive(searchParams: URLSearchParams, key: string, value:
 
 function isQueryValueArray(value: QueryValue): value is readonly QueryPrimitive[] {
   return Array.isArray(value);
+}
+
+function resolveRequestUrl(path: string) {
+  if (/^https?:\/\//i.test(path)) {
+    return path;
+  }
+
+  const baseUrl =
+    typeof window !== "undefined"
+      ? window.location.origin
+      : (process.env.APP_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000");
+
+  return new URL(path, baseUrl).toString();
 }

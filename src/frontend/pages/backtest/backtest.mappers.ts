@@ -6,22 +6,18 @@ import type {
 
 export type BacktestFormState = {
   candidateCount: string;
-  endDate: string;
   lotteryType: BacktestRequest["lotteryType"];
   numberLength: string;
   prizeType: BacktestRequest["prizeType"];
-  startDate: string;
   strategyId: BacktestRequest["strategyId"];
   windowSize: string;
 };
 
 export const defaultBacktestFormState: BacktestFormState = {
   candidateCount: "5",
-  endDate: "2026-04-16",
   lotteryType: "THAI_GOVERNMENT",
   numberLength: "2",
   prizeType: "TWO_DIGIT",
-  startDate: "2025-01-01",
   strategyId: "balanced",
   windowSize: "120"
 };
@@ -29,14 +25,12 @@ export const defaultBacktestFormState: BacktestFormState = {
 export function toBacktestPayload(formState: BacktestFormState) {
   return {
     candidateCount: formState.candidateCount,
-    endDate: formState.endDate || undefined,
     lotteryType: formState.lotteryType,
     numberLength: formState.numberLength,
     params: {
       windowSize: formState.windowSize
     },
     prizeType: formState.prizeType,
-    startDate: formState.startDate || undefined,
     strategyId: formState.strategyId,
     windowSize: formState.windowSize
   };

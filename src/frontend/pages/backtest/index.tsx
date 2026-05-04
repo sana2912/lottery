@@ -318,27 +318,10 @@ export function BacktestPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="startDate">Start date</Label>
-              <Input
-                id="startDate"
-                onChange={(event) =>
-                  setFormState((current) => ({ ...current, startDate: event.target.value }))
-                }
-                type="date"
-                value={formState.startDate}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="endDate">End date</Label>
-              <Input
-                id="endDate"
-                onChange={(event) =>
-                  setFormState((current) => ({ ...current, endDate: event.target.value }))
-                }
-                type="date"
-                value={formState.endDate}
-              />
+              <div className="text-sm leading-6 text-[var(--color-text-secondary)]">
+                Backtest uses the available historical range automatically. Change `Window size` to
+                control how much prior data is used for each prediction.
+              </div>
             </div>
           </>
         }

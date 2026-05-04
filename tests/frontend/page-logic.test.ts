@@ -11,8 +11,13 @@ import {
   toBacktestChartPoints,
   toBacktestPayload
 } from "@/frontend/pages/backtest/backtest.mappers";
-import { getDaysUntilNextDraw } from "@/frontend/pages/calendar/calendar.mappers";
 import {
+  getDaysUntilNextDraw,
+  parseCalendarPageFilters,
+  toCalendarApiQuery
+} from "@/frontend/pages/calendar/calendar.mappers";
+import {
+  getPredictionNumberLength,
   getTopPredictionScore,
   toPredictionPayload,
   toPredictionWatchlistPayload
@@ -92,20 +97,14 @@ describe("frontend logic helpers", () => {
     expect(
       toBacktestPayload({
         ...defaultBacktestFormState,
-        endDate: "",
-        startDate: "",
         windowSize: "90"
       })
     ).toEqual({
       candidateCount: "5",
-      endDate: undefined,
       lotteryType: "THAI_GOVERNMENT",
       numberLength: "2",
-      params: {
-        windowSize: "90"
-      },
+      params: { windowSize: "90" },
       prizeType: "TWO_DIGIT",
-      startDate: undefined,
       strategyId: "balanced",
       windowSize: "90"
     });
@@ -214,18 +213,19 @@ describe("frontend logic helpers", () => {
     expect(
       toPredictionPayload({
         count: "12",
-        numberLength: "2",
+        prizeType: "FIRST",
         strategyId: "coldRebound",
         windowSize: "180"
       })
     ).toEqual({
       count: "12",
       lotteryType: "THAI_GOVERNMENT",
-      numberLength: "2",
-      prizeType: "TWO_DIGIT",
+      numberLength: 6,
+      prizeType: "FIRST",
       strategyId: "coldRebound",
       windowSize: "180"
     });
+    expect(getPredictionNumberLength("TWO_DIGIT")).toBe(2);
 
     expect(
       toPredictionWatchlistPayload({
@@ -233,6 +233,7 @@ describe("frontend logic helpers", () => {
         inputWindow: 120,
         number: "11",
         numberLength: 2,
+        positionBreakdown: [],
         rank: 1,
         reasons: ["hot"],
         score: 91.5,
@@ -272,6 +273,7 @@ describe("frontend logic helpers", () => {
             inputWindow: 120,
             number: "11",
             numberLength: 2,
+            positionBreakdown: [],
             rank: 1,
             reasons: [],
             score: 94,
@@ -442,6 +444,28 @@ describe("frontend logic helpers", () => {
   });
 
   test("calendar and watchlist helpers normalize simple text data", () => {
+    expect(
+      parseCalendarPageFilters({
+        month: "5",
+        prizeType: "FIRST",
+        windowSize: "48"
+      })
+    ).toEqual({
+      month: 5,
+      prizeType: "FIRST",
+      windowSize: 48
+    });
+    expect(
+      toCalendarApiQuery({
+        month: 5,
+        prizeType: "FIRST",
+        windowSize: 48
+      })
+    ).toEqual({
+      month: 5,
+      prizeType: "FIRST",
+      windowSize: 48
+    });
     expect(
       getDaysUntilNextDraw(
         {

@@ -42,28 +42,32 @@ export async function getDashboardReadModel() {
   const prisma = getPrisma();
   const generatedAt = new Date();
   const [latestDrawRecord, analytics, latestPredictionSummary] = await Promise.all([
-    prisma.lotteryDraw.findFirst({
-      include: {
-        prizes: true
-      },
-      orderBy: {
-        drawDate: "desc"
-      },
-      where: {
-        drawDate: {
-          lte: generatedAt
+    timeAsync("dashboard.latest draw query", () =>
+      prisma.lotteryDraw.findFirst({
+        include: {
+          prizes: true
+        },
+        orderBy: {
+          drawDate: "desc"
+        },
+        where: {
+          drawDate: {
+            lte: generatedAt
+          }
         }
-      }
-    }),
-    analyticsService.getAnalyticsReadModel({
-      lotteryType: "THAI_GOVERNMENT",
-      numberLength: 2,
-      page: 1,
-      pageSize: 20,
-      prizeType: "TWO_DIGIT",
-      windowSize: DASHBOARD_WINDOW_SIZE
-    }),
-    predictionService.getLatestPredictionSummary()
+      })
+    ),
+    timeAsync("dashboard.analytics read model", () =>
+      analyticsService.getAnalyticsReadModel({
+        lotteryType: "THAI_GOVERNMENT",
+        numberLength: 2,
+        page: 1,
+        pageSize: 20,
+        prizeType: "TWO_DIGIT",
+        windowSize: DASHBOARD_WINDOW_SIZE
+      })
+    ),
+    timeAsync("dashboard.prediction summary", () => predictionService.getLatestPredictionSummary())
   ]);
 
   const latestDraw = latestDrawRecord ? toApiDraw(latestDrawRecord) : undefined;
@@ -101,85 +105,87 @@ export async function getDashboardReadModel() {
     return stat.frequencyPercent > best.frequencyPercent ? stat : best;
   }, analytics.numberStats[0]);
 
-  return toApiDashboardReadModel({
-    contractRows: DASHBOARD_CONTRACT_ROWS.map((row) => ({ ...row })),
-    generatedAt,
-    hero: DASHBOARD_HERO,
-    latestDraw: latestDraw
-      ? {
-          drawDate: latestDraw.drawDate,
-          drawDateIso: latestDraw.drawDateIso,
-          drawNo: latestDraw.drawNo || "-",
-          id: latestDraw.id,
-          lotteryType: latestDraw.lotteryType,
-          primaryPrize: getPrimaryPrize(latestDraw.prizes),
-          secondaryPrizes: getSecondaryPrizes(latestDraw.prizes),
-          statusLabel: latestDraw.statusLabel
-        }
-      : {
-          drawDate: "-",
-          drawDateIso: "",
-          drawNo: "-",
-          id: "",
-          lotteryType: "THAI_GOVERNMENT",
-          primaryPrize: {
-            label: "First prize",
-            value: "-"
+  return timeSync("dashboard.dto mapping", () =>
+    toApiDashboardReadModel({
+      contractRows: DASHBOARD_CONTRACT_ROWS.map((row) => ({ ...row })),
+      generatedAt,
+      hero: DASHBOARD_HERO,
+      latestDraw: latestDraw
+        ? {
+            drawDate: latestDraw.drawDate,
+            drawDateIso: latestDraw.drawDateIso,
+            drawNo: latestDraw.drawNo || "-",
+            id: latestDraw.id,
+            lotteryType: latestDraw.lotteryType,
+            primaryPrize: getPrimaryPrize(latestDraw.prizes),
+            secondaryPrizes: getSecondaryPrizes(latestDraw.prizes),
+            statusLabel: latestDraw.statusLabel
+          }
+        : {
+            drawDate: "-",
+            drawDateIso: "",
+            drawNo: "-",
+            id: "",
+            lotteryType: "THAI_GOVERNMENT",
+            primaryPrize: {
+              label: "First prize",
+              value: "-"
+            },
+            secondaryPrizes: [],
+            statusLabel: "Unavailable"
           },
-          secondaryPrizes: [],
-          statusLabel: "Unavailable"
+      metrics: [
+        {
+          hint: "Distinct draw records included in the current two-digit analytics window.",
+          label: "Draws in sample",
+          tone: "default",
+          trend: `${DASHBOARD_WINDOW_SIZE} draw window`,
+          value: String(analytics.summary.drawCount)
         },
-    metrics: [
-      {
-        hint: "Distinct draw records included in the current two-digit analytics window.",
-        label: "Draws in sample",
-        tone: "default",
-        trend: `${DASHBOARD_WINDOW_SIZE} draw window`,
-        value: String(analytics.summary.drawCount)
+        {
+          hint: hotStat
+            ? "Two-digit number with the strongest recent frequency in the current live sample."
+            : "No live hot-number signal is available yet.",
+          label: "Hot number",
+          tone: "hot",
+          trend: hotStat ? `${hotStat.frequencyPercent}%` : undefined,
+          value: hotStat?.number ?? "-"
+        },
+        {
+          hint: coldStat
+            ? "Number currently appearing below the rest of the live sample baseline."
+            : "No live cold-number signal is available yet.",
+          label: "Cold number",
+          tone: "cold",
+          trend: coldStat ? `${coldStat.frequencyPercent}%` : undefined,
+          value: coldStat?.number ?? "-"
+        },
+        {
+          hint: overdueStat
+            ? "Number missing longer than the rest of the current live sample."
+            : "No live overdue-number signal is available yet.",
+          label: "Overdue number",
+          tone: "overdue",
+          trend: overdueStat ? `${overdueStat.missingDrawCount} draws` : undefined,
+          value: overdueStat?.number ?? "-"
+        }
+      ],
+      predictionSummary: {
+        candidates: latestPredictionSummary?.candidates ?? [],
+        disclaimer:
+          latestPredictionSummary?.disclaimer ??
+          "A persisted prediction summary is not available through the dashboard read model yet. Use Prediction Lab for ad hoc generation and review.",
+        generatedAt: latestPredictionSummary?.generatedAt ?? generatedAt.toISOString(),
+        title: latestPredictionSummary?.title ?? "Prediction summary unavailable"
       },
-      {
-        hint: hotStat
-          ? "Two-digit number with the strongest recent frequency in the current live sample."
-          : "No live hot-number signal is available yet.",
-        label: "Hot number",
-        tone: "hot",
-        trend: hotStat ? `${hotStat.frequencyPercent}%` : undefined,
-        value: hotStat?.number ?? "-"
-      },
-      {
-        hint: coldStat
-          ? "Number currently appearing below the rest of the live sample baseline."
-          : "No live cold-number signal is available yet.",
-        label: "Cold number",
-        tone: "cold",
-        trend: coldStat ? `${coldStat.frequencyPercent}%` : undefined,
-        value: coldStat?.number ?? "-"
-      },
-      {
-        hint: overdueStat
-          ? "Number missing longer than the rest of the current live sample."
-          : "No live overdue-number signal is available yet.",
-        label: "Overdue number",
-        tone: "overdue",
-        trend: overdueStat ? `${overdueStat.missingDrawCount} draws` : undefined,
-        value: overdueStat?.number ?? "-"
-      }
-    ],
-    predictionSummary: {
-      candidates: latestPredictionSummary?.candidates ?? [],
-      disclaimer:
-        latestPredictionSummary?.disclaimer ??
-        "A persisted prediction summary is not available through the dashboard read model yet. Use Prediction Lab for ad hoc generation and review.",
-      generatedAt: latestPredictionSummary?.generatedAt ?? generatedAt.toISOString(),
-      title: latestPredictionSummary?.title ?? "Prediction summary unavailable"
-    },
-    signals: [
-      toSignal("hot", "Hot signal", hotStat),
-      toSignal("overdue", "Overdue signal", overdueStat),
-      toSignal("cold", "Cold signal", coldStat)
-    ].flatMap((signal) => (signal ? [signal] : [])),
-    source: "api"
-  });
+      signals: [
+        toSignal("hot", "Hot signal", hotStat),
+        toSignal("overdue", "Overdue signal", overdueStat),
+        toSignal("cold", "Cold signal", coldStat)
+      ].flatMap((signal) => (signal ? [signal] : [])),
+      source: "api"
+    })
+  );
 }
 
 export const dashboardService = {
@@ -262,4 +268,24 @@ function toSignal(
     score,
     tone
   };
+}
+
+async function timeAsync<T>(label: string, operation: () => Promise<T>) {
+  console.time(label);
+
+  try {
+    return await operation();
+  } finally {
+    console.timeEnd(label);
+  }
+}
+
+function timeSync<T>(label: string, operation: () => T) {
+  console.time(label);
+
+  try {
+    return operation();
+  } finally {
+    console.timeEnd(label);
+  }
 }

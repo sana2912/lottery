@@ -35,6 +35,7 @@ describe("scoreNumber", () => {
       inputWindow: 120,
       number: "11",
       numberLength: 2,
+      positionBreakdown: [],
       rank: 1,
       reasons: [
         "Historical frequency is 12.5% in the selected window.",

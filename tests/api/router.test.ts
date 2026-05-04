@@ -461,11 +461,20 @@ describe("api router", () => {
   });
 
   test("calendar route returns a schema-valid response", async () => {
-    mutableCalendarService.getCalendarReadModel = async () =>
-      calendarReadModelSchema.parse(calendarReadModel());
+    let receivedQuery: unknown;
+    mutableCalendarService.getCalendarReadModel = async (query) => {
+      receivedQuery = query;
 
-    const response = await request("/api/calendar");
+      return calendarReadModelSchema.parse(calendarReadModel());
+    };
 
+    const response = await request("/api/calendar?month=4&windowSize=24&prizeType=FIRST");
+
+    expect(receivedQuery).toEqual({
+      month: 4,
+      prizeType: "FIRST",
+      windowSize: 24
+    });
     expect(calendarReadModelSchema.parse(await response.json())).toBeTruthy();
   });
 
@@ -613,6 +622,18 @@ function predictionResponse(input: {
         inputWindow: 120,
         number: "09",
         numberLength: 2,
+        positionBreakdown: [
+          {
+            digit: "0",
+            hot: 40,
+            overdue: 20,
+            position: 50,
+            positionIndex: 1,
+            reasons: ["Historical frequency is 50% in position 1."],
+            score: 0,
+            tone: "warm"
+          }
+        ],
         rank: 1,
         reasons: ["Historical frequency is 12.5% in the selected window."],
         score: 50,
@@ -764,13 +785,44 @@ function calendarReadModel() {
     monthlyInsights: [
       {
         coldNumbers: ["01", "02"],
+        heatmapRows: [
+          {
+            cells: [
+              {
+                appearanceCount: 8,
+                digit: "0",
+                missingRounds: 0,
+                score: 90,
+                tone: "hot" as const
+              }
+            ],
+            coldDigits: ["9"],
+            hotDigits: ["0"],
+            position: 1
+          }
+        ],
         hotNumbers: ["09", "12"],
         id: "monthly-insight-4",
         label: "April",
         month: 4,
         patternNotes: ["odd-ending numbers appeared slightly more often in the sampled month."],
+        prizeType: "FIRST",
+        positionInsights: [
+          {
+            coldNumbers: [
+              { appearanceCount: 1, digit: "03", missingRounds: 6 },
+              { appearanceCount: 2, digit: "04", missingRounds: 4 }
+            ],
+            hotNumbers: [
+              { appearanceCount: 8, digit: "07", missingRounds: 0 },
+              { appearanceCount: 7, digit: "08", missingRounds: 1 }
+            ],
+            position: 1
+          }
+        ],
         sampleSize: 8,
-        summary: "April has 8 historical draws in sample."
+        summary: "April has 8 historical draws in sample.",
+        windowSize: 24
       }
     ],
     nextDraw: {

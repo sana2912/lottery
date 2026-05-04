@@ -47,9 +47,11 @@ export function runWalkForwardBacktest({
     (left, right) =>
       normalizeDate(left.drawDate).getTime() - normalizeDate(right.drawDate).getTime()
   );
+  const targetDraws = sortedDraws.slice(-windowSize);
 
-  return sortedDraws.flatMap((targetDraw, targetIndex) => {
-    const historyDraws = sortedDraws.slice(0, targetIndex).slice(-windowSize);
+  return targetDraws.flatMap((targetDraw, targetIndex) => {
+    const sourceTargetIndex = sortedDraws.length - targetDraws.length + targetIndex;
+    const historyDraws = sortedDraws.slice(0, sourceTargetIndex).slice(-windowSize);
     const historyPrizes = historyDraws.flatMap(withDrawContext).filter(matchesPrizeContext);
     const actualNumbers = targetDraw.prizes
       .filter(matchesPrizeContext)

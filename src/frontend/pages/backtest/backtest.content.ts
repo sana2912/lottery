@@ -41,7 +41,7 @@ export const backtestContent = {
   },
   filters: {
     summary:
-      "The backtest runs against historical draws only. The selected window never looks forward into the target draw."
+      "The backtest runs against historical draws only. Window size controls how much prior data is fed into each target draw."
   },
   hero: {
     description:

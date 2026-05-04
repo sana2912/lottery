@@ -15,6 +15,16 @@ export function toApiPredictionResult(result: PredictionResultDtoInput): ApiPred
     inputWindow: result.inputWindow,
     number: result.number,
     numberLength: result.numberLength,
+    positionBreakdown: result.positionBreakdown.map((position) => ({
+      digit: position.digit,
+      hot: position.hot,
+      overdue: position.overdue,
+      position: position.position,
+      positionIndex: position.positionIndex,
+      reasons: [...position.reasons],
+      score: position.score,
+      tone: position.tone
+    })),
     rank: result.rank,
     reasons: [...result.reasons],
     score: result.score,

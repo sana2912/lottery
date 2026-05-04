@@ -1,5 +1,6 @@
 import { toApiCalendarReadModel } from "@/api/model/dto/calendar.dto";
 import { getPrisma } from "@/api/service/prisma";
+import type { CalendarHeatmapQuery } from "@/schema/app/calendar.schema";
 
 const MONTH_LABELS = [
   "",
@@ -22,45 +23,82 @@ type CalendarInsightDraw = {
   prizes: Array<{ number: string; type: string }>;
 };
 
-export async function getCalendarReadModel() {
+type PositionNumberStat = {
+  appearanceCount: number;
+  digit: string;
+  missingRounds: number;
+};
+
+type HeatmapCell = {
+  appearanceCount: number;
+  digit: string;
+  missingRounds: number;
+  score: number;
+  tone: "hot" | "warm" | "neutral" | "cool" | "cold";
+};
+
+type HeatmapRow = {
+  cells: HeatmapCell[];
+  coldDigits: string[];
+  hotDigits: string[];
+  position: number;
+};
+
+const DEFAULT_CALENDAR_WINDOW_SIZE = 24;
+export async function getCalendarReadModel(query: CalendarHeatmapQuery = {}) {
   const prisma = getPrisma();
   const computedAt = new Date();
-  const [nextPersistedDraw, recentDraws, monthlyDraws] = await Promise.all([
-    prisma.lotteryDraw.findFirst({
-      orderBy: {
-        drawDate: "asc"
-      },
-      where: {
-        drawDate: {
-          gt: computedAt
+  const [nextPersistedDraw, recentDraws, heatmapDraws] = await Promise.all([
+    timeAsync("calendar.next draw query", () =>
+      prisma.lotteryDraw.findFirst({
+        orderBy: {
+          drawDate: "asc"
+        },
+        where: {
+          drawDate: {
+            gt: computedAt
+          }
         }
-      }
-    }),
-    prisma.lotteryDraw.findMany({
-      orderBy: {
-        drawDate: "desc"
-      },
-      take: 10,
-      where: {
-        drawDate: {
-          lte: computedAt
+      })
+    ),
+    timeAsync("calendar.recent draws query", () =>
+      prisma.lotteryDraw.findMany({
+        orderBy: {
+          drawDate: "desc"
+        },
+        take: 10,
+        where: {
+          drawDate: {
+            lte: computedAt
+          }
         }
-      }
-    }),
-    prisma.lotteryDraw.findMany({
-      include: {
-        prizes: true
-      },
-      orderBy: {
-        drawDate: "desc"
-      },
-      take: 96,
-      where: {
-        drawDate: {
-          lte: computedAt
+      })
+    ),
+    timeAsync("calendar.heatmap draws query", () =>
+      prisma.lotteryDraw.findMany({
+        include: {
+          prizes: {
+            where: query.prizeType
+              ? {
+                  type: query.prizeType
+                }
+              : undefined
+          }
+        },
+        orderBy: {
+          drawDate: "desc"
+        },
+        take: Math.min(
+          Math.max((query.windowSize ?? DEFAULT_CALENDAR_WINDOW_SIZE) * 20, 240),
+          2000
+        ),
+        where: {
+          drawDate: {
+            lte: computedAt
+          }
         }
-      }
-    })
+      })
+    )
   ]);
 
   const nextDraw = nextPersistedDraw
@@ -74,105 +112,218 @@ export async function getCalendarReadModel() {
       }
     : buildSyntheticNextDraw(computedAt, recentDraws[0]?.drawDate);
 
-  return toApiCalendarReadModel({
-    draws: [
+  return timeSync("calendar.dto mapping", () =>
+    toApiCalendarReadModel({
+      draws: [
+        nextDraw,
+        ...recentDraws.map((draw) => ({
+          drawDate: formatCalendarDate(draw.drawDate),
+          drawDateIso: draw.drawDate,
+          drawNo: draw.drawNo ?? undefined,
+          id: draw.id,
+          isNextDraw: false,
+          status: "past" as const
+        }))
+      ],
+      generatedAt: computedAt,
+      monthlyInsights: timeSync("calendar.monthly insights build", () =>
+        buildMonthlyInsights(heatmapDraws, query)
+      ),
       nextDraw,
-      ...recentDraws.map((draw) => ({
-        drawDate: formatCalendarDate(draw.drawDate),
-        drawDateIso: draw.drawDate,
-        drawNo: draw.drawNo ?? undefined,
-        id: draw.id,
-        isNextDraw: false,
-        status: "past" as const
-      }))
-    ],
-    generatedAt: computedAt,
-    monthlyInsights: buildMonthlyInsights(monthlyDraws),
-    nextDraw,
-    source: "api"
-  });
+      source: "api"
+    })
+  );
 }
 
 export const calendarService = {
   getCalendarReadModel
 } as const;
 
-function buildMonthlyInsights(draws: CalendarInsightDraw[]) {
-  const groupedDraws = new Map<number, CalendarInsightDraw[]>();
+function buildMonthlyInsights(draws: CalendarInsightDraw[], query: CalendarHeatmapQuery) {
+  const selectedMonth = query.month ?? new Date().getUTCMonth() + 1;
+  const selectedPrizeType = query.prizeType ?? "FIRST";
+  const selectedWindowSize = query.windowSize ?? DEFAULT_CALENDAR_WINDOW_SIZE;
+  const monthDraws = draws
+    .filter((draw) => draw.prizes.length > 0)
+    .filter((draw) => draw.drawDate.getUTCMonth() + 1 === selectedMonth)
+    .slice(0, selectedWindowSize)
+    .reverse();
 
-  for (const draw of draws) {
-    const month = draw.drawDate.getUTCMonth() + 1;
-    const bucket = groupedDraws.get(month) ?? [];
-    bucket.push(draw);
-    groupedDraws.set(month, bucket);
+  if (monthDraws.length === 0) {
+    return [];
   }
 
-  const currentMonth = new Date().getUTCMonth() + 1;
-  const preferredMonths = [currentMonth, ...groupedDraws.keys()].filter(
-    (month, index, values) => values.indexOf(month) === index
-  );
+  const heatmapRows = buildHeatmapRows(monthDraws);
+  const overallDigitStats = buildOverallDigitStats(heatmapRows);
+  const rankedDigits = [...overallDigitStats.values()].sort(sortDigitHeatmapCells);
+  const hotNumbers = rankedDigits.slice(0, 2).map((cell) => cell.digit);
+  const coldNumbers = [...rankedDigits]
+    .reverse()
+    .slice(0, 2)
+    .map((cell) => cell.digit);
 
-  return preferredMonths.slice(0, 3).flatMap((month) => {
-    const monthDraws = groupedDraws.get(month);
+  return [
+    {
+      coldNumbers,
+      heatmapRows,
+      hotNumbers,
+      id: `monthly-insight-${selectedMonth}-${selectedPrizeType}-${selectedWindowSize}`,
+      label: MONTH_LABELS[selectedMonth],
+      month: selectedMonth,
+      patternNotes: [
+        "Heatmap scores combine frequency and recency for each digit position.",
+        "Each row represents positions 1 to 6 for the selected prize type."
+      ],
+      positionInsights: heatmapRows.map((row) => ({
+        coldNumbers: row.coldDigits
+          .map((digit) => toPositionNumberStat(getCellForDigit(row, digit)))
+          .flatMap((cell) => (cell ? [cell] : [])),
+        hotNumbers: row.hotDigits
+          .map((digit) => toPositionNumberStat(getCellForDigit(row, digit)))
+          .flatMap((cell) => (cell ? [cell] : [])),
+        position: row.position
+      })),
+      prizeType: selectedPrizeType,
+      sampleSize: monthDraws.length,
+      summary: `${MONTH_LABELS[selectedMonth]} heatmap uses the latest ${monthDraws.length} matching draws for ${selectedPrizeType}.`,
+      windowSize: selectedWindowSize
+    }
+  ];
+}
 
-    if (!monthDraws || monthDraws.length === 0) {
-      return [];
+function buildHeatmapRows(draws: readonly CalendarInsightDraw[]): HeatmapRow[] {
+  return Array.from({ length: 6 }, (_, index) => {
+    const digitStats = new Map<string, { appearanceCount: number; lastSeenIndex: number | null }>();
+
+    for (let drawIndex = 0; drawIndex < draws.length; drawIndex += 1) {
+      const draw = draws[drawIndex];
+      const digitsInDraw = new Set(
+        draw.prizes
+          .map((prize) => prize.number.at(index))
+          .flatMap((digit) => (digit ? [digit] : []))
+      );
+
+      for (const digit of digitsInDraw) {
+        const existing = digitStats.get(digit);
+
+        if (existing) {
+          existing.appearanceCount += 1;
+          existing.lastSeenIndex = drawIndex;
+        } else {
+          digitStats.set(digit, { appearanceCount: 1, lastSeenIndex: drawIndex });
+        }
+      }
     }
 
-    const twoDigitNumbers = monthDraws.flatMap((draw) =>
-      draw.prizes.filter((prize) => prize.type === "TWO_DIGIT").map((prize) => prize.number)
+    const maxAppearanceCount = Math.max(
+      1,
+      ...Array.from(digitStats.values(), (stat) => stat.appearanceCount)
+    );
+    const maxMissingRounds = Math.max(
+      1,
+      ...Array.from(digitStats.values(), (stat) =>
+        stat.lastSeenIndex === null ? draws.length : draws.length - 1 - stat.lastSeenIndex
+      )
     );
 
-    if (twoDigitNumbers.length === 0) {
-      return [];
-    }
+    const cells = Array.from({ length: 10 }, (_, digitIndex) => {
+      const digit = String(digitIndex);
+      const stat = digitStats.get(digit);
+      const appearanceCount = stat?.appearanceCount ?? 0;
+      const missingRounds =
+        stat?.lastSeenIndex === undefined || stat.lastSeenIndex === null
+          ? draws.length
+          : draws.length - 1 - stat.lastSeenIndex;
+      const frequencyScore = appearanceCount / maxAppearanceCount;
+      const recencyScore = 1 - missingRounds / maxMissingRounds;
+      const score = round((frequencyScore * 0.7 + recencyScore * 0.3) * 100);
 
-    const counts = countNumbers(twoDigitNumbers);
-    const orderedNumbers = [...counts.entries()].sort((left, right) => {
-      if (right[1] !== left[1]) {
-        return right[1] - left[1];
-      }
-
-      return left[0].localeCompare(right[0]);
+      return {
+        appearanceCount,
+        digit,
+        missingRounds,
+        score,
+        tone: getHeatmapTone(score)
+      };
     });
-    const oddCount = twoDigitNumbers.filter(
-      (number) => Number(number.at(-1) ?? "0") % 2 === 1
-    ).length;
-    const evenCount = twoDigitNumbers.length - oddCount;
-    const highCount = twoDigitNumbers.filter((number) => Number(number.at(-1) ?? "0") >= 5).length;
-    const lowCount = twoDigitNumbers.length - highCount;
-    const dominantParity = oddCount >= evenCount ? "odd-ending numbers" : "even-ending numbers";
-    const dominantRange = highCount >= lowCount ? "high-ending numbers" : "low-ending numbers";
 
-    return [
-      {
-        coldNumbers: orderedNumbers
-          .slice(-2)
-          .map(([number]) => number)
-          .reverse(),
-        hotNumbers: orderedNumbers.slice(0, 2).map(([number]) => number),
-        id: `monthly-insight-${month}`,
-        label: MONTH_LABELS[month],
-        month,
-        patternNotes: [
-          `${dominantParity} appeared slightly more often in the sampled month.`,
-          `${dominantRange} carried more weight across the same-month historical draws.`
-        ],
-        sampleSize: monthDraws.length,
-        summary: `${MONTH_LABELS[month]} has ${monthDraws.length} historical draws in sample, leaning toward ${dominantParity} and ${dominantRange}.`
-      }
-    ];
+    const rankedCells = [...cells].sort(sortDigitHeatmapCells);
+
+    return {
+      cells,
+      coldDigits: rankedCells
+        .slice(-2)
+        .map((cell) => cell.digit)
+        .reverse(),
+      hotDigits: rankedCells.slice(0, 2).map((cell) => cell.digit),
+      position: index + 1
+    };
   });
 }
 
-function countNumbers(numbers: readonly string[]) {
-  const counts = new Map<string, number>();
+function buildOverallDigitStats(rows: readonly HeatmapRow[]) {
+  const digitStats = new Map<string, HeatmapCell>();
 
-  for (const number of numbers) {
-    counts.set(number, (counts.get(number) ?? 0) + 1);
+  for (const row of rows) {
+    for (const cell of row.cells) {
+      const existing = digitStats.get(cell.digit);
+
+      if (existing) {
+        existing.appearanceCount += cell.appearanceCount;
+        existing.score = round((existing.score + cell.score) / 2);
+        existing.missingRounds = Math.min(existing.missingRounds, cell.missingRounds);
+      } else {
+        digitStats.set(cell.digit, { ...cell });
+      }
+    }
   }
 
-  return counts;
+  return digitStats;
+}
+
+function getCellForDigit(row: HeatmapRow, digit: string) {
+  return row.cells.find((cell) => cell.digit === digit);
+}
+
+function toPositionNumberStat(cell: HeatmapCell | undefined): PositionNumberStat | null {
+  if (!cell) {
+    return null;
+  }
+
+  return {
+    appearanceCount: cell.appearanceCount,
+    digit: cell.digit,
+    missingRounds: cell.missingRounds
+  };
+}
+
+function getHeatmapTone(score: number): HeatmapCell["tone"] {
+  if (score >= 80) {
+    return "hot";
+  }
+
+  if (score >= 65) {
+    return "warm";
+  }
+
+  if (score >= 45) {
+    return "neutral";
+  }
+
+  if (score >= 30) {
+    return "cool";
+  }
+
+  return "cold";
+}
+
+function sortDigitHeatmapCells(left: HeatmapCell, right: HeatmapCell) {
+  return (
+    right.score - left.score ||
+    right.appearanceCount - left.appearanceCount ||
+    left.missingRounds - right.missingRounds ||
+    left.digit.localeCompare(right.digit)
+  );
 }
 
 function getNextDrawDate(reference: Date, latestPastDrawDate?: Date) {
@@ -220,4 +371,28 @@ function formatCalendarDate(value: Date) {
     month: "long",
     year: "numeric"
   }).format(value);
+}
+
+function round(value: number) {
+  return Math.round(value * 100) / 100;
+}
+
+async function timeAsync<T>(label: string, operation: () => Promise<T>) {
+  console.time(label);
+
+  try {
+    return await operation();
+  } finally {
+    console.timeEnd(label);
+  }
+}
+
+function timeSync<T>(label: string, operation: () => T) {
+  console.time(label);
+
+  try {
+    return operation();
+  } finally {
+    console.timeEnd(label);
+  }
 }

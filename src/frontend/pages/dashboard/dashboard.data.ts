@@ -2,7 +2,7 @@ import { apiGet } from "@/lib/api/http";
 import { apiRoutes } from "@/lib/api/routes";
 import { type DashboardReadModel, dashboardReadModelSchema } from "@/schema/app/dashboard.schema";
 
-const dashboardShell: DashboardReadModel = dashboardReadModelSchema.parse({
+export const dashboardShell: DashboardReadModel = dashboardReadModelSchema.parse({
   contractRows: [
     {
       field: "latestDraw",

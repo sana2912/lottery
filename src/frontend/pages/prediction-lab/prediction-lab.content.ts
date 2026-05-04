@@ -1,3 +1,4 @@
+import { predictionPrizeOptions } from "@/lib/app/prediction";
 import type { PredictionRequest } from "@/schema/app/prediction.schema";
 
 export const predictionLabContent = {
@@ -39,7 +40,7 @@ export const predictionLabContent = {
   },
   hero: {
     description:
-      "Strategies rank historical signals from analytics data. Scores are analysis outputs, not guarantees.",
+      "Strategies rank historical signals from analytics data. Select a prize to inspect independent position signals before combining a candidate.",
     eyebrow: "Prediction Lab",
     title: "Generate explainable number candidates"
   },
@@ -59,7 +60,7 @@ export const predictionLabContent = {
   },
   notes: {
     resultSummary:
-      "Results use historical analytics signals and should be read as exploratory ranking."
+      "Results use historical analytics signals, with each position scored independently before the final candidate is combined."
   },
   results: {
     rankLabel: "Rank",
@@ -77,8 +78,10 @@ export const predictionLabContent = {
     }
   },
   selectPlaceholders: {
+    prizeType: "Prize type",
     strategy: "Strategy"
   },
+  prizeOptions: predictionPrizeOptions,
   strategyOptions: [
     { label: "Balanced", value: "balanced" },
     { label: "Hot trend", value: "hotTrend" },

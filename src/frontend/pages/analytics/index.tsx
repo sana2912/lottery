@@ -2,7 +2,10 @@ import Link from "next/link";
 import { Heatmap, TimeSeriesChart } from "@/frontend/chart-primitives";
 import { EmptyState, FilterToolbar, MetricCard } from "@/frontend/components";
 import { analyticsContent } from "@/frontend/pages/analytics/analytics.content";
-import { getAnalyticsPageData } from "@/frontend/pages/analytics/analytics.data";
+import {
+  type AnalyticsPageData,
+  getAnalyticsPageData
+} from "@/frontend/pages/analytics/analytics.data";
 import {
   getTopDigits,
   getTopNumbers,
@@ -27,12 +30,14 @@ import {
 } from "@/frontend/primitives";
 
 export async function AnalyticsPage({
+  pageData,
   searchParams
 }: Readonly<{
+  pageData?: AnalyticsPageData;
   searchParams?: Record<string, string | string[] | undefined>;
 }>) {
   const query = parseAnalyticsSearchParams(searchParams);
-  const { model: analytics, state } = await getAnalyticsPageData(query);
+  const { model: analytics, state } = pageData ?? (await getAnalyticsPageData(query));
   const topDigits = getTopDigits(analytics);
   const topNumbers = getTopNumbers(analytics);
 

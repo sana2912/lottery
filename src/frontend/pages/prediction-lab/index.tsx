@@ -49,6 +49,12 @@ export function PredictionLabPage() {
   const [savedNumbers, setSavedNumbers] = useState<Set<string>>(() => new Set());
   const [saveError, setSaveError] = useState<string | null>(null);
   const topScore = useMemo(() => getTopPredictionScore(prediction), [prediction]);
+  const selectedPrize = useMemo(
+    () =>
+      predictionLabContent.prizeOptions.find((option) => option.value === formState.prizeType) ??
+      predictionLabContent.prizeOptions[0],
+    [formState.prizeType]
+  );
 
   useEffect(() => {
     let isActive = true;
@@ -189,6 +195,30 @@ export function PredictionLabPage() {
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="prizeType">Prize type</Label>
+            <Select
+              value={formState.prizeType}
+              onValueChange={(prizeType) =>
+                setFormState((current) => ({
+                  ...current,
+                  prizeType: prizeType as PredictionRequest["prizeType"]
+                }))
+              }
+            >
+              <SelectTrigger id="prizeType">
+                <SelectValue placeholder={predictionLabContent.selectPlaceholders.prizeType} />
+              </SelectTrigger>
+              <SelectContent>
+                {predictionLabContent.prizeOptions.map((prize) => (
+                  <SelectItem key={prize.value} value={prize.value}>
+                    {prize.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="windowSize">Window size</Label>
             <Input
               id="windowSize"
@@ -218,18 +248,10 @@ export function PredictionLabPage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="numberLength">Number length</Label>
-            <Input
-              id="numberLength"
-              inputMode="numeric"
-              max={6}
-              min={2}
-              onChange={(event) =>
-                setFormState((current) => ({ ...current, numberLength: event.target.value }))
-              }
-              type="number"
-              value={formState.numberLength}
-            />
+            <Label>Derived length</Label>
+            <div className="flex h-10 items-center border border-[var(--color-border-default)] bg-white px-3 text-sm text-[var(--color-text-secondary)]">
+              {selectedPrize.numberLength} digits
+            </div>
           </div>
         </div>
 
@@ -343,6 +365,52 @@ export function PredictionLabPage() {
                 {Object.entries(result.scoreBreakdown).map(([label, value]) => (
                   <MetricCard key={label} label={label} value={String(value)} />
                 ))}
+              </div>
+
+              <div className="mt-5 border-t border-[var(--color-border-soft)] pt-4">
+                <p className="text-sm font-semibold text-[var(--color-text-primary)]">
+                  Position breakdown
+                </p>
+                <div className="mt-3 grid gap-3 xl:grid-cols-2">
+                  {result.positionBreakdown.map((position) => (
+                    <div
+                      className="border border-[var(--color-border-default)] bg-[var(--color-bg-subtle)] p-4"
+                      key={`${result.id}-${position.positionIndex}`}
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-normal text-[var(--color-text-muted)]">
+                            Position {position.positionIndex}
+                          </p>
+                          <p className="mt-1 font-mono text-2xl font-bold text-[var(--color-text-primary)]">
+                            {position.digit}
+                          </p>
+                        </div>
+                        <Badge
+                          variant={
+                            position.tone === "hot"
+                              ? "hot"
+                              : position.tone === "cold"
+                                ? "cold"
+                                : "muted"
+                          }
+                        >
+                          {position.tone}
+                        </Badge>
+                      </div>
+                      <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                        <MetricCard label="Hot" value={String(position.hot)} />
+                        <MetricCard label="Overdue" value={String(position.overdue)} />
+                        <MetricCard label="Trend" value={String(position.position)} />
+                      </div>
+                      <ul className="mt-3 space-y-1 text-sm leading-6 text-[var(--color-text-secondary)]">
+                        {position.reasons.map((reason) => (
+                          <li key={reason}>{reason}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               <div className="mt-5 border-t border-[var(--color-border-soft)] pt-4">

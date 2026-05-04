@@ -54,6 +54,27 @@ describe("runWalkForwardBacktest", () => {
     });
     expect(results[2]?.generatedNumbers).not.toContain("99");
   });
+
+  test("limits evaluated target draws to the latest windowSize draws", () => {
+    const results = runWalkForwardBacktest({
+      candidateCount: 1,
+      draws: [
+        draw("draw-1", "2026-01-01T00:00:00.000Z", "11"),
+        draw("draw-2", "2026-01-16T00:00:00.000Z", "22"),
+        draw("draw-3", "2026-02-01T00:00:00.000Z", "33"),
+        draw("draw-4", "2026-02-16T00:00:00.000Z", "44"),
+        draw("draw-5", "2026-03-01T00:00:00.000Z", "55")
+      ],
+      numberLength: 2,
+      prizeType: "TWO_DIGIT",
+      runId: "run-1",
+      strategy: getPredictionStrategy("balanced"),
+      windowSize: 2
+    });
+
+    expect(results).toHaveLength(2);
+    expect(results.map((result) => result.drawId)).toEqual(["draw-4", "draw-5"]);
+  });
 });
 
 describe("getBacktestSummary", () => {

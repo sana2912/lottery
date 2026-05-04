@@ -10,11 +10,23 @@ export interface ApiPredictionScoreBreakdown {
   position: number;
 }
 
+export interface ApiPredictionPositionBreakdown {
+  digit: string;
+  hot: number;
+  overdue: number;
+  position: number;
+  positionIndex: number;
+  reasons: string[];
+  score: number;
+  tone: "hot" | "warm" | "neutral" | "cold";
+}
+
 export interface ApiPredictionResult {
   id: string;
   inputWindow: number;
   number: string;
   numberLength: number;
+  positionBreakdown: ApiPredictionPositionBreakdown[];
   rank: number;
   reasons: string[];
   score: number;
