@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { RouteProgress } from "@/frontend/components/navigation/RouteProgress";
 import "@/frontend/styles/globals.css";
 
@@ -15,7 +16,9 @@ export default function RootLayout({
   return (
     <html lang="th">
       <body>
-        <RouteProgress />
+        <Suspense fallback={null}>
+          <RouteProgress />
+        </Suspense>
         {children}
       </body>
     </html>

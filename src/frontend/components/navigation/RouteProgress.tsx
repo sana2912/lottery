@@ -44,11 +44,7 @@ export function RouteProgress() {
 
       clearTargetTimers();
 
-      timeoutRefs.current = TARGET_STEPS.map(({ delay, value }) =>
-        window.setTimeout(() => {
-          targetProgressRef.current = Math.max(targetProgressRef.current, value);
-        }, delay)
-      );
+      timeoutRefs.current = scheduleTargetSteps(targetProgressRef);
     }
 
     function handleNavigationPointerDown(event: PointerEvent) {
@@ -150,4 +146,22 @@ function shouldIgnoreNavigation(anchor: Element) {
     nextUrl.pathname === currentUrl.pathname && nextUrl.search === currentUrl.search;
 
   return isExternal || isSameRoute;
+}
+
+function scheduleTargetSteps(targetProgressRef: React.MutableRefObject<number>) {
+  return TARGET_STEPS.map((step) => scheduleTargetStep(step, targetProgressRef));
+}
+
+function scheduleTargetStep(
+  step: (typeof TARGET_STEPS)[number],
+  targetProgressRef: React.MutableRefObject<number>
+) {
+  return window.setTimeout(applyTargetStep, step.delay, step, targetProgressRef);
+}
+
+function applyTargetStep(
+  step: (typeof TARGET_STEPS)[number],
+  targetProgressRef: React.MutableRefObject<number>
+) {
+  targetProgressRef.current = Math.max(targetProgressRef.current, step.value);
 }
