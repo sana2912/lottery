@@ -1,4 +1,8 @@
-import type { ApiPredictionStrategyId } from "@/schema/api/prediction";
+import type {
+  ApiPredictionPositionBreakdown,
+  ApiPredictionScoreBreakdown,
+  ApiPredictionStrategyId
+} from "@/schema/api/prediction";
 import type { ApiFilterContext, ApiNumberLength } from "@/schema/api/query";
 
 export interface ApiBacktestRequest extends ApiFilterContext {
@@ -6,6 +10,7 @@ export interface ApiBacktestRequest extends ApiFilterContext {
   numberLength?: ApiNumberLength;
   params?: Record<string, unknown>;
   strategyId?: ApiPredictionStrategyId;
+  targetDrawCount?: number;
 }
 
 export interface ApiBacktestRun {
@@ -22,8 +27,30 @@ export interface ApiBacktestRun {
   hitRate: number;
   longestMissStreak: number;
   averageHitRank?: number;
+  expectedRandomHitRate?: number;
   coverage: number;
+  liftVsRandom?: number;
   computedAt: string;
+  version: string;
+}
+
+export interface ApiBacktestCandidateExplanation {
+  isHit: boolean;
+  number: string;
+  numberLength: number;
+  positionBreakdown: ApiPredictionPositionBreakdown[];
+  rank: number;
+  reasons: string[];
+  score: number;
+  scoreBreakdown: ApiPredictionScoreBreakdown;
+}
+
+export interface ApiBacktestResultExplanation {
+  calculationWindow: number;
+  candidateCount: number;
+  generatedCandidates: ApiBacktestCandidateExplanation[];
+  strategyId: string;
+  strategyName: string;
   version: string;
 }
 
@@ -37,6 +64,7 @@ export interface ApiBacktestResult {
   isHit: boolean;
   hitNumbers: string[];
   rankOfHit?: number;
+  explanation?: ApiBacktestResultExplanation;
 }
 
 export interface ApiBacktestReadModel {

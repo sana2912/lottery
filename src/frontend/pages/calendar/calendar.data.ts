@@ -1,25 +1,15 @@
+import {
+  type CalendarPageFilters,
+  parseCalendarPageFilters,
+  toCalendarApiQuery
+} from "@/frontend/pages/calendar/calendar.mappers";
 import { apiGet } from "@/lib/api/http";
 import { apiRoutes } from "@/lib/api/routes";
 import { type CalendarReadModel, calendarReadModelSchema } from "@/schema/app/calendar.schema";
 
-const calendarShell = calendarReadModelSchema.parse({
+export const calendarShell = calendarReadModelSchema.parse({
   generatedAt: "2026-04-28T00:00:00.000Z",
-  monthlyInsights: [
-    {
-      coldNumbers: ["03", "91"],
-      hotNumbers: ["47", "24"],
-      id: "monthly-insight-may",
-      label: "May",
-      month: 5,
-      patternNotes: [
-        "Odd-ending numbers appeared slightly more often in the sampled month.",
-        "High-ending numbers carried more weight in same-month history."
-      ],
-      sampleSize: 12,
-      summary:
-        "May has 12 historical draws in sample, leaning toward odd-ending and high-ending numbers."
-    }
-  ],
+  monthlyInsights: [],
   nextDraw: {
     drawDate: "1 May 2026",
     drawDateIso: "2026-05-01T00:00:00.000Z",
@@ -50,23 +40,30 @@ const calendarShell = calendarReadModelSchema.parse({
 });
 
 export type CalendarPageData =
-  | { model: CalendarReadModel; state: "error" }
-  | { model: CalendarReadModel; state: "ready" }
-  | { model: CalendarReadModel; state: "empty" };
+  | { filters: CalendarPageFilters; model: CalendarReadModel; state: "error" }
+  | { filters: CalendarPageFilters; model: CalendarReadModel; state: "ready" }
+  | { filters: CalendarPageFilters; model: CalendarReadModel; state: "empty" };
 
-export async function getCalendarPageData(): Promise<CalendarPageData> {
+export async function getCalendarPageData(
+  searchParams?: Record<string, string | string[] | undefined> | URLSearchParams
+): Promise<CalendarPageData> {
+  const filters = parseCalendarPageFilters(searchParams);
+
   try {
     const model = await apiGet<CalendarReadModel>(apiRoutes.calendar, {
       cache: "no-store",
+      query: toCalendarApiQuery(filters),
       schema: calendarReadModelSchema
     });
 
     return {
+      filters,
       model,
       state: model.draws.length > 0 ? "ready" : "empty"
     };
   } catch {
     return {
+      filters,
       model: {
         ...calendarShell,
         draws: [],
@@ -84,6 +81,8 @@ export async function getCalendarPageData(): Promise<CalendarPageData> {
   }
 }
 
-export async function getCalendarModel(): Promise<CalendarReadModel> {
-  return (await getCalendarPageData()).model;
+export async function getCalendarModel(
+  searchParams?: Record<string, string | string[] | undefined> | URLSearchParams
+): Promise<CalendarReadModel> {
+  return (await getCalendarPageData(searchParams)).model;
 }

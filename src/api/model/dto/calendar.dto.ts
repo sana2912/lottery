@@ -31,23 +31,61 @@ export function toApiCalendarDraw(draw: CalendarDrawDtoInput): ApiCalendarDraw {
 
 type MonthlyInsightDtoInput = Omit<
   ApiMonthlyInsight,
-  "coldNumbers" | "hotNumbers" | "patternNotes"
+  "coldNumbers" | "heatmapRows" | "hotNumbers" | "patternNotes" | "positionInsights"
 > & {
   coldNumbers: readonly string[];
+  heatmapRows: ReadonlyArray<{
+    cells: ReadonlyArray<{
+      appearanceCount: number;
+      digit: string;
+      missingRounds: number;
+      score: number;
+      tone: "hot" | "warm" | "neutral" | "cool" | "cold";
+    }>;
+    coldDigits: readonly string[];
+    hotDigits: readonly string[];
+    position: number;
+  }>;
   hotNumbers: readonly string[];
   patternNotes: readonly string[];
+  positionInsights: ReadonlyArray<{
+    coldNumbers: ReadonlyArray<{
+      appearanceCount: number;
+      digit: string;
+      missingRounds: number;
+    }>;
+    hotNumbers: ReadonlyArray<{
+      appearanceCount: number;
+      digit: string;
+      missingRounds: number;
+    }>;
+    position: number;
+  }>;
 };
 
 export function toApiMonthlyInsight(insight: MonthlyInsightDtoInput): ApiMonthlyInsight {
   return {
     coldNumbers: [...insight.coldNumbers],
+    heatmapRows: insight.heatmapRows.map((row) => ({
+      cells: row.cells.map((cell) => ({ ...cell })),
+      coldDigits: [...row.coldDigits],
+      hotDigits: [...row.hotDigits],
+      position: row.position
+    })),
     hotNumbers: [...insight.hotNumbers],
     id: insight.id,
     label: insight.label,
     month: insight.month,
     patternNotes: [...insight.patternNotes],
+    prizeType: insight.prizeType,
+    positionInsights: insight.positionInsights.map((positionInsight) => ({
+      coldNumbers: positionInsight.coldNumbers.map((number) => ({ ...number })),
+      hotNumbers: positionInsight.hotNumbers.map((number) => ({ ...number })),
+      position: positionInsight.position
+    })),
     sampleSize: insight.sampleSize,
-    summary: insight.summary
+    summary: insight.summary,
+    windowSize: insight.windowSize
   };
 }
 

@@ -34,7 +34,7 @@ describe("compare.service", () => {
     });
 
     expect(compareReadModelSchema.parse(response)).toEqual(response);
-    expect(response.candidates.map((candidate) => candidate.number)).toEqual(["11", "09", "22"]);
+    expect(response.candidates.map((candidate) => candidate.number)).toEqual(["09", "11", "22"]);
     expect(response.candidates.at(-1)).toMatchObject({
       number: "22",
       numberLength: 2,

@@ -6,7 +6,7 @@ import { apiGet } from "@/lib/api/http";
 import { apiRoutes } from "@/lib/api/routes";
 import { type AnalyticsReadModel, analyticsReadModelSchema } from "@/schema/app/analytics.schema";
 
-const analyticsShell = analyticsReadModelSchema.parse({
+export const analyticsShell = analyticsReadModelSchema.parse({
   digitStats: [],
   generatedAt: "2026-04-28T00:00:00.000Z",
   numberStats: [],

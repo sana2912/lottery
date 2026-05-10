@@ -11,7 +11,10 @@ import type { FilterContext } from "@/schema/app/query.schema";
 const MATERIALIZED_PRIZE_TYPES = [
   "TWO_DIGIT",
   "THREE_DIGIT",
+  "THREE_FRONT",
+  "THREE_BACK",
   "FIRST",
+  "NEAR_FIRST",
   "PRIZE2",
   "PRIZE3",
   "PRIZE4",
@@ -143,9 +146,11 @@ export async function getMaterializedAnalyticsReadModel(query: FilterContext) {
   }));
   const apiNumberStats = numberStats.map((stat) => ({
     ...stat,
+    averageGap: stat.averageGap ?? undefined,
     computedAt: stat.computedAt.toISOString(),
     lastSeenDrawDate: stat.lastSeenDrawDate?.toISOString(),
     lotteryType: String(stat.lotteryType),
+    maxGap: stat.maxGap ?? undefined,
     patternFlags: Array.isArray(stat.patternFlags)
       ? (stat.patternFlags as ApiNumberStat["patternFlags"])
       : [],
@@ -357,8 +362,11 @@ function getExpectedNumberLength(prizeType: NonNullable<FilterContext["prizeType
     case "TWO_DIGIT":
       return 2;
     case "THREE_DIGIT":
+    case "THREE_FRONT":
+    case "THREE_BACK":
       return 3;
     case "FIRST":
+    case "NEAR_FIRST":
     case "PRIZE2":
     case "PRIZE3":
     case "PRIZE4":

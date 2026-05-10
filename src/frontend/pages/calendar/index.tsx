@@ -1,8 +1,12 @@
 import { CalendarDays, Clock3, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { EmptyState, MetricCard } from "@/frontend/components";
+import { CalendarHeatmapFilters } from "@/frontend/pages/calendar/calendar.components";
 import { calendarContent } from "@/frontend/pages/calendar/calendar.content";
-import { getCalendarPageData } from "@/frontend/pages/calendar/calendar.data";
+import {
+  type CalendarPageData,
+  getCalendarPageData
+} from "@/frontend/pages/calendar/calendar.data";
 import { getDaysUntilNextDraw } from "@/frontend/pages/calendar/calendar.mappers";
 import {
   Badge,
@@ -17,8 +21,14 @@ import {
   TableRow
 } from "@/frontend/primitives";
 
-export async function CalendarPage() {
-  const { model: calendar, state } = await getCalendarPageData();
+export async function CalendarPage({
+  pageData,
+  searchParams
+}: {
+  pageData?: CalendarPageData;
+  searchParams?: Record<string, string | string[] | undefined>;
+}) {
+  const { filters, model: calendar, state } = pageData ?? (await getCalendarPageData(searchParams));
   const daysUntilNextDraw = getDaysUntilNextDraw(calendar);
 
   return (
@@ -203,6 +213,22 @@ export async function CalendarPage() {
           </Button>
         </div>
 
+        <div className="mt-5 rounded-none border border-[var(--color-border-soft)] bg-[var(--color-bg-subtle)] p-4">
+          <div className="mb-4">
+            <p className="text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
+              {calendarContent.filters.eyebrow}
+            </p>
+            <h3 className="mt-1 text-lg font-bold tracking-normal text-[var(--color-text-primary)]">
+              {calendarContent.filters.title}
+            </h3>
+            <p className="mt-2 text-sm leading-6 text-[var(--color-text-secondary)]">
+              {calendarContent.filters.description}
+            </p>
+          </div>
+
+          <CalendarHeatmapFilters filters={filters} />
+        </div>
+
         {calendar.monthlyInsights.length === 0 ? (
           <div className="mt-5">
             <EmptyState
@@ -212,7 +238,7 @@ export async function CalendarPage() {
             />
           </div>
         ) : (
-          <div className="mt-5 grid gap-4 lg:grid-cols-3">
+          <div className="mt-5 grid gap-4 lg:grid-cols-1">
             {calendar.monthlyInsights.map((insight) => (
               <Card className="p-5" key={insight.id}>
                 <div className="flex items-start justify-between gap-3">
@@ -227,27 +253,87 @@ export async function CalendarPage() {
                   <Sparkles className="size-5 text-[var(--calendar)]" />
                 </div>
 
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Badge variant="neutral">{insight.prizeType}</Badge>
+                  <Badge variant="neutral">Window {insight.windowSize}</Badge>
+                  <Badge variant="brand">{insight.sampleSize} draws</Badge>
+                </div>
+
                 <p className="mt-4 text-sm leading-6 text-[var(--color-text-secondary)]">
                   {insight.summary}
                 </p>
 
-                <div className="mt-5 grid gap-3 md:grid-cols-2">
-                  <div className="rounded-none bg-[var(--color-bg-subtle)] p-3">
+                <div className="mt-5 overflow-x-auto border border-[var(--color-border-soft)]">
+                  <div className="min-w-[760px]">
+                    <div className="grid grid-cols-[96px_repeat(10,minmax(0,1fr))] border-b border-[var(--color-border-soft)] bg-[var(--color-bg-subtle)]">
+                      <div className="px-3 py-2 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
+                        Position
+                      </div>
+                      {Array.from({ length: 10 }, (_, index) => (
+                        <div
+                          className="px-2 py-2 text-center text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]"
+                          key={`digit-header-${String(index)}`}
+                        >
+                          {index}
+                        </div>
+                      ))}
+                    </div>
+
+                    {insight.heatmapRows.map((row) => (
+                      <div
+                        className="grid grid-cols-[96px_repeat(10,minmax(0,1fr))] border-b border-[var(--color-border-soft)] last:border-b-0"
+                        key={`position-${row.position}`}
+                      >
+                        <div className="flex items-center px-3 py-3 text-sm font-bold text-[var(--color-text-primary)]">
+                          P{row.position}
+                        </div>
+                        {row.cells.map((cell) => (
+                          <div
+                            className={[
+                              "min-h-20 border-l border-[var(--color-border-soft)] px-2 py-2 text-center transition-colors",
+                              getHeatmapCellToneClass(cell.tone)
+                            ].join(" ")}
+                            key={`position-${row.position}-digit-${cell.digit}`}
+                          >
+                            <div className="font-mono text-base font-bold text-[var(--color-text-primary)]">
+                              {cell.digit}
+                            </div>
+                            <div className="mt-2 space-y-1 text-[11px] text-[var(--color-text-secondary)]">
+                              <p>Hit {cell.appearanceCount}</p>
+                              <p>Gap {cell.missingRounds}</p>
+                              <p>Score {cell.score}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  <div className="border border-[var(--color-border-soft)] bg-[var(--color-bg-subtle)] p-3">
                     <p className="text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                      {calendarContent.fallbackLabels.hotNumbers}
+                      Hot numbers
                     </p>
                     <p className="mt-2 font-mono text-sm text-[var(--color-text-primary)]">
-                      {insight.hotNumbers.join(", ")}
+                      {insight.hotNumbers.length > 0 ? insight.hotNumbers.join(", ") : "-"}
                     </p>
                   </div>
-                  <div className="rounded-none bg-[var(--color-bg-subtle)] p-3">
+                  <div className="border border-[var(--color-border-soft)] bg-[var(--color-bg-subtle)] p-3">
                     <p className="text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                      {calendarContent.fallbackLabels.coldNumbers}
+                      Cold numbers
                     </p>
                     <p className="mt-2 font-mono text-sm text-[var(--color-text-primary)]">
-                      {insight.coldNumbers.join(", ")}
+                      {insight.coldNumbers.length > 0 ? insight.coldNumbers.join(", ") : "-"}
                     </p>
                   </div>
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-2 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
+                  <Badge variant="neutral">{calendarContent.heatmap.legend.frequency}</Badge>
+                  <Badge variant="neutral">{calendarContent.heatmap.legend.recency}</Badge>
+                  <Badge variant="brand">{calendarContent.heatmap.legend.hot}</Badge>
+                  <Badge variant="neutral">{calendarContent.heatmap.legend.cold}</Badge>
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-2">
@@ -264,4 +350,19 @@ export async function CalendarPage() {
       </Card>
     </main>
   );
+}
+
+function getHeatmapCellToneClass(tone: "hot" | "warm" | "neutral" | "cool" | "cold") {
+  switch (tone) {
+    case "hot":
+      return "bg-[var(--hot-soft)]";
+    case "warm":
+      return "bg-[var(--accent-soft)]";
+    case "cool":
+      return "bg-[var(--cold-soft)]";
+    case "cold":
+      return "bg-[var(--cold-soft)]";
+    default:
+      return "bg-[var(--color-bg-subtle)]";
+  }
 }

@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import CalendarRoute from "@/app/(user)/calendar/page";
 import SearchRoute from "@/app/(user)/search/page";
 import AnalyticsRoute from "@/frontend/pages/analytics/route";
 import CompareRoute from "@/frontend/pages/compare/route";
@@ -11,6 +12,17 @@ function assertReactElement(value: unknown) {
 }
 
 describe("route wrappers", () => {
+  test("CalendarRoute awaits searchParams and passes them through", async () => {
+    const element = await CalendarRoute({
+      searchParams: Promise.resolve({ month: "5", prizeType: "FIRST" })
+    });
+    assertReactElement(element);
+    expect((element as { props: { searchParams?: unknown } }).props.searchParams).toEqual({
+      month: "5",
+      prizeType: "FIRST"
+    });
+  });
+
   test("AnalyticsRoute awaits searchParams and passes them through", async () => {
     const element = await AnalyticsRoute({
       searchParams: Promise.resolve({ page: "2" })

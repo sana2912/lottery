@@ -12,12 +12,25 @@ describe("prediction.dto", () => {
       pattern: 8,
       position: 12
     };
+    const positionBreakdown = [
+      {
+        digit: "0",
+        hot: 40,
+        overdue: 20,
+        position: 50,
+        positionIndex: 1,
+        reasons: ["Historical frequency is 50% in position 1."],
+        score: 0,
+        tone: "warm" as const
+      }
+    ];
     const result = toApiPredictionResult({
       extra: "skip",
       id: "prediction-1",
       inputWindow: 120,
       number: "09",
       numberLength: 2,
+      positionBreakdown,
       rank: 1,
       reasons,
       score: 65,
@@ -29,6 +42,8 @@ describe("prediction.dto", () => {
 
     expect(result.reasons).toEqual(["Hot trend", "Strong pair support"]);
     expect(result.reasons).not.toBe(reasons);
+    expect(result.positionBreakdown).toEqual(positionBreakdown);
+    expect(result.positionBreakdown).not.toBe(positionBreakdown);
     expect(result.scoreBreakdown).toEqual(scoreBreakdown);
     expect(result.scoreBreakdown).not.toBe(scoreBreakdown);
     expect(result).not.toHaveProperty("extra");

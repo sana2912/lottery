@@ -98,14 +98,20 @@ export function toApiPatternSummary(summary: ApiPatternSummary): ApiPatternSumma
 }
 
 export function toApiAnalyticsReadModel(model: AnalyticsReadModelDtoInput): ApiAnalyticsReadModel {
-  return {
-    generatedAt: normalizeDateString(model.generatedAt),
-    source: model.source,
-    summary: toApiAnalyticsSummary(model.summary),
-    digitStats: model.digitStats.map(toApiDigitStat),
-    numberStats: model.numberStats.map(toApiNumberStat),
-    patternSummaries: model.patternSummaries.map(toApiPatternSummary)
-  };
+  console.time("analytics.dto conversion");
+
+  try {
+    return {
+      generatedAt: normalizeDateString(model.generatedAt),
+      source: model.source,
+      summary: toApiAnalyticsSummary(model.summary),
+      digitStats: model.digitStats.map(toApiDigitStat),
+      numberStats: model.numberStats.map(toApiNumberStat),
+      patternSummaries: model.patternSummaries.map(toApiPatternSummary)
+    };
+  } finally {
+    console.timeEnd("analytics.dto conversion");
+  }
 }
 
 function normalizeDateString(value: Date | string): string {

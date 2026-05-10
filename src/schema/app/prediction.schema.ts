@@ -15,6 +15,17 @@ export const predictionScoreBreakdownSchema = z.object({
   position: z.number()
 });
 
+export const predictionPositionBreakdownSchema = z.object({
+  digit: z.string(),
+  hot: z.number(),
+  overdue: z.number(),
+  position: z.number(),
+  positionIndex: z.number(),
+  reasons: z.array(z.string()),
+  score: z.number(),
+  tone: z.enum(["hot", "warm", "neutral", "cold"])
+});
+
 export const predictionRequestSchema = z.object({
   count: z.coerce.number().int().min(1).max(20).optional().default(5),
   lotteryType: lotteryTypeSchema.optional().default("THAI_GOVERNMENT"),
@@ -29,6 +40,7 @@ export const predictionResultSchema = z.object({
   inputWindow: z.number(),
   number: z.string(),
   numberLength: z.number(),
+  positionBreakdown: z.array(predictionPositionBreakdownSchema),
   rank: z.number(),
   reasons: z.array(z.string()),
   score: z.number(),
@@ -48,5 +60,6 @@ export const predictionResponseSchema = z.object({
 export type PredictionRequest = z.infer<typeof predictionRequestSchema>;
 export type PredictionResponse = z.infer<typeof predictionResponseSchema>;
 export type PredictionResult = z.infer<typeof predictionResultSchema>;
+export type PredictionPositionBreakdown = z.infer<typeof predictionPositionBreakdownSchema>;
 export type PredictionScoreBreakdown = z.infer<typeof predictionScoreBreakdownSchema>;
 export type PredictionStrategyId = z.infer<typeof predictionStrategyIdSchema>;

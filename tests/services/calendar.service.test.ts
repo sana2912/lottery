@@ -26,16 +26,16 @@ describe("calendar.service", () => {
                 drawDate: new Date("2026-04-16T00:00:00.000Z"),
                 id: "draw-2",
                 prizes: [
-                  { number: "09", type: "TWO_DIGIT" },
-                  { number: "12", type: "TWO_DIGIT" }
+                  { number: "123456", type: "FIRST" },
+                  { number: "654321", type: "FIRST" }
                 ]
               },
               {
                 drawDate: new Date("2026-04-01T00:00:00.000Z"),
                 id: "draw-1",
                 prizes: [
-                  { number: "09", type: "TWO_DIGIT" },
-                  { number: "01", type: "TWO_DIGIT" }
+                  { number: "111111", type: "FIRST" },
+                  { number: "222222", type: "FIRST" }
                 ]
               }
             ];
@@ -52,7 +52,11 @@ describe("calendar.service", () => {
       }
     };
 
-    const response = await calendarService.getCalendarReadModel();
+    const response = await calendarService.getCalendarReadModel({
+      month: 4,
+      prizeType: "FIRST",
+      windowSize: 2
+    });
 
     expect(calls).toHaveLength(2);
     expect(calendarReadModelSchema.parse(response)).toEqual(response);
@@ -64,6 +68,15 @@ describe("calendar.service", () => {
       false
     );
     expect(response.monthlyInsights.length).toBeGreaterThan(0);
+    expect(response.monthlyInsights[0]?.heatmapRows).toHaveLength(6);
+    expect(response.monthlyInsights[0]?.heatmapRows[0]?.cells).toHaveLength(10);
+    expect(response.monthlyInsights[0]?.heatmapRows[0]?.cells[0]).toMatchObject({
+      appearanceCount: expect.any(Number),
+      digit: expect.any(String),
+      missingRounds: expect.any(Number),
+      score: expect.any(Number),
+      tone: expect.any(String)
+    });
   });
 
   test("returns a safe calendar read model when the database is empty", async () => {

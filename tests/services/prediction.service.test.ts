@@ -9,11 +9,14 @@ import {
 import { predictionResponseSchema } from "@/schema/app/prediction.schema";
 
 const mutableAnalyticsService = analyticsService as {
+  getDigitStats: typeof analyticsService.getDigitStats;
   getNumberStats: typeof analyticsService.getNumberStats;
 };
+const originalGetDigitStats = analyticsService.getDigitStats;
 const originalGetNumberStats = analyticsService.getNumberStats;
 
 afterEach(() => {
+  mutableAnalyticsService.getDigitStats = originalGetDigitStats;
   mutableAnalyticsService.getNumberStats = originalGetNumberStats;
   delete (globalThis as { prisma?: unknown }).prisma;
 });
@@ -23,10 +26,13 @@ describe("prediction.service", () => {
     const store = createPredictionStore();
 
     (globalThis as { prisma?: unknown }).prisma = createPredictionPrismaStub(store);
-    mutableAnalyticsService.getNumberStats = async () => [
-      stat("09", 1, ["odd", "high", "ascending"], 12.5, 20, 80),
-      stat("11", 1, ["odd", "low", "double", "mirror"], 12.5, 20, 80),
-      stat("22", 1, ["even", "low", "double", "mirror"], 4, 2, 40)
+    mutableAnalyticsService.getDigitStats = async () => [
+      digitStat("1", 1, 18, 90, 0, "up"),
+      digitStat("0", 1, 6, 30, 12, "down"),
+      digitStat("9", 1, 1, 5, 20, "flat"),
+      digitStat("1", 2, 17, 85, 0, "up"),
+      digitStat("0", 2, 5, 25, 10, "down"),
+      digitStat("9", 2, 2, 10, 18, "flat")
     ];
 
     const response = await predictionService.generate({
@@ -40,15 +46,16 @@ describe("prediction.service", () => {
 
     expect(predictionResponseSchema.parse(response)).toEqual(response);
     expect(response.results).toHaveLength(2);
-    expect(response.results.map((item) => item.number)).toEqual(["11", "09"]);
+    expect(new Set(response.results.map((item) => item.number)).size).toBe(2);
     expect(response.results.map((item) => item.rank)).toEqual([1, 2]);
+    expect(response.results[0]?.positionBreakdown).toHaveLength(2);
   });
 
   test("returns an empty result set when analytics has no candidates", async () => {
     const store = createPredictionStore();
 
     (globalThis as { prisma?: unknown }).prisma = createPredictionPrismaStub(store);
-    mutableAnalyticsService.getNumberStats = async () => [];
+    mutableAnalyticsService.getDigitStats = async () => [];
 
     const response = await predictionService.generate({
       count: 5,
@@ -67,9 +74,11 @@ describe("prediction.service", () => {
     const store = createPredictionStore();
 
     (globalThis as { prisma?: unknown }).prisma = createPredictionPrismaStub(store);
-    mutableAnalyticsService.getNumberStats = async () => [
-      stat("09", 1, ["odd", "high", "ascending"], 12.5, 20, 80),
-      stat("11", 1, ["odd", "low", "double", "mirror"], 12.5, 20, 80)
+    mutableAnalyticsService.getDigitStats = async () => [
+      digitStat("1", 1, 18, 90, 0, "up"),
+      digitStat("0", 1, 6, 30, 12, "down"),
+      digitStat("1", 2, 17, 85, 0, "up"),
+      digitStat("0", 2, 5, 25, 10, "down")
     ];
 
     const response = await predictionService.generate({
@@ -82,16 +91,17 @@ describe("prediction.service", () => {
     });
 
     expect(predictionResponseSchema.parse(response)).toEqual(response);
-    expect(response.results).toHaveLength(2);
-    expect(response.results.map((item) => item.rank)).toEqual([1, 2]);
+    expect(response.results).toHaveLength(5);
+    expect(response.results.map((item) => item.rank)).toEqual([1, 2, 3, 4, 5]);
   });
 
   test("persists generated runs and reloads the latest persisted prediction response", async () => {
     const store = createPredictionStore();
 
     (globalThis as { prisma?: unknown }).prisma = createPredictionPrismaStub(store);
-    mutableAnalyticsService.getNumberStats = async () => [
-      stat("09", 1, ["odd", "high", "ascending"], 12.5, 20, 80)
+    mutableAnalyticsService.getDigitStats = async () => [
+      digitStat("1", 1, 18, 90, 0, "up"),
+      digitStat("1", 2, 17, 85, 0, "up")
     ];
 
     const generated = await predictionService.generate({
@@ -107,8 +117,8 @@ describe("prediction.service", () => {
 
     expect(predictionResponseSchema.parse(generated)).toEqual(generated);
     expect(latest && predictionResponseSchema.parse(latest)).toEqual(latest);
-    expect(latest?.results[0]?.number).toBe("09");
-    expect(summary?.candidates[0]?.number).toBe("09");
+    expect(latest?.results[0]?.number).toBe(generated.results[0]?.number);
+    expect(summary?.candidates[0]?.number).toBe(generated.results[0]?.number);
   });
 
   test("keeps reading legacy persisted prediction snapshots for older runs", async () => {
@@ -149,7 +159,7 @@ describe("prediction.service", () => {
   });
 });
 
-function stat(
+function _stat(
   number: string,
   hitCount: number,
   patternFlags: ("odd" | "even" | "high" | "low" | "double" | "ascending" | "mirror")[],
@@ -169,6 +179,30 @@ function stat(
     patternFlags,
     prizeType: "TWO_DIGIT",
     trendScore,
+    windowSize: 120
+  };
+}
+
+function digitStat(
+  digit: string,
+  position: number,
+  hitCount: number,
+  frequencyPercent: number,
+  missingDrawCount: number,
+  trendDirection: "up" | "down" | "flat"
+) {
+  return {
+    computedAt: "2026-04-29T00:00:00.000Z",
+    digit,
+    drawCount: 24,
+    frequencyPercent,
+    hitCount,
+    lastSeenDrawDate: "2026-04-16T00:00:00.000Z",
+    lotteryType: "THAI_GOVERNMENT",
+    missingDrawCount,
+    position,
+    prizeType: "TWO_DIGIT",
+    trendDirection,
     windowSize: 120
   };
 }
@@ -199,6 +233,18 @@ function predictionResponse(input: {
         inputWindow: input.windowSize,
         number: "09",
         numberLength: input.numberLength,
+        positionBreakdown: [
+          {
+            digit: "0",
+            hot: 40,
+            overdue: 20,
+            position: 50,
+            positionIndex: 1,
+            reasons: ["Historical frequency is 50% in position 1."],
+            score: 0,
+            tone: "warm"
+          }
+        ],
         rank: 1,
         reasons: ["Historical support remains stable."],
         score: 91,

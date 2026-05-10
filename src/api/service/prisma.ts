@@ -23,6 +23,11 @@ function createPrismaClient() {
   }
 
   const adapter = new PrismaPg({ connectionString });
+  console.time("prisma.create client");
 
-  return new PrismaClient({ adapter });
+  try {
+    return new PrismaClient({ adapter });
+  } finally {
+    console.timeEnd("prisma.create client");
+  }
 }

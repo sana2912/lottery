@@ -2,10 +2,12 @@ import type { BacktestRequest } from "@/schema/app/backtest.schema";
 
 export const backtestContent = {
   actions: {
+    closeExplanation: "ปิด",
     historyButton: "Refresh history",
     loadLabel: "Load",
     methodologyHref: "/methodology#backtest-reading",
     methodologyLabel: "Read how walk-forward backtest is interpreted",
+    openHitExplanation: "ดูเหตุผลที่ hit",
     resultsMethodologyLabel: "Review hit rate, miss streak, and rank guidance",
     runButton: "Run backtest",
     viewingLabel: "Viewing"
@@ -41,7 +43,7 @@ export const backtestContent = {
   },
   filters: {
     summary:
-      "The backtest runs against historical draws only. The selected window never looks forward into the target draw."
+      "Calculation window controls how many prior draws are used for each prediction. Generated target draws controls how many historical draws are evaluated."
   },
   hero: {
     description:
@@ -65,6 +67,10 @@ export const backtestContent = {
   },
   metrics: {
     averageHitRank: "Average hit rank",
+    calculationWindow: {
+      hint: "How many prior draws were used to calculate each prediction row.",
+      label: "Calculation window"
+    },
     candidates: "Candidates",
     computed: "Computed",
     coverage: "Coverage",
@@ -80,6 +86,10 @@ export const backtestContent = {
       hint: "Longest consecutive miss streak in the sampled run.",
       label: "Miss streak"
     },
+    targetDraws: {
+      hint: "How many historical target draws were evaluated in this run.",
+      label: "Generated target draws"
+    },
     engineVersion: {
       hint: "Prediction engine version recorded in the backtest run.",
       label: "Engine version"
@@ -91,6 +101,12 @@ export const backtestContent = {
   },
   results: {
     description: "Each row reflects one target draw evaluated from the earlier window only.",
+    explanation: {
+      candidateSectionTitle: "เลขที่ระบบ generate",
+      humanSectionTitle: "เหตุผลแบบภาษาคน",
+      methodologySectionTitle: "ระบบคำนวณงวดนี้อย่างไร",
+      title: "คำอธิบายการ hit"
+    },
     eyebrow: "Results",
     statusLabels: {
       hit: "Hit",

@@ -91,7 +91,18 @@ describe("analytics.service", () => {
       lotteryDraw: {
         findMany: async (args: unknown) => {
           drawArgsSeen = args;
-          return [{ id: "draw-2" }, { id: "draw-1" }];
+          return [
+            {
+              drawDate: new Date("2026-04-16T00:00:00.000Z"),
+              id: "draw-2",
+              lotteryType: "THAI_GOVERNMENT"
+            },
+            {
+              drawDate: new Date("2026-04-01T00:00:00.000Z"),
+              id: "draw-1",
+              lotteryType: "THAI_GOVERNMENT"
+            }
+          ];
         }
       },
       lotteryPrize: {
@@ -131,13 +142,8 @@ describe("analytics.service", () => {
       }
     });
     expect(prizeArgsSeen).toMatchObject({
-      include: { draw: true },
       orderBy: [
-        {
-          draw: {
-            drawDate: "desc"
-          }
-        },
+        { drawId: "asc" },
         {
           position: "asc"
         },
@@ -195,7 +201,18 @@ describe("analytics.service", () => {
       lotteryDraw: {
         findMany: async (args: unknown) => {
           drawArgsSeen = args;
-          return [{ id: "draw-3" }, { id: "draw-2" }];
+          return [
+            {
+              drawDate: new Date("2026-04-16T00:00:00.000Z"),
+              id: "draw-3",
+              lotteryType: "THAI_GOVERNMENT"
+            },
+            {
+              drawDate: new Date("2026-04-01T00:00:00.000Z"),
+              id: "draw-2",
+              lotteryType: "THAI_GOVERNMENT"
+            }
+          ];
         }
       },
       lotteryPrize: {
@@ -240,7 +257,13 @@ describe("analytics.service", () => {
       lotteryDraw: {
         findMany: async (args: unknown) => {
           drawArgsSeen = args;
-          return [{ id: "draw-2" }];
+          return [
+            {
+              drawDate: new Date("2026-04-16T00:00:00.000Z"),
+              id: "draw-2",
+              lotteryType: "THAI_GOVERNMENT"
+            }
+          ];
         }
       },
       lotteryPrize: {

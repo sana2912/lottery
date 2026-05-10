@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, Loader2, Scale3d } from "lucide-react";
+import { AlertCircle, Loader2, Scale3d, X } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { TimeSeriesChart } from "@/frontend/chart-primitives";
@@ -16,6 +16,10 @@ import {
 import {
   type BacktestFormState,
   defaultBacktestFormState,
+  getBacktestExplanationSummary,
+  getBacktestHumanReasonLines,
+  getBacktestMethodologyLines,
+  hasBacktestRowExplanation,
   mergeBacktestHistory,
   toBacktestChartPoints,
   toBacktestPayload
@@ -55,8 +59,30 @@ export function BacktestPage() {
   const [backtest, setBacktest] = useState<BacktestReadModel | null>(null);
   const [history, setHistory] = useState<BacktestHistoryResponse>(emptyHistory);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
+  const [selectedExplanationResultId, setSelectedExplanationResultId] = useState<string | null>(
+    null
+  );
 
   const chartPoints = useMemo(() => (backtest ? toBacktestChartPoints(backtest) : []), [backtest]);
+  const selectedExplanationResult = useMemo(
+    () => backtest?.results.find((result) => result.id === selectedExplanationResultId) ?? null,
+    [backtest, selectedExplanationResultId]
+  );
+  const explanationSummary = useMemo(
+    () =>
+      backtest && selectedExplanationResult
+        ? getBacktestExplanationSummary(backtest, selectedExplanationResult)
+        : null,
+    [backtest, selectedExplanationResult]
+  );
+  const explanationMethodologyLines = useMemo(
+    () => (selectedExplanationResult ? getBacktestMethodologyLines(selectedExplanationResult) : []),
+    [selectedExplanationResult]
+  );
+  const explanationHumanLines = useMemo(
+    () => (selectedExplanationResult ? getBacktestHumanReasonLines(selectedExplanationResult) : []),
+    [selectedExplanationResult]
+  );
 
   const loadInitialBacktestData = useCallback(async () => {
     try {
@@ -102,6 +128,7 @@ export function BacktestPage() {
       setBacktest(response);
       setRunState("ready");
       setSelectedRunId(response.run.id);
+      setSelectedExplanationResultId(null);
       setHistoryState("ready");
       setHistory((current) => mergeBacktestHistory(current, response));
     } catch {
@@ -138,6 +165,7 @@ export function BacktestPage() {
       setBacktest(response);
       setRunState("ready");
       setSelectedRunId(response.run.id);
+      setSelectedExplanationResultId(null);
     } catch {
       setError(backtestContent.errorMessages.selectedRunUnavailable);
     } finally {
@@ -260,7 +288,7 @@ export function BacktestPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="windowSize">Window size</Label>
+              <Label htmlFor="windowSize">Calculation window</Label>
               <Input
                 id="windowSize"
                 max={2000}
@@ -271,6 +299,29 @@ export function BacktestPage() {
                 type="number"
                 value={formState.windowSize}
               />
+              <p className="text-xs leading-5 text-[var(--color-text-muted)]">
+                ใช้กี่ย้อนหลังเป็นข้อมูลคำนวณในแต่ละงวดที่ทดสอบ
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="targetDrawCount">Generated target draws</Label>
+              <Input
+                id="targetDrawCount"
+                max={500}
+                min={1}
+                onChange={(event) =>
+                  setFormState((current) => ({
+                    ...current,
+                    targetDrawCount: event.target.value
+                  }))
+                }
+                type="number"
+                value={formState.targetDrawCount}
+              />
+              <p className="text-xs leading-5 text-[var(--color-text-muted)]">
+                ต้องการให้ระบบย้อนทดสอบทั้งหมดกี่งวด
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -318,27 +369,10 @@ export function BacktestPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="startDate">Start date</Label>
-              <Input
-                id="startDate"
-                onChange={(event) =>
-                  setFormState((current) => ({ ...current, startDate: event.target.value }))
-                }
-                type="date"
-                value={formState.startDate}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="endDate">End date</Label>
-              <Input
-                id="endDate"
-                onChange={(event) =>
-                  setFormState((current) => ({ ...current, endDate: event.target.value }))
-                }
-                type="date"
-                value={formState.endDate}
-              />
+              <div className="text-sm leading-6 text-[var(--color-text-secondary)]">
+                Backtest uses only prior historical data. Calculation window is the training
+                lookback; generated target draws is the number of rows the run will evaluate.
+              </div>
             </div>
           </>
         }
@@ -363,8 +397,14 @@ export function BacktestPage() {
       ) : backtest ? (
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <MetricCard
-            label={backtestContent.metrics.coverage}
+            hint={backtestContent.metrics.calculationWindow.hint}
+            label={backtestContent.metrics.calculationWindow.label}
             tone="backtest"
+            value={String(backtest.run.params.windowSize ?? "-")}
+          />
+          <MetricCard
+            hint={backtestContent.metrics.targetDraws.hint}
+            label={backtestContent.metrics.targetDraws.label}
             value={String(backtest.run.coverage)}
           />
           <MetricCard
@@ -582,11 +622,23 @@ export function BacktestPage() {
                       {result.actualNumbers.join(", ")}
                     </TableCell>
                     <TableCell className="px-4 py-3">
-                      <Badge variant={result.isHit ? "success" : "danger"}>
-                        {result.isHit
-                          ? backtestContent.results.statusLabels.hit
-                          : backtestContent.results.statusLabels.miss}
-                      </Badge>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant={result.isHit ? "success" : "danger"}>
+                          {result.isHit
+                            ? backtestContent.results.statusLabels.hit
+                            : backtestContent.results.statusLabels.miss}
+                        </Badge>
+                        {hasBacktestRowExplanation(result) ? (
+                          <Button
+                            onClick={() => setSelectedExplanationResultId(result.id)}
+                            size="sm"
+                            type="button"
+                            variant="ghost"
+                          >
+                            {backtestContent.actions.openHitExplanation}
+                          </Button>
+                        ) : null}
+                      </div>
                     </TableCell>
                     <TableCell className="px-4 py-3 text-[var(--color-text-secondary)]">
                       {result.rankOfHit ?? "-"}
@@ -605,6 +657,166 @@ export function BacktestPage() {
           </div>
         )}
       </Card>
+
+      {selectedExplanationResult && explanationSummary ? (
+        <div
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 px-4 py-8"
+          role="dialog"
+        >
+          <button
+            aria-label={backtestContent.actions.closeExplanation}
+            className="absolute inset-0"
+            onClick={() => setSelectedExplanationResultId(null)}
+            type="button"
+          />
+          <Card className="relative z-10 w-full max-w-5xl p-6 md:p-8">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-normal text-[var(--backtest)]">
+                  {backtestContent.results.explanation.title}
+                </p>
+                <h2 className="mt-3 text-2xl font-bold tracking-normal text-[var(--color-text-primary)]">
+                  งวด {explanationSummary.drawDateLabel} hit เลข {explanationSummary.hitNumber}
+                </h2>
+                <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--color-text-secondary)]">
+                  Strategy {explanationSummary.strategyLabel} สร้างเลขทาย{" "}
+                  {explanationSummary.generatedCount} ตัวจากข้อมูลย้อนหลัง{" "}
+                  {explanationSummary.calculationWindow} งวด โดยสัญญาณเด่นสุดคือ{" "}
+                  {explanationSummary.strongestSignal}.
+                </p>
+              </div>
+              <Button
+                aria-label={backtestContent.actions.closeExplanation}
+                onClick={() => setSelectedExplanationResultId(null)}
+                size="icon"
+                type="button"
+                variant="ghost"
+              >
+                <X />
+              </Button>
+            </div>
+
+            <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <MetricCard
+                label={backtestContent.metrics.calculationWindow.label}
+                tone="backtest"
+                value={String(explanationSummary.calculationWindow)}
+              />
+              <MetricCard
+                label={backtestContent.metrics.candidates}
+                value={String(explanationSummary.candidateCount)}
+              />
+              <MetricCard
+                label={backtestContent.metrics.strategy.label}
+                value={explanationSummary.strategyLabel}
+              />
+              <MetricCard
+                label={backtestContent.metrics.engineVersion.label}
+                value={explanationSummary.version}
+              />
+            </div>
+
+            <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+              <div className="space-y-6">
+                <section>
+                  <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
+                    {backtestContent.results.explanation.methodologySectionTitle}
+                  </h3>
+                  <ul className="mt-3 space-y-2 text-sm leading-6 text-[var(--color-text-secondary)]">
+                    {explanationMethodologyLines.map((line) => (
+                      <li key={line}>{line}</li>
+                    ))}
+                  </ul>
+                </section>
+
+                <section>
+                  <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
+                    {backtestContent.results.explanation.humanSectionTitle}
+                  </h3>
+                  <ul className="mt-3 space-y-2 text-sm leading-6 text-[var(--color-text-secondary)]">
+                    {explanationHumanLines.map((line) => (
+                      <li key={line}>{line}</li>
+                    ))}
+                  </ul>
+                </section>
+              </div>
+
+              <section>
+                <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
+                  {backtestContent.results.explanation.candidateSectionTitle}
+                </h3>
+                <div className="mt-3 grid gap-3">
+                  {selectedExplanationResult.explanation?.generatedCandidates.map((candidate) => (
+                    <article
+                      className="border border-[var(--color-border-soft)] bg-[var(--color-bg-subtle)] p-4"
+                      key={`${selectedExplanationResult.id}-${candidate.number}`}
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="font-mono text-2xl font-bold text-[var(--color-text-primary)]">
+                              {candidate.number}
+                            </p>
+                            <Badge variant={candidate.isHit ? "success" : "neutral"}>
+                              Rank {candidate.rank}
+                            </Badge>
+                            {candidate.isHit ? <Badge variant="success">Hit</Badge> : null}
+                          </div>
+                          <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
+                            Score {candidate.score}
+                          </p>
+                        </div>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          {Object.entries(candidate.scoreBreakdown).map(([label, value]) => (
+                            <MetricCard key={label} label={label} value={String(value)} />
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="mt-4 grid gap-3 md:grid-cols-2">
+                        {candidate.positionBreakdown.map((position) => (
+                          <div
+                            className="border border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] p-3"
+                            key={`${candidate.number}-${position.positionIndex}`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-xs font-semibold uppercase tracking-normal text-[var(--color-text-muted)]">
+                                Position {position.positionIndex}
+                              </p>
+                              <Badge variant="neutral">{position.digit}</Badge>
+                            </div>
+                            <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
+                              Hot {position.hot} · Overdue {position.overdue} · Trend{" "}
+                              {position.position}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+
+                      <ul className="mt-4 space-y-1 text-sm leading-6 text-[var(--color-text-secondary)]">
+                        {candidate.reasons.map((reason) => (
+                          <li key={reason}>{reason}</li>
+                        ))}
+                      </ul>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <Button
+                onClick={() => setSelectedExplanationResultId(null)}
+                type="button"
+                variant="secondary"
+              >
+                {backtestContent.actions.closeExplanation}
+              </Button>
+            </div>
+          </Card>
+        </div>
+      ) : null}
     </main>
   );
 }

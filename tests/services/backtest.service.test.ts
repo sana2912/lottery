@@ -96,13 +96,19 @@ describe("backtest.service", () => {
       q: undefined,
       startDate: undefined,
       strategyId: "balanced",
+      targetDrawCount: 30,
       windowSize: 20
     });
 
+    const resultExplanationsByResultId = (state.runData?.params as Record<string, unknown>)
+      ?.resultExplanationsByResultId as Record<string, unknown> | undefined;
+
     expect(state.runData).toBeDefined();
     expect(state.resultRows.length).toBeGreaterThan(0);
+    expect(resultExplanationsByResultId).toBeDefined();
     expect(backtestReadModelSchema.parse(run)).toEqual(run);
     expect(run.results.map((item) => item.drawId)).toEqual(["draw-2", "draw-3", "draw-4"]);
+    expect(resultExplanationsByResultId).toEqual(expect.any(Object));
   });
 
   test("loads persisted run by id and returns compact history", async () => {
@@ -138,7 +144,35 @@ describe("backtest.service", () => {
                 longestMissStreak: 4,
                 lotteryType: "THAI_GOVERNMENT",
                 numberLength: 2,
-                params: {},
+                params: {
+                  resultExplanationsByResultId: {
+                    "result-1": {
+                      calculationWindow: 30,
+                      candidateCount: 5,
+                      generatedCandidates: [
+                        {
+                          isHit: true,
+                          number: "09",
+                          numberLength: 2,
+                          positionBreakdown: [],
+                          rank: 1,
+                          reasons: ["Digit stayed hot in both positions."],
+                          score: 88,
+                          scoreBreakdown: {
+                            hot: 30,
+                            overdue: 20,
+                            pair: 10,
+                            pattern: 18,
+                            position: 10
+                          }
+                        }
+                      ],
+                      strategyId: "balanced",
+                      strategyName: "Balanced",
+                      version: "prediction-engine-v1"
+                    }
+                  }
+                },
                 prizeType: "TWO_DIGIT",
                 results: [
                   {
@@ -169,6 +203,7 @@ describe("backtest.service", () => {
     expect(missing).toBeNull();
     expect(backtestHistoryResponseSchema.parse(history)).toEqual(history);
     expect(history.items).toHaveLength(1);
+    expect(detail?.results[0]?.explanation?.generatedCandidates[0]?.number).toBe("09");
   });
 
   test("caps backtest draw queries at the current date when endDate is omitted", async () => {
@@ -232,6 +267,7 @@ describe("backtest.service", () => {
       q: undefined,
       startDate: undefined,
       strategyId: "balanced",
+      targetDrawCount: 30,
       windowSize: 20
     });
 

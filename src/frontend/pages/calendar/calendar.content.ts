@@ -1,7 +1,7 @@
 export const calendarContent = {
   actions: {
     methodologyHref: "/methodology#monthly-insights",
-    methodologyLabel: "Read how monthly insights should be interpreted",
+    methodologyLabel: "Read how the calendar heatmap should be interpreted",
     monthlyMethodologyLabel: "Review sample-size and uncertainty guidance"
   },
   badges: {
@@ -34,8 +34,9 @@ export const calendarContent = {
       title: "Calendar data unavailable"
     },
     monthlyInsights: {
-      description: "No monthly insight rows are available in the current calendar read model.",
-      title: "No monthly insights"
+      description:
+        "No heatmap rows are available for the selected month, prize type, and window size.",
+      title: "No heatmap data"
     }
   },
   fallbackLabels: {
@@ -44,7 +45,7 @@ export const calendarContent = {
   },
   hero: {
     description:
-      "Track the next scheduled draw, review recent dates, and scan monthly patterns from the historical record used by the rest of the dashboard.",
+      "Track the next scheduled draw, review recent dates, and scan digit heatmaps from the historical record used by the rest of the dashboard.",
     eyebrow: "Calendar",
     title: "Draw rhythm and month-based signals"
   },
@@ -83,9 +84,36 @@ export const calendarContent = {
   },
   monthlyInsights: {
     description:
-      "These cards are descriptive cues for timing and context. They are not guarantees.",
-    eyebrow: "Monthly insights",
-    title: "Seasonal notes from the same month in prior draws"
+      "The heatmap shows six-digit frequency and recency by position for the selected month, prize type, and window size. These are descriptive cues, not guarantees.",
+    eyebrow: "Monthly heatmap",
+    title: "Digit heatmap by position"
+  },
+  filters: {
+    description:
+      "Change the month, window size, and prize type to redraw the heatmap from a new sample.",
+    eyebrow: "Heatmap controls",
+    title: "Choose the sample",
+    month: {
+      label: "Month",
+      placeholder: "Month"
+    },
+    prizeType: {
+      label: "Prize type",
+      placeholder: "Prize type"
+    },
+    windowSize: {
+      label: "Window size",
+      placeholder: "Window size"
+    }
+  },
+  heatmap: {
+    legend: {
+      cold: "Cold",
+      hot: "Hot",
+      recency: "Missing rounds",
+      frequency: "Appearance count"
+    },
+    title: "Heatmap details"
   },
   nextDraw: {
     eyebrow: "Next draw"

@@ -1,3 +1,4 @@
+import { getPredictionNumberLength } from "@/lib/app/prediction";
 import type {
   PredictionRequest,
   PredictionResponse,
@@ -6,14 +7,14 @@ import type {
 
 export type PredictionFormState = {
   count: string;
-  numberLength: string;
+  prizeType: PredictionRequest["prizeType"];
   strategyId: PredictionRequest["strategyId"];
   windowSize: string;
 };
 
 export const defaultPredictionFormState: PredictionFormState = {
   count: "5",
-  numberLength: "2",
+  prizeType: "TWO_DIGIT",
   strategyId: "balanced",
   windowSize: "120"
 };
@@ -22,8 +23,8 @@ export function toPredictionPayload(formState: PredictionFormState) {
   return {
     count: formState.count,
     lotteryType: "THAI_GOVERNMENT" as const,
-    numberLength: formState.numberLength,
-    prizeType: "TWO_DIGIT" as const,
+    numberLength: getPredictionNumberLength(formState.prizeType),
+    prizeType: formState.prizeType,
     strategyId: formState.strategyId,
     windowSize: formState.windowSize
   };
@@ -41,3 +42,29 @@ export function toPredictionWatchlistPayload(result: PredictionResult) {
 export function getTopPredictionScore(prediction: null | PredictionResponse) {
   return prediction?.results[0]?.score.toString() ?? "-";
 }
+
+export function getPredictionPositionLabel(positionIndex: number, numberLength: number) {
+  if (numberLength === 2) {
+    return positionIndex === 1 ? "หลักสิบ" : "หลักหน่วย";
+  }
+
+  if (numberLength === 3) {
+    return ["หลักร้อย", "หลักสิบ", "หลักหน่วย"][positionIndex - 1] ?? `ตำแหน่งที่ ${positionIndex}`;
+  }
+
+  return `ตำแหน่งที่ ${positionIndex}`;
+}
+
+export function getPredictionScoreLabel(label: string) {
+  const labels: Record<string, string> = {
+    hot: "position hot",
+    overdue: "position overdue",
+    pair: "shape naturalness",
+    pattern: "shape pattern",
+    position: "trend"
+  };
+
+  return labels[label] ?? label;
+}
+
+export { getPredictionNumberLength };

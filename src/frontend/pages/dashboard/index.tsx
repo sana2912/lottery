@@ -2,7 +2,10 @@ import Link from "next/link";
 import { EmptyState } from "@/frontend/components";
 import { MetricCard } from "@/frontend/components/cards/MetricCard";
 import { dashboardContent } from "@/frontend/pages/dashboard/dashboard.content";
-import { getDashboardPageData } from "@/frontend/pages/dashboard/dashboard.data";
+import {
+  type DashboardPageData,
+  getDashboardPageData
+} from "@/frontend/pages/dashboard/dashboard.data";
 import {
   Badge,
   Button,
@@ -16,8 +19,8 @@ import {
   TableRow
 } from "@/frontend/primitives";
 
-export async function DashboardPage() {
-  const { model, state } = await getDashboardPageData();
+export async function DashboardPage({ pageData }: Readonly<{ pageData?: DashboardPageData }> = {}) {
+  const { model, state } = pageData ?? (await getDashboardPageData());
   const { contractRows, hero, latestDraw, metrics, predictionSummary, signals } = model;
 
   return (

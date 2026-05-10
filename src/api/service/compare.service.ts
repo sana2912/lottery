@@ -2,6 +2,7 @@ import { toApiCompareReadModel } from "@/api/model/dto/compare.dto";
 import { analyticsService } from "@/api/service/analytics.service";
 import { scoreNumber } from "@/api/service/prediction/scoring-engine";
 import { getPredictionStrategy } from "@/api/service/prediction/strategy-registry";
+import { getNumberShapeFlags } from "@/lib/app/number-shape";
 import type { ApiNumberStat, ApiPatternFlag } from "@/schema/api/analytics";
 import type { ApiScoreBreakdown } from "@/schema/api/compare";
 import type { CompareRequest } from "@/schema/app/compare.schema";
@@ -100,37 +101,7 @@ function createEmptyNumberStat({
 }
 
 function getPatternFlags(number: string): ApiPatternFlag[] {
-  const digits = [...number].map(Number);
-  const flags: ApiPatternFlag[] = [];
-  const lastDigit = digits.at(-1);
-
-  if (lastDigit !== undefined) {
-    flags.push(lastDigit % 2 === 0 ? "even" : "odd", lastDigit >= 5 ? "high" : "low");
-  }
-
-  if (new Set(digits).size === 1 && digits.length > 1) {
-    flags.push("double");
-  }
-
-  if (
-    digits.length > 1 &&
-    digits.every((digit, index) => index === 0 || digit > digits[index - 1])
-  ) {
-    flags.push("ascending");
-  }
-
-  if (
-    digits.length > 1 &&
-    digits.every((digit, index) => index === 0 || digit < digits[index - 1])
-  ) {
-    flags.push("descending");
-  }
-
-  if (digits.length > 1 && number === [...number].reverse().join("")) {
-    flags.push("mirror");
-  }
-
-  return flags;
+  return getNumberShapeFlags(number);
 }
 
 function getSampleSize(numberStats: readonly ApiNumberStat[]) {

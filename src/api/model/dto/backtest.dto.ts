@@ -44,8 +44,10 @@ export function toApiBacktestRun(run: BacktestRunDtoInput): ApiBacktestRun {
     computedAt: normalizeDateString(run.computedAt),
     coverage: run.coverage,
     endDrawDate: normalizeDateString(run.endDrawDate),
+    expectedRandomHitRate: run.expectedRandomHitRate,
     hitRate: run.hitRate,
     id: run.id,
+    liftVsRandom: run.liftVsRandom,
     longestMissStreak: run.longestMissStreak,
     lotteryType: run.lotteryType,
     numberLength: run.numberLength,
@@ -63,6 +65,20 @@ export function toApiBacktestResult(result: BacktestResultDtoInput): ApiBacktest
     actualNumbers: [...result.actualNumbers],
     drawDate: normalizeDateString(result.drawDate),
     drawId: result.drawId,
+    explanation: result.explanation
+      ? {
+          ...result.explanation,
+          generatedCandidates: result.explanation.generatedCandidates.map((candidate) => ({
+            ...candidate,
+            positionBreakdown: candidate.positionBreakdown.map((position) => ({
+              ...position,
+              reasons: [...position.reasons]
+            })),
+            reasons: [...candidate.reasons],
+            scoreBreakdown: { ...candidate.scoreBreakdown }
+          }))
+        }
+      : undefined,
     generatedNumbers: [...result.generatedNumbers],
     hitNumbers: [...result.hitNumbers],
     id: result.id,
