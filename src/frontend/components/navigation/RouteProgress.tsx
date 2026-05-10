@@ -17,6 +17,10 @@ const TARGET_STEPS = [
   { delay: 1600, value: 96 }
 ] as const;
 
+type ProgressRef = {
+  current: number;
+};
+
 export function RouteProgress() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -24,12 +28,12 @@ export function RouteProgress() {
   const animationFrameRef = useRef<number | null>(null);
   const startRouteKeyRef = useRef<string | null>(null);
   const targetProgressRef = useRef(0);
-  const timeoutRefs = useRef<number[]>([]);
+  const timeoutRefs = useRef<ReturnType<typeof globalThis.setTimeout>[]>([]);
   const [isVisible, setIsVisible] = useState(false);
   const [progress, setProgress] = useState(0);
   const clearTargetTimers = useCallback(() => {
     for (const timeout of timeoutRefs.current) {
-      window.clearTimeout(timeout);
+      globalThis.clearTimeout(timeout);
     }
 
     timeoutRefs.current = [];
@@ -82,14 +86,14 @@ export function RouteProgress() {
         return Math.abs(distance) < MIN_FRAME_DELTA ? target : next;
       });
 
-      animationFrameRef.current = window.requestAnimationFrame(animate);
+      animationFrameRef.current = globalThis.requestAnimationFrame(animate);
     }
 
-    animationFrameRef.current = window.requestAnimationFrame(animate);
+    animationFrameRef.current = globalThis.requestAnimationFrame(animate);
 
     return () => {
       if (animationFrameRef.current !== null) {
-        window.cancelAnimationFrame(animationFrameRef.current);
+        globalThis.cancelAnimationFrame(animationFrameRef.current);
       }
     };
   }, [isVisible]);
@@ -102,7 +106,7 @@ export function RouteProgress() {
     targetProgressRef.current = 100;
     clearTargetTimers();
 
-    const timeout = window.setTimeout(() => {
+    const timeout = globalThis.setTimeout(() => {
       setIsVisible(false);
       setProgress(0);
       startRouteKeyRef.current = null;
@@ -110,7 +114,7 @@ export function RouteProgress() {
     }, COMPLETE_HIDE_DELAY_MS);
 
     return () => {
-      window.clearTimeout(timeout);
+      globalThis.clearTimeout(timeout);
     };
   }, [clearTargetTimers, isVisible, routeKey]);
 
@@ -139,8 +143,8 @@ function shouldIgnoreNavigation(anchor: Element) {
     return true;
   }
 
-  const nextUrl = new URL(href, window.location.href);
-  const currentUrl = new URL(window.location.href);
+  const nextUrl = new URL(href, globalThis.location.href);
+  const currentUrl = new URL(globalThis.location.href);
   const isExternal = nextUrl.origin !== currentUrl.origin;
   const isSameRoute =
     nextUrl.pathname === currentUrl.pathname && nextUrl.search === currentUrl.search;
@@ -148,20 +152,14 @@ function shouldIgnoreNavigation(anchor: Element) {
   return isExternal || isSameRoute;
 }
 
-function scheduleTargetSteps(targetProgressRef: React.MutableRefObject<number>) {
+function scheduleTargetSteps(targetProgressRef: ProgressRef) {
   return TARGET_STEPS.map((step) => scheduleTargetStep(step, targetProgressRef));
 }
 
-function scheduleTargetStep(
-  step: (typeof TARGET_STEPS)[number],
-  targetProgressRef: React.MutableRefObject<number>
-) {
-  return window.setTimeout(applyTargetStep, step.delay, step, targetProgressRef);
+function scheduleTargetStep(step: (typeof TARGET_STEPS)[number], targetProgressRef: ProgressRef) {
+  return globalThis.setTimeout(applyTargetStep, step.delay, step, targetProgressRef);
 }
 
-function applyTargetStep(
-  step: (typeof TARGET_STEPS)[number],
-  targetProgressRef: React.MutableRefObject<number>
-) {
+function applyTargetStep(step: (typeof TARGET_STEPS)[number], targetProgressRef: ProgressRef) {
   targetProgressRef.current = Math.max(targetProgressRef.current, step.value);
 }
