@@ -96,6 +96,18 @@ describe("page rendering", () => {
     expect(predictionMarkup).toContain("Prize type");
     expect(predictionMarkup).toContain("Derived length");
   });
+
+  test("renders route loading and progress shells", async () => {
+    const { RouteProgress } = await import("@/frontend/components/navigation/RouteProgress");
+    const { default: UserLoading } = await import("@/app/(user)/loading");
+
+    const progressMarkup = renderToStaticMarkup(createElement(RouteProgress));
+    const loadingMarkup = renderToStaticMarkup(createElement(UserLoading));
+
+    expect(progressMarkup).toBe("");
+    expect(loadingMarkup).toContain("Loading");
+    expect(loadingMarkup).toContain("aria-busy");
+  });
 });
 
 function analyticsModel(numberLength: 2 | 3 | 6, prizeType: string) {

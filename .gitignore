@@ -1,5 +1,6 @@
 .next
 node_modules
+TEXT.txt
 out
 dist
 coverage
