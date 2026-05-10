@@ -60,7 +60,7 @@ export const predictionLabContent = {
   },
   notes: {
     resultSummary:
-      "Results use historical analytics signals, with each position scored independently before the final candidate is combined."
+      "Results use independent position signals plus shape naturalness. Exact 6-digit repeats are not treated as a primary signal."
   },
   results: {
     rankLabel: "Rank",

@@ -17,6 +17,42 @@ describe("backtest.dto", () => {
       actualNumbers: ["09"],
       drawDate: new Date("2026-04-16T00:00:00.000Z"),
       drawId: "draw-1",
+      explanation: {
+        calculationWindow: 30,
+        candidateCount: 2,
+        generatedCandidates: [
+          {
+            isHit: true,
+            number: "09",
+            numberLength: 2,
+            positionBreakdown: [
+              {
+                digit: "0",
+                hot: 20,
+                overdue: 10,
+                position: 5,
+                positionIndex: 1,
+                reasons: ["hot"],
+                score: 35,
+                tone: "hot" as const
+              }
+            ],
+            rank: 1,
+            reasons: ["strong hit"],
+            score: 88,
+            scoreBreakdown: {
+              hot: 30,
+              overdue: 20,
+              pair: 10,
+              pattern: 18,
+              position: 10
+            }
+          }
+        ],
+        strategyId: "balanced",
+        strategyName: "Balanced",
+        version: "prediction-engine-v1"
+      },
       generatedNumbers: ["09", "12"],
       hidden: "skip",
       hitNumbers: ["09"],
@@ -34,6 +70,10 @@ describe("backtest.dto", () => {
     expect(result.generatedNumbers).not.toBe(resultInput.generatedNumbers);
     expect(result.actualNumbers).not.toBe(resultInput.actualNumbers);
     expect(result.hitNumbers).not.toBe(resultInput.hitNumbers);
+    expect(result.explanation).toEqual(resultInput.explanation);
+    expect(result.explanation?.generatedCandidates).not.toBe(
+      resultInput.explanation.generatedCandidates
+    );
     expect(result).not.toHaveProperty("hidden");
 
     const run = toApiBacktestRun({

@@ -1,41 +1,43 @@
 export const patternsContent = {
-  charts: {
-    heatmapTitle: "Pattern heatmap"
-  },
   emptyState: {
-    description: "Pattern summaries will appear after number stats are available.",
-    title: "No pattern records"
+    description: "ยังไม่มีข้อมูลรูปแบบเลขสำหรับรางวัลและช่วงงวดที่เลือก",
+    title: "No pattern data"
+  },
+  filters: {
+    apply: "Filter",
+    prizeQuestion: "Which prize pattern do you want to inspect?",
+    prizeStep: "1. เลือกรางวัลก่อน",
+    prizeSummary:
+      "รางวัลแต่ละประเภทมีจำนวนหลักและ sample size ไม่เท่ากัน จึงต้องเลือก prize type ก่อนวิเคราะห์ shape",
+    windowStep: "2. เลือกช่วงงวดย้อนหลัง",
+    windowSummary: "หลังจากเลือกรางวัลแล้ว ค่อยกำหนดจำนวนงวดที่ใช้เป็น sample window"
   },
   hero: {
     description:
-      "Odd/even, high/low, doubles, mirrors, and sequences are summarized as descriptive patterns from past draw records.",
+      "Inspect repeat, sequence, balance, sum range, and number-shape signals by selected prize type.",
     eyebrow: "Patterns",
-    title: "Repeating shapes in historical numbers"
-  },
-  metrics: {
-    flaggedNumbers: {
-      hint: "Number groups carrying one or more pattern flags.",
-      label: "Flagged numbers"
-    },
-    patterns: {
-      hint: "Pattern groups with at least one matching number.",
-      label: "Patterns"
-    }
-  },
-  sample: {
-    eyebrow: "Sample",
-    title: "Pattern coverage"
+    title: "Prize-specific number shape analysis"
   },
   sections: {
-    flaggedNumbers: {
-      eyebrow: "Flagged numbers",
-      title: "Numbers grouped by pattern flags"
+    context: {
+      eyebrow: "Context",
+      title: "Selected analysis"
     },
-    patternSummaries: {
-      eyebrow: "Pattern summaries",
-      hitsLabel: "hits from",
-      title: "Historical shape notes",
-      trackedGroupsLabel: "tracked number groups"
+    distribution: {
+      eyebrow: "Distribution",
+      title: "Distribution summary"
+    },
+    examples: {
+      eyebrow: "Examples",
+      title: "Number shape examples"
+    },
+    overview: {
+      eyebrow: "Overview",
+      title: "Pattern overview cards"
+    },
+    playground: {
+      eyebrow: "Playground",
+      title: "Pattern playground"
     }
   }
 } as const;

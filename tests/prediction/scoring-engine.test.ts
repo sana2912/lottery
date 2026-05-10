@@ -42,14 +42,18 @@ describe("scoreNumber", () => {
         "Missing draw count is 20.",
         "Trend score is 80.",
         "Pattern flags: odd, low, double, mirror.",
+        "Shape has 1 unique digit across 2 positions.",
+        "Digit sum is 2 (low range).",
+        "Largest repeated digit group is 2.",
+        "Contains a palindrome / mirror shape.",
         "Last seen at 2026-04-16T00:00:00.000Z."
       ],
-      score: 70.8,
+      score: 61.05,
       scoreBreakdown: {
         hot: 50,
         overdue: 100,
-        pair: 50,
-        pattern: 72,
+        pair: 41,
+        pattern: 13,
         position: 80
       },
       strategyId: "balanced",

@@ -11,9 +11,22 @@ export type ApiPatternFlag =
   | "high"
   | "low"
   | "double"
+  | "has_repeat"
+  | "all_unique"
+  | "double_pair"
+  | "triple"
+  | "quad_or_more"
   | "ascending"
   | "descending"
-  | "mirror";
+  | "ascending_run"
+  | "descending_run"
+  | "mirror"
+  | "palindrome"
+  | "balanced_odd_even"
+  | "balanced_high_low"
+  | "low_sum"
+  | "mid_sum"
+  | "high_sum";
 
 export interface ApiDigitStat {
   lotteryType: string;

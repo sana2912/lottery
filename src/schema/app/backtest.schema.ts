@@ -1,10 +1,15 @@
 import { z } from "zod";
-import { predictionStrategyIdSchema } from "@/schema/app/prediction.schema";
+import {
+  predictionPositionBreakdownSchema,
+  predictionScoreBreakdownSchema,
+  predictionStrategyIdSchema
+} from "@/schema/app/prediction.schema";
 import { filterContextSchema } from "@/schema/app/query.schema";
 
 export const backtestRequestSchema = filterContextSchema.extend({
   strategyId: predictionStrategyIdSchema.optional().default("balanced"),
   candidateCount: z.coerce.number().int().min(1).max(20).default(5),
+  targetDrawCount: z.coerce.number().int().min(1).max(500).default(30),
   numberLength: z.coerce
     .number()
     .pipe(z.union([z.literal(2), z.literal(3), z.literal(6)]))
@@ -26,7 +31,9 @@ export const backtestRunSchema = z.object({
   hitRate: z.number(),
   longestMissStreak: z.number(),
   averageHitRank: z.number().optional(),
+  expectedRandomHitRate: z.number().optional(),
   coverage: z.number(),
+  liftVsRandom: z.number().optional(),
   computedAt: z.string(),
   version: z.string()
 });
@@ -40,7 +47,28 @@ export const backtestResultSchema = z.object({
   actualNumbers: z.array(z.string()),
   isHit: z.boolean(),
   hitNumbers: z.array(z.string()),
-  rankOfHit: z.number().optional()
+  rankOfHit: z.number().optional(),
+  explanation: z
+    .object({
+      calculationWindow: z.number(),
+      candidateCount: z.number(),
+      generatedCandidates: z.array(
+        z.object({
+          isHit: z.boolean(),
+          number: z.string(),
+          numberLength: z.number(),
+          positionBreakdown: z.array(predictionPositionBreakdownSchema),
+          rank: z.number(),
+          reasons: z.array(z.string()),
+          score: z.number(),
+          scoreBreakdown: predictionScoreBreakdownSchema
+        })
+      ),
+      strategyId: z.string(),
+      strategyName: z.string(),
+      version: z.string()
+    })
+    .optional()
 });
 
 export const backtestReadModelSchema = z.object({

@@ -1,4 +1,9 @@
 import type { PredictionStrategy } from "@/api/service/prediction/strategy-registry";
+import {
+  getShapeNaturalnessScore,
+  getShapePatternScore,
+  getShapeReasons
+} from "@/lib/app/number-shape";
 import type { ApiDigitStat } from "@/schema/api/analytics";
 import type {
   ApiPredictionPositionBreakdown,
@@ -39,9 +44,92 @@ export function buildPositionPredictionResults({
   );
   const candidates = enumerateCandidates(optionsByPosition, strategy, inputWindow);
 
-  return [...candidates.values()]
-    .sort((left, right) => right.score - left.score || left.number.localeCompare(right.number))
-    .slice(0, count);
+  return selectDiverseCandidates(
+    [...candidates.values()].sort(
+      (left, right) => right.score - left.score || left.number.localeCompare(right.number)
+    ),
+    count
+  );
+}
+
+function selectDiverseCandidates(
+  sortedCandidates: readonly GeneratedPredictionResult[],
+  count: number
+) {
+  const selected: GeneratedPredictionResult[] = [];
+  const numberLength = sortedCandidates[0]?.number.length ?? 0;
+  const maxRepeatedDigitNumbers = getMaxAllSameCandidates(count, numberLength);
+  const digitUseByPosition = new Map<string, number>();
+  let repeatedDigitNumbers = 0;
+
+  for (const candidate of sortedCandidates) {
+    if (selected.length >= count) {
+      break;
+    }
+
+    if (
+      hasSingleRepeatedDigit(candidate.number) &&
+      repeatedDigitNumbers >= maxRepeatedDigitNumbers
+    ) {
+      continue;
+    }
+
+    if (overusesSameDigitPosition(candidate.number, digitUseByPosition, count)) {
+      continue;
+    }
+
+    selected.push(candidate);
+
+    if (hasSingleRepeatedDigit(candidate.number)) {
+      repeatedDigitNumbers += 1;
+    }
+
+    for (const [index, digit] of [...candidate.number].entries()) {
+      const key = `${index + 1}:${digit}`;
+      digitUseByPosition.set(key, (digitUseByPosition.get(key) ?? 0) + 1);
+    }
+  }
+
+  if (selected.length >= count) {
+    return selected;
+  }
+
+  const selectedNumbers = new Set(selected.map((candidate) => candidate.number));
+
+  return [
+    ...selected,
+    ...sortedCandidates.filter((candidate) => !selectedNumbers.has(candidate.number))
+  ].slice(0, count);
+}
+
+function overusesSameDigitPosition(
+  number: string,
+  digitUseByPosition: ReadonlyMap<string, number>,
+  count: number
+) {
+  const maxUsePerPositionDigit = Math.max(2, Math.ceil(count * 0.45));
+
+  return [...number].some((digit, index) => {
+    const key = `${index + 1}:${digit}`;
+
+    return (digitUseByPosition.get(key) ?? 0) >= maxUsePerPositionDigit;
+  });
+}
+
+function hasSingleRepeatedDigit(number: string) {
+  return new Set([...number]).size === 1;
+}
+
+function getMaxAllSameCandidates(count: number, numberLength: number) {
+  if (numberLength <= 2) {
+    return Math.max(1, Math.floor(count * 0.2));
+  }
+
+  if (numberLength === 3) {
+    return Math.max(1, Math.floor(count * 0.1));
+  }
+
+  return 0;
 }
 
 function buildDigitOptionsForPosition(
@@ -139,7 +227,10 @@ function enumerateCandidates(
       return;
     }
 
-    const choices = optionsByPosition[positionIndex].slice(0, 5);
+    const choices = optionsByPosition[positionIndex].slice(
+      0,
+      getChoicesPerPosition(optionsByPosition.length)
+    );
 
     for (const choice of choices) {
       currentDigits.push(choice.digit);
@@ -155,11 +246,23 @@ function enumerateCandidates(
   return candidates;
 }
 
+function getChoicesPerPosition(numberLength: number) {
+  if (numberLength <= 2) {
+    return 10;
+  }
+
+  if (numberLength === 3) {
+    return 8;
+  }
+
+  return 4;
+}
+
 function toPositionBreakdown(
   stat: ApiDigitStat,
   positionIndex: number
 ): ApiPredictionPositionBreakdown {
-  const hot = clamp(stat.frequencyPercent * 4);
+  const hot = getHotScore(stat.frequencyPercent);
   const overdue = clamp(stat.missingDrawCount * 8);
   const position = trendDirectionScore(stat.trendDirection);
 
@@ -186,8 +289,8 @@ function toCandidateScoreBreakdown(
     overdue: round(
       positionBreakdown.reduce((total, breakdown) => total + breakdown.overdue, 0) / divisor
     ),
-    pair: getPairScore(number),
-    pattern: getPatternScore(number),
+    pair: getShapeNaturalnessScore(number),
+    pattern: getShapePatternScore(number),
     position: round(
       positionBreakdown.reduce((total, breakdown) => total + breakdown.position, 0) / divisor
     )
@@ -209,15 +312,16 @@ function toCandidateReasons(
   }
 
   reasons.push(
-    `Pair score is ${scoreBreakdown.pair} and pattern score is ${scoreBreakdown.pattern}.`
+    `Shape naturalness score is ${scoreBreakdown.pair} and pattern score is ${scoreBreakdown.pattern}.`
   );
+  reasons.push(...getShapeReasons(positionBreakdown.map((breakdown) => breakdown.digit).join("")));
 
   return reasons;
 }
 
 function buildPositionReasons(stat: ApiDigitStat) {
   const reasons = [
-    `Historical frequency is ${stat.frequencyPercent}% in position ${stat.position ?? 0}.`,
+    `Position frequency is ${stat.frequencyPercent}% against a 10% digit baseline.`,
     `Missing draw count is ${stat.missingDrawCount}.`,
     `Trend direction is ${stat.trendDirection}.`
   ];
@@ -229,54 +333,19 @@ function buildPositionReasons(stat: ApiDigitStat) {
   return reasons;
 }
 
-function getPairScore(number: string) {
-  if (number.length < 2) {
-    return 0;
-  }
-
-  const uniqueDigits = new Set(number).size;
-
-  return clamp((1 - uniqueDigits / number.length) * 100);
-}
-
-function getPatternScore(number: string) {
-  const digits = [...number].map(Number);
-  let score = 0;
-
-  if (new Set(digits).size === 1 && digits.length > 1) {
-    score += 50;
-  }
-
-  if (
-    digits.length > 1 &&
-    digits.every((digit, index) => index === 0 || digit > digits[index - 1])
-  ) {
-    score += 25;
-  }
-
-  if (
-    digits.length > 1 &&
-    digits.every((digit, index) => index === 0 || digit < digits[index - 1])
-  ) {
-    score += 25;
-  }
-
-  if (digits.length > 1 && number === [...number].reverse().join("")) {
-    score += 20;
-  }
-
-  return clamp(score);
-}
-
 function trendDirectionScore(trendDirection: ApiDigitStat["trendDirection"]) {
   switch (trendDirection) {
     case "up":
-      return 75;
+      return 65;
     case "down":
-      return 25;
+      return 35;
     default:
       return 50;
   }
+}
+
+function getHotScore(frequencyPercent: number) {
+  return clamp(50 + (frequencyPercent - 10) * 6);
 }
 
 function toTone(

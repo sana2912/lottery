@@ -98,7 +98,7 @@ export function CalendarHeatmapFilters({ filters }: CalendarHeatmapFiltersProps)
           }
           value={String(filters.windowSize)}
         >
-          <SelectTrigger className="h-11 w-full rounded-none border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 py-3 shadow-[var(--shadow-micro)]">
+          <SelectTrigger className="h-11 w-fulls rounded-none border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 py-3 shadow-[var(--shadow-micro)]">
             <SelectValue placeholder={calendarContent.filters.windowSize.placeholder} />
           </SelectTrigger>
           <SelectContent>

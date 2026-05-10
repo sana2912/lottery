@@ -1,4 +1,9 @@
 import type { PredictionStrategy } from "@/api/service/prediction/strategy-registry";
+import {
+  getShapeNaturalnessScore,
+  getShapePatternScore,
+  getShapeReasons
+} from "@/lib/app/number-shape";
 import type { ApiNumberStat } from "@/schema/api/analytics";
 import type { ApiPredictionResult, ApiPredictionScoreBreakdown } from "@/schema/api/prediction";
 
@@ -27,7 +32,7 @@ export function scoreNumber({
     numberLength: stat.numberLength,
     positionBreakdown: [],
     rank,
-    reasons: getReasons(stat, scoreBreakdown),
+    reasons: getReasons(stat),
     score,
     scoreBreakdown,
     strategyId: strategy.id,
@@ -40,8 +45,8 @@ function getScoreBreakdown(stat: ApiNumberStat): ApiPredictionScoreBreakdown {
   return {
     hot: clamp(stat.frequencyPercent * 4),
     overdue: clamp(stat.missingDrawCount * 8),
-    pair: getPairScore(stat.number),
-    pattern: getPatternScore(stat),
+    pair: getShapeNaturalnessScore(stat.number),
+    pattern: getShapePatternScore(stat.number),
     position: clamp(stat.trendScore)
   };
 }
@@ -59,36 +64,24 @@ function getWeightedScore(
   );
 }
 
-function getReasons(stat: ApiNumberStat, scoreBreakdown: ApiPredictionScoreBreakdown) {
+function getReasons(stat: ApiNumberStat) {
   const reasons = [
     `Historical frequency is ${stat.frequencyPercent}% in the selected window.`,
     `Missing draw count is ${stat.missingDrawCount}.`,
     `Trend score is ${stat.trendScore}.`
   ];
 
-  if (scoreBreakdown.pattern > 0) {
+  if (stat.patternFlags.length > 0) {
     reasons.push(`Pattern flags: ${stat.patternFlags.join(", ")}.`);
   }
+
+  reasons.push(...getShapeReasons(stat.number));
 
   if (stat.lastSeenDrawDate) {
     reasons.push(`Last seen at ${stat.lastSeenDrawDate}.`);
   }
 
   return reasons;
-}
-
-function getPairScore(number: string) {
-  if (number.length < 2) {
-    return 0;
-  }
-
-  const uniqueDigits = new Set(number).size;
-
-  return clamp((1 - uniqueDigits / number.length) * 100);
-}
-
-function getPatternScore(stat: ApiNumberStat) {
-  return clamp(stat.patternFlags.length * 18);
 }
 
 function clamp(value: number) {

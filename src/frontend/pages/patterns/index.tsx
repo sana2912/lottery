@@ -1,20 +1,40 @@
-import { Heatmap } from "@/frontend/chart-primitives";
+import Link from "next/link";
 import { EmptyState, MetricCard } from "@/frontend/components";
-import { getAnalyticsModel } from "@/frontend/pages/analytics/analytics.data";
+import { getAnalyticsPageData } from "@/frontend/pages/analytics/analytics.data";
+import { PatternsFilterPanel } from "@/frontend/pages/patterns/patterns.components";
 import { patternsContent } from "@/frontend/pages/patterns/patterns.content";
 import {
-  getFlaggedNumbers,
-  toPatternHeatmapCells
+  buildPatternReadModel,
+  buildPatternsHref,
+  parsePatternSearchParams,
+  toPatternsAnalyticsQuery
 } from "@/frontend/pages/patterns/patterns.mappers";
-import { Badge, Card, SectionHeading } from "@/frontend/primitives";
+import {
+  Badge,
+  Button,
+  Card,
+  SectionHeading,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from "@/frontend/primitives";
 
-export async function PatternsPage() {
-  const analytics = await getAnalyticsModel();
-  const patternCells = toPatternHeatmapCells(analytics);
-  const flaggedNumbers = getFlaggedNumbers(analytics);
+type PatternsPageProps = Readonly<{
+  searchParams?: Record<string, string | string[] | undefined>;
+}>;
+
+export async function PatternsPage({ searchParams }: PatternsPageProps = {}) {
+  const query = parsePatternSearchParams(searchParams);
+  const { model: analytics, state } = await getAnalyticsPageData(toPatternsAnalyticsQuery(query));
+  const patterns = buildPatternReadModel(analytics, query);
 
   return (
     <main className="space-y-6">
+      <PatternsFilterPanel query={query} />
+
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
         <Card className="p-6 md:p-8">
           <p className="text-[11px] font-bold uppercase tracking-normal text-[var(--color-brand-outline)]">
@@ -30,61 +50,122 @@ export async function PatternsPage() {
 
         <Card className="p-6">
           <SectionHeading
-            eyebrow={patternsContent.sample.eyebrow}
-            title={patternsContent.sample.title}
+            eyebrow={patternsContent.sections.context.eyebrow}
+            title={patternsContent.sections.context.title}
           />
           <div className="mt-5 grid gap-3">
-            <MetricCard
-              hint={patternsContent.metrics.patterns.hint}
-              label={patternsContent.metrics.patterns.label}
-              value={String(analytics.patternSummaries.length)}
-            />
-            <MetricCard
-              hint={patternsContent.metrics.flaggedNumbers.hint}
-              label={patternsContent.metrics.flaggedNumbers.label}
-              value={String(flaggedNumbers.length)}
-            />
+            <MetricCard label="Prize type" value={patterns.prizeLabel} />
+            <MetricCard label="Sample size" value={String(patterns.sampleSize)} />
+            <MetricCard label="Number length" value={patterns.numberLengthLabel} />
+            <MetricCard label="Draw count" value={String(analytics.summary.drawCount)} />
           </div>
         </Card>
       </section>
 
-      {analytics.patternSummaries.length === 0 ? (
+      {state === "error" || patterns.overviewCards.length === 0 ? (
         <EmptyState
           description={patternsContent.emptyState.description}
           title={patternsContent.emptyState.title}
         />
       ) : null}
 
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
-        <Heatmap cells={patternCells} columns={4} title={patternsContent.charts.heatmapTitle} />
+      <section className="space-y-4">
+        <SectionHeading
+          eyebrow={patternsContent.sections.overview.eyebrow}
+          title={patternsContent.sections.overview.title}
+        />
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {patterns.overviewCards.map((card) => (
+            <article
+              className="border border-[var(--color-border-soft)] bg-[var(--color-bg-canvas)] p-5 shadow-[var(--shadow-card)]"
+              key={card.id}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-bold text-[var(--color-text-primary)]">{card.label}</p>
+                  <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+                    {card.value} / {card.total}
+                  </p>
+                </div>
+                <Badge variant={getBadgeVariant(card.tone)}>{card.percent}%</Badge>
+              </div>
+              <p className="mt-4 text-sm leading-6 text-[var(--color-text-secondary)]">
+                {card.summary}
+              </p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,0.72fr)_minmax(0,1.28fr)]">
+        <Card className="p-6">
+          <SectionHeading
+            eyebrow={patternsContent.sections.playground.eyebrow}
+            title={patternsContent.sections.playground.title}
+          />
+          <div className="mt-5 flex flex-wrap gap-2">
+            <Button
+              asChild
+              className="rounded-none"
+              size="sm"
+              variant={!patterns.activePattern ? "secondary" : "outline"}
+            >
+              <Link href={buildPatternsHref(query, { pattern: undefined })}>All patterns</Link>
+            </Button>
+            {patterns.playground.map((pattern) => (
+              <Button
+                asChild
+                className="rounded-none"
+                key={pattern.id}
+                size="sm"
+                variant={patterns.activePattern === pattern.id ? "secondary" : "ghost"}
+              >
+                <Link href={buildPatternsHref(query, { pattern: pattern.id })}>
+                  {pattern.label}
+                </Link>
+              </Button>
+            ))}
+          </div>
+
+          <div className="mt-6 grid gap-3">
+            <MetricCard label="Active view" value={patterns.activePattern ?? "All patterns"} />
+            <MetricCard label="Window" value={patterns.windowLabel} />
+            <MetricCard label="Shape records" value={String(patterns.totalHits)} />
+          </div>
+        </Card>
 
         <Card className="p-6">
           <SectionHeading
-            eyebrow={patternsContent.sections.patternSummaries.eyebrow}
-            title={patternsContent.sections.patternSummaries.title}
+            eyebrow={patternsContent.sections.examples.eyebrow}
+            title={patternsContent.sections.examples.title}
           />
-          <div className="mt-5 space-y-4">
-            {analytics.patternSummaries.map((summary) => (
+          <div className="mt-5 grid gap-3 md:grid-cols-2">
+            {patterns.examples.map((example) => (
               <article
-                className="border border-[var(--color-border-soft)] bg-[var(--color-bg-canvas)] p-4"
-                key={summary.id}
+                className="border border-[var(--color-border-soft)] bg-[var(--color-bg-subtle)] p-4"
+                key={`${example.prizeType}-${example.number}`}
               >
-                <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="flex items-start justify-between gap-3">
                   <div>
-                    <h2 className="font-semibold tracking-normal text-[var(--color-text-primary)]">
-                      {summary.label}
-                    </h2>
-                    <p className="mt-2 text-sm leading-6 text-[var(--color-text-secondary)]">
-                      {summary.insight}
+                    <p className="font-mono text-2xl font-bold tracking-normal text-[var(--color-text-primary)]">
+                      {example.number}
+                    </p>
+                    <p className="mt-1 text-xs font-semibold text-[var(--color-text-muted)]">
+                      {example.prizeType}
                     </p>
                   </div>
-                  <Badge variant="brand">{summary.frequencyPercent}%</Badge>
+                  <Badge variant="neutral">mini DNA</Badge>
                 </div>
-                <p className="mt-3 text-xs text-[var(--color-text-muted)]">
-                  {summary.hitCount} {patternsContent.sections.patternSummaries.hitsLabel}{" "}
-                  {summary.sampleSize}{" "}
-                  {patternsContent.sections.patternSummaries.trackedGroupsLabel}
+                <p className="mt-3 font-mono text-xs text-[var(--color-text-secondary)]">
+                  {example.dna}
                 </p>
+                <div className="mt-4 flex flex-wrap gap-1.5">
+                  {example.flags.map((flag) => (
+                    <Badge key={`${example.number}-${flag}`} variant="brand">
+                      {flag}
+                    </Badge>
+                  ))}
+                </div>
               </article>
             ))}
           </div>
@@ -93,38 +174,56 @@ export async function PatternsPage() {
 
       <Card className="p-6">
         <SectionHeading
-          eyebrow={patternsContent.sections.flaggedNumbers.eyebrow}
-          title={patternsContent.sections.flaggedNumbers.title}
+          eyebrow={patternsContent.sections.distribution.eyebrow}
+          title={patternsContent.sections.distribution.title}
         />
-        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {flaggedNumbers.map((stat) => (
-            <article
-              className="border border-[var(--color-border-soft)] bg-[var(--color-bg-canvas)] p-4"
-              key={`${stat.prizeType}-${stat.number}`}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="font-mono text-2xl font-bold text-[var(--color-text-primary)]">
-                    {stat.number}
-                  </p>
-                  <p className="mt-1 text-xs text-[var(--color-text-muted)]">{stat.prizeType}</p>
-                </div>
-                <Badge variant={stat.trendScore >= 70 ? "success" : "muted"}>
-                  {stat.trendScore}
-                </Badge>
-              </div>
-
-              <div className="mt-4 flex flex-wrap gap-1.5">
-                {stat.patternFlags.map((flag) => (
-                  <Badge key={`${stat.number}-${flag}`} variant="brand">
-                    {flag}
-                  </Badge>
-                ))}
-              </div>
-            </article>
-          ))}
+        <div className="mt-5 overflow-hidden rounded-none border border-[var(--color-border-soft)]">
+          <Table>
+            <TableHeader className="bg-[var(--color-bg-subtle)]">
+              <TableRow className="border-b border-[var(--color-border-soft)] hover:bg-transparent">
+                <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
+                  Signal
+                </TableHead>
+                <TableHead className="px-4 py-3 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
+                  Reading
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {patterns.distribution.map((item) => (
+                <TableRow
+                  className="border-b border-[var(--color-border-soft)] hover:bg-[var(--color-bg-subtle)]/50"
+                  key={item.id}
+                >
+                  <TableCell className="px-4 py-3 font-semibold text-[var(--color-text-primary)]">
+                    {item.label}
+                  </TableCell>
+                  <TableCell className="px-4 py-3 text-[var(--color-text-secondary)]">
+                    {item.value}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       </Card>
     </main>
   );
+}
+
+function getBadgeVariant(tone: string): React.ComponentProps<typeof Badge>["variant"] {
+  switch (tone) {
+    case "cold":
+      return "cold";
+    case "hot":
+      return "hot";
+    case "overdue":
+      return "overdue";
+    case "success":
+      return "success";
+    case "warning":
+      return "warning";
+    default:
+      return "neutral";
+  }
 }

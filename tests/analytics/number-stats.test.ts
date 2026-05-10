@@ -29,9 +29,30 @@ describe("calculateDigitStats", () => {
 
     expect(zeroAtFirstPosition).toMatchObject({
       digit: "0",
-      frequencyPercent: 100,
+      frequencyPercent: 40,
       hitCount: 2,
       position: 1
+    });
+  });
+
+  test("calculates digit percentages against position event count", () => {
+    const stats = calculateDigitStats(
+      extractDigitEvents([
+        prize("2026-04-01", "09", "TWO_DIGIT"),
+        prize("2026-04-01", "19", "TWO_DIGIT"),
+        prize("2026-04-01", "29", "TWO_DIGIT")
+      ]),
+      {
+        computedAt,
+        drawCount: 1,
+        windowSize: 30
+      }
+    );
+    const nineAtSecondPosition = stats.find((stat) => stat.digit === "9" && stat.position === 2);
+
+    expect(nineAtSecondPosition).toMatchObject({
+      frequencyPercent: 100,
+      hitCount: 3
     });
   });
 
@@ -92,14 +113,17 @@ describe("calculateNumberStats", () => {
       }
     );
 
-    expect(
-      mixedStats
-        .filter((stat) => stat.number === "09")
-        .map((stat) => [stat.number, stat.prizeType, stat.hitCount])
-    ).toEqual([
-      ["09", "TWO_DIGIT", 1],
-      ["09", "THREE_BACK", 1]
-    ]);
+    const mixed09Stats = mixedStats
+      .filter((stat) => stat.number === "09")
+      .map((stat) => [stat.number, stat.prizeType, stat.hitCount]);
+
+    expect(mixed09Stats).toHaveLength(2);
+    expect(mixed09Stats).toEqual(
+      expect.arrayContaining([
+        ["09", "TWO_DIGIT", 1],
+        ["09", "THREE_BACK", 1]
+      ])
+    );
 
     expect(
       calculateNumberStats([], {

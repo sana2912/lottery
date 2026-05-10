@@ -11,6 +11,8 @@ import {
 } from "@/frontend/pages/prediction-lab/prediction-lab.data";
 import {
   defaultPredictionFormState,
+  getPredictionPositionLabel,
+  getPredictionScoreLabel,
   getTopPredictionScore,
   toPredictionPayload,
   toPredictionWatchlistPayload
@@ -363,7 +365,11 @@ export function PredictionLabPage() {
 
               <div className="mt-5 grid gap-3 md:grid-cols-5">
                 {Object.entries(result.scoreBreakdown).map(([label, value]) => (
-                  <MetricCard key={label} label={label} value={String(value)} />
+                  <MetricCard
+                    key={label}
+                    label={getPredictionScoreLabel(label)}
+                    value={String(value)}
+                  />
                 ))}
               </div>
 
@@ -380,7 +386,10 @@ export function PredictionLabPage() {
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div>
                           <p className="text-xs font-semibold uppercase tracking-normal text-[var(--color-text-muted)]">
-                            Position {position.positionIndex}
+                            {getPredictionPositionLabel(
+                              position.positionIndex,
+                              result.numberLength
+                            )}
                           </p>
                           <p className="mt-1 font-mono text-2xl font-bold text-[var(--color-text-primary)]">
                             {position.digit}

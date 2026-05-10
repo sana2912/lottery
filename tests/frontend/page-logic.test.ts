@@ -7,6 +7,10 @@ import {
 } from "@/frontend/pages/analytics/analytics.mappers";
 import {
   defaultBacktestFormState,
+  getBacktestExplanationSummary,
+  getBacktestHumanReasonLines,
+  getBacktestMethodologyLines,
+  hasBacktestRowExplanation,
   mergeBacktestHistory,
   toBacktestChartPoints,
   toBacktestPayload
@@ -16,6 +20,11 @@ import {
   parseCalendarPageFilters,
   toCalendarApiQuery
 } from "@/frontend/pages/calendar/calendar.mappers";
+import {
+  buildPatternReadModel,
+  parsePatternSearchParams,
+  toPatternsAnalyticsQuery
+} from "@/frontend/pages/patterns/patterns.mappers";
 import {
   getPredictionNumberLength,
   getTopPredictionScore,
@@ -32,6 +41,7 @@ import {
   toUpdateWatchlistPayload
 } from "@/frontend/pages/watchlist/watchlist.mappers";
 import type { AnalyticsReadModel } from "@/schema/app/analytics.schema";
+import type { BacktestReadModel } from "@/schema/app/backtest.schema";
 import type { DrawListResponse } from "@/schema/app/draw.schema";
 import type { ResultsReadModel } from "@/schema/app/results.schema";
 
@@ -103,9 +113,10 @@ describe("frontend logic helpers", () => {
       candidateCount: "5",
       lotteryType: "THAI_GOVERNMENT",
       numberLength: "2",
-      params: { windowSize: "90" },
+      params: { targetDrawCount: "30", windowSize: "90" },
       prizeType: "TWO_DIGIT",
       strategyId: "balanced",
+      targetDrawCount: "30",
       windowSize: "90"
     });
 
@@ -207,6 +218,78 @@ describe("frontend logic helpers", () => {
       strategyId: "hotTrend",
       version: "prediction-engine-v2"
     });
+
+    const explanationBacktest: BacktestReadModel = {
+      generatedAt: "2026-04-29T00:00:00.000Z",
+      results: [
+        {
+          actualNumbers: ["11"],
+          drawDate: "2026-04-16T00:00:00.000Z",
+          drawId: "draw-1",
+          explanation: {
+            calculationWindow: 30,
+            candidateCount: 2,
+            generatedCandidates: [
+              {
+                isHit: true,
+                number: "11",
+                numberLength: 2,
+                positionBreakdown: [],
+                rank: 1,
+                reasons: ["Digit stayed hot in both positions."],
+                score: 88,
+                scoreBreakdown: {
+                  hot: 32,
+                  overdue: 18,
+                  pair: 14,
+                  pattern: 12,
+                  position: 12
+                }
+              }
+            ],
+            strategyId: "balanced",
+            strategyName: "Balanced",
+            version: "prediction-engine-v1"
+          },
+          generatedNumbers: ["11", "22"],
+          hitNumbers: ["11"],
+          id: "result-1",
+          isHit: true,
+          rankOfHit: 1,
+          runId: "run-1"
+        }
+      ],
+      run: {
+        candidateCount: 5,
+        computedAt: "2026-04-30T00:00:00.000Z",
+        coverage: 1,
+        endDrawDate: "2026-04-16T00:00:00.000Z",
+        hitRate: 100,
+        id: "run-1",
+        longestMissStreak: 0,
+        lotteryType: "THAI_GOVERNMENT",
+        numberLength: 2,
+        params: {},
+        prizeType: "TWO_DIGIT",
+        startDrawDate: "2026-01-01T00:00:00.000Z",
+        strategyId: "balanced",
+        strategyName: "Balanced",
+        version: "prediction-engine-v1"
+      },
+      source: "api"
+    };
+
+    expect(hasBacktestRowExplanation(explanationBacktest.results[0])).toBe(true);
+    expect(
+      getBacktestExplanationSummary(explanationBacktest, explanationBacktest.results[0])
+    ).toMatchObject({
+      calculationWindow: 30,
+      hitNumber: "11",
+      strongestSignal: "digit ที่ออกบ่อยในตำแหน่งนี้",
+      strategyLabel: "Balanced"
+    });
+    expect(getBacktestMethodologyLines(explanationBacktest.results[0])[0]).toContain("30");
+    expect(getBacktestHumanReasonLines(explanationBacktest.results[0])[0]).toContain("11");
   });
 
   test("prediction lab and watchlist helpers keep text-only payloads stable", () => {
@@ -292,6 +375,68 @@ describe("frontend logic helpers", () => {
         source: "api"
       })
     ).toBe("94");
+  });
+
+  test("patterns helpers derive prize-specific shape views", () => {
+    const analytics: AnalyticsReadModel = {
+      digitStats: [],
+      generatedAt: "2026-04-29T00:00:00.000Z",
+      numberStats: [
+        patternStat("588367", "FIRST", 6, 3),
+        patternStat("884808", "FIRST", 6, 2),
+        patternStat("551011", "FIRST", 6, 1),
+        patternStat("121", "THREE_FRONT", 3, 4),
+        patternStat("123", "THREE_FRONT", 3, 2),
+        patternStat("99", "TWO_DIGIT", 2, 5),
+        patternStat("42", "TWO_DIGIT", 2, 3)
+      ],
+      patternSummaries: [],
+      source: "api",
+      summary: {
+        drawCount: 10,
+        generatedAt: "2026-04-29T00:00:00.000Z"
+      }
+    };
+    const firstQuery = parsePatternSearchParams({
+      pattern: "has_repeat",
+      prizeType: "FIRST",
+      windowSize: "60"
+    });
+    const defaultQuery = parsePatternSearchParams();
+    const firstModel = buildPatternReadModel(analytics, firstQuery);
+
+    expect(toPatternsAnalyticsQuery(firstQuery)).toMatchObject({
+      numberLength: 6,
+      prizeType: "FIRST",
+      windowSize: 60
+    });
+    expect(firstModel.prizeLabel).toBe("FIRST");
+    expect(firstModel.numberLengthLabel).toBe("6 digits");
+    expect(firstModel.playground.map((pattern) => pattern.id)).toContain("double_pair");
+    expect(firstModel.examples.every((example) => example.number.length === 6)).toBe(true);
+    expect(firstModel.overviewCards.find((card) => card.id === "has_repeat")?.value).toBe(6);
+    expect(defaultQuery).toMatchObject({
+      prizeType: "TWO_DIGIT",
+      windowSize: 30
+    });
+
+    const threeModel = buildPatternReadModel(analytics, {
+      prizeType: "THREE_FRONT",
+      windowSize: 30
+    });
+
+    expect(threeModel.playground.map((pattern) => pattern.id)).toContain("palindrome");
+    expect(threeModel.playground.map((pattern) => pattern.id)).toContain("balanced_odd_even");
+
+    const twoModel = buildPatternReadModel(analytics, {
+      prizeType: "TWO_DIGIT",
+      windowSize: 1
+    });
+
+    expect(twoModel.playground.map((pattern) => pattern.id)).toEqual(
+      expect.arrayContaining(["odd_last_digit", "double", "mirror"])
+    );
+    expect(twoModel.windowLabel).toBe("latest draw");
   });
 
   test("results helpers map API models and query shapes", () => {
@@ -531,3 +676,28 @@ describe("frontend logic helpers", () => {
     });
   });
 });
+
+function patternStat(
+  number: string,
+  prizeType: string,
+  numberLength: number,
+  hitCount: number
+): AnalyticsReadModel["numberStats"][number] {
+  return {
+    averageGap: undefined,
+    computedAt: "2026-04-29T00:00:00.000Z",
+    drawCount: 10,
+    frequencyPercent: hitCount * 10,
+    hitCount,
+    lastSeenDrawDate: undefined,
+    lotteryType: "THAI_GOVERNMENT",
+    maxGap: undefined,
+    missingDrawCount: 0,
+    number,
+    numberLength,
+    patternFlags: [],
+    prizeType,
+    trendScore: hitCount,
+    windowSize: 120
+  };
+}

@@ -238,7 +238,7 @@ export async function CalendarPage({
             />
           </div>
         ) : (
-          <div className="mt-5 grid gap-4 lg:grid-cols-3">
+          <div className="mt-5 grid gap-4 lg:grid-cols-1">
             {calendar.monthlyInsights.map((insight) => (
               <Card className="p-5" key={insight.id}>
                 <div className="flex items-start justify-between gap-3">

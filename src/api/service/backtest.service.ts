@@ -7,7 +7,7 @@ import { getPrisma } from "@/api/service/prisma";
 import type { Prisma } from "@/generated/prisma/client";
 import type { DateTimeFilter } from "@/generated/prisma/commonInputTypes";
 import type { LotteryDrawWhereInput } from "@/generated/prisma/models/LotteryDraw";
-import type { ApiBacktestReadModel } from "@/schema/api/backtest";
+import type { ApiBacktestReadModel, ApiBacktestResultExplanation } from "@/schema/api/backtest";
 import type { BacktestRequest } from "@/schema/app/backtest.schema";
 
 export async function runBacktest(input: BacktestRequest) {
@@ -31,6 +31,7 @@ export async function runBacktest(input: BacktestRequest) {
     prizeType: input.prizeType,
     runId,
     strategy,
+    targetDrawCount: input.targetDrawCount,
     windowSize: input.windowSize
   });
   const summary = getBacktestSummary(results);
@@ -50,7 +51,14 @@ export async function runBacktest(input: BacktestRequest) {
         longestMissStreak: summary.longestMissStreak,
         lotteryType: input.lotteryType,
         numberLength: input.numberLength ?? 2,
-        params: toPrismaJson(input.params),
+        params: toPrismaJson({
+          ...input.params,
+          expectedRandomHitRate: summary.expectedRandomHitRate,
+          liftVsRandom: summary.liftVsRandom,
+          resultExplanationsByResultId: toResultExplanationsByResultId(results),
+          targetDrawCount: input.targetDrawCount,
+          windowSize: input.windowSize
+        }),
         prizeType: input.prizeType ?? "TWO_DIGIT",
         startDrawDate: firstResult ? new Date(firstResult.drawDate) : computedAt,
         strategyId: strategy.id,
@@ -104,6 +112,11 @@ export async function getBacktestById(id: string): Promise<ApiBacktestReadModel 
     return null;
   }
 
+  const params = (run.params ?? {}) as Record<string, unknown>;
+  const resultExplanationsByResultId = getResultExplanationsByResultId(
+    params.resultExplanationsByResultId
+  );
+
   return toApiBacktestReadModel({
     generatedAt: run.computedAt,
     results: run.results.map((result) => ({
@@ -114,6 +127,7 @@ export async function getBacktestById(id: string): Promise<ApiBacktestReadModel 
       hitNumbers: result.hitNumbers,
       id: result.id,
       isHit: result.isHit,
+      explanation: resultExplanationsByResultId[result.id],
       rankOfHit: result.rankOfHit ?? undefined,
       runId: result.runId
     })),
@@ -123,12 +137,14 @@ export async function getBacktestById(id: string): Promise<ApiBacktestReadModel 
       computedAt: run.computedAt,
       coverage: run.coverage,
       endDrawDate: run.endDrawDate,
+      expectedRandomHitRate: getOptionalNumber(params.expectedRandomHitRate),
       hitRate: run.hitRate,
       id: run.id,
+      liftVsRandom: getOptionalNumber(params.liftVsRandom),
       longestMissStreak: run.longestMissStreak,
       lotteryType: run.lotteryType,
       numberLength: run.numberLength,
-      params: (run.params ?? {}) as Record<string, unknown>,
+      params,
       prizeType: run.prizeType,
       startDrawDate: run.startDrawDate,
       strategyId: run.strategyId,
@@ -205,4 +221,26 @@ function buildDrawDateFilter(input: BacktestRequest): DateTimeFilter<"LotteryDra
 
 function toPrismaJson(value: Record<string, unknown>): Prisma.InputJsonValue {
   return value as Prisma.InputJsonValue;
+}
+
+function getOptionalNumber(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function toResultExplanationsByResultId(
+  results: Awaited<ReturnType<typeof runWalkForwardBacktest>>
+) {
+  return Object.fromEntries(
+    results
+      .filter((result) => result.explanation)
+      .map((result) => [result.id, result.explanation] as const)
+  ) as Record<string, ApiBacktestResultExplanation>;
+}
+
+function getResultExplanationsByResultId(value: unknown) {
+  if (!value || typeof value !== "object") {
+    return {} as Record<string, ApiBacktestResultExplanation>;
+  }
+
+  return value as Record<string, ApiBacktestResultExplanation>;
 }

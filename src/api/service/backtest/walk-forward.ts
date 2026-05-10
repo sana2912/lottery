@@ -1,9 +1,14 @@
 import { randomUUID } from "node:crypto";
-import { calculateNumberStats } from "@/api/service/analytics/number-stats";
-import { scoreNumber } from "@/api/service/prediction/scoring-engine";
+import { extractDigitEvents } from "@/api/service/analytics/digit-events";
+import { calculateDigitStats } from "@/api/service/analytics/number-stats";
+import { buildPositionPredictionResults } from "@/api/service/prediction/position-engine";
+import { PREDICTION_ENGINE_VERSION } from "@/api/service/prediction/scoring-engine";
 import type { PredictionStrategy } from "@/api/service/prediction/strategy-registry";
-import type { ApiNumberStat } from "@/schema/api/analytics";
-import type { ApiBacktestResult } from "@/schema/api/backtest";
+import type {
+  ApiBacktestCandidateExplanation,
+  ApiBacktestResult,
+  ApiBacktestResultExplanation
+} from "@/schema/api/backtest";
 
 type PrizeLike = {
   draw?: DrawContext;
@@ -31,6 +36,7 @@ type WalkForwardBacktestInput = {
   prizeType?: string;
   runId: string;
   strategy: PredictionStrategy;
+  targetDrawCount?: number;
   windowSize: number;
 };
 
@@ -41,13 +47,15 @@ export function runWalkForwardBacktest({
   prizeType,
   runId,
   strategy,
+  targetDrawCount,
   windowSize
 }: WalkForwardBacktestInput): ApiBacktestResult[] {
   const sortedDraws = [...draws].sort(
     (left, right) =>
       normalizeDate(left.drawDate).getTime() - normalizeDate(right.drawDate).getTime()
   );
-  const targetDraws = sortedDraws.slice(-windowSize);
+  const resolvedTargetDrawCount = targetDrawCount ?? windowSize;
+  const targetDraws = sortedDraws.slice(-resolvedTargetDrawCount);
 
   return targetDraws.flatMap((targetDraw, targetIndex) => {
     const sourceTargetIndex = sortedDraws.length - targetDraws.length + targetIndex;
@@ -62,18 +70,31 @@ export function runWalkForwardBacktest({
     }
 
     const drawCount = new Set(historyPrizes.map((prize) => prize.drawId)).size;
-    const numberStats = calculateNumberStats(
-      historyPrizes,
-      {
-        computedAt: normalizeDate(targetDraw.drawDate),
-        drawCount,
-        windowSize
-      },
-      numberLength
-    );
-    const generatedNumbers = rankCandidates(numberStats, strategy, windowSize, candidateCount);
+    const digitStats = calculateDigitStats(extractDigitEvents(historyPrizes), {
+      computedAt: normalizeDate(targetDraw.drawDate),
+      drawCount,
+      windowSize
+    });
+    const generatedCandidates = buildPositionPredictionResults({
+      count: candidateCount,
+      digitStats,
+      inputWindow: windowSize,
+      numberLength: numberLength ?? actualNumbers[0]?.length ?? 2,
+      strategy
+    });
+    const generatedNumbers = generatedCandidates.map((result) => result.number);
     const hitNumbers = generatedNumbers.filter((number) => actualNumbers.includes(number));
     const firstHit = hitNumbers[0];
+    const explanation =
+      hitNumbers.length > 0
+        ? buildBacktestResultExplanation({
+            calculationWindow: windowSize,
+            candidateCount,
+            generatedCandidates,
+            hitNumbers,
+            strategy
+          })
+        : undefined;
 
     return [
       {
@@ -84,6 +105,7 @@ export function runWalkForwardBacktest({
         hitNumbers,
         id: randomUUID(),
         isHit: hitNumbers.length > 0,
+        explanation,
         rankOfHit: firstHit ? generatedNumbers.indexOf(firstHit) + 1 : undefined,
         runId
       }
@@ -117,40 +139,103 @@ type PrizeLikeWithDraw = PrizeLike & {
   draw: DrawContext;
 };
 
+function buildBacktestResultExplanation({
+  calculationWindow,
+  candidateCount,
+  generatedCandidates,
+  hitNumbers,
+  strategy
+}: {
+  calculationWindow: number;
+  candidateCount: number;
+  generatedCandidates: ReturnType<typeof buildPositionPredictionResults>;
+  hitNumbers: readonly string[];
+  strategy: PredictionStrategy;
+}): ApiBacktestResultExplanation {
+  return {
+    calculationWindow,
+    candidateCount,
+    generatedCandidates: generatedCandidates.map((candidate, index) =>
+      toBacktestCandidateExplanation(candidate, index + 1, hitNumbers)
+    ),
+    strategyId: strategy.id,
+    strategyName: strategy.name,
+    version: PREDICTION_ENGINE_VERSION
+  };
+}
+
+function toBacktestCandidateExplanation(
+  candidate: ReturnType<typeof buildPositionPredictionResults>[number],
+  rank: number,
+  hitNumbers: readonly string[]
+): ApiBacktestCandidateExplanation {
+  return {
+    isHit: hitNumbers.includes(candidate.number),
+    number: candidate.number,
+    numberLength: candidate.numberLength,
+    positionBreakdown: candidate.positionBreakdown,
+    rank,
+    reasons: candidate.reasons,
+    score: candidate.score,
+    scoreBreakdown: candidate.scoreBreakdown
+  };
+}
+
 export function getBacktestSummary(results: readonly ApiBacktestResult[]) {
   const hitResults = results.filter((result) => result.isHit);
   const hitRanks = hitResults.flatMap((result) =>
     result.rankOfHit === undefined ? [] : [result.rankOfHit]
   );
+  const expectedRandomHitRate = getExpectedRandomHitRate(results);
+  const hitRate = results.length > 0 ? round((hitResults.length / results.length) * 100) : 0;
 
   return {
     averageHitRank:
       hitRanks.length > 0
         ? round(hitRanks.reduce((total, rank) => total + rank, 0) / hitRanks.length)
         : undefined,
-    hitRate: results.length > 0 ? round((hitResults.length / results.length) * 100) : 0,
+    expectedRandomHitRate,
+    hitRate,
+    liftVsRandom: round(hitRate - expectedRandomHitRate),
     longestMissStreak: getLongestMissStreak(results)
   };
 }
 
-function rankCandidates(
-  numberStats: readonly ApiNumberStat[],
-  strategy: PredictionStrategy,
-  windowSize: number,
-  candidateCount: number
+function getExpectedRandomHitRate(results: readonly ApiBacktestResult[]) {
+  if (results.length === 0) {
+    return 0;
+  }
+
+  const expectedRates = results.map((result) => {
+    const generatedCount = new Set(result.generatedNumbers).size;
+    const actualCount = new Set(result.actualNumbers).size;
+    const numberLength = result.actualNumbers[0]?.length ?? result.generatedNumbers[0]?.length ?? 2;
+    const universeSize = 10 ** numberLength;
+
+    return getRandomHitProbability(generatedCount, actualCount, universeSize) * 100;
+  });
+
+  return round(expectedRates.reduce((total, rate) => total + rate, 0) / expectedRates.length);
+}
+
+function getRandomHitProbability(
+  generatedCount: number,
+  actualCount: number,
+  universeSize: number
 ) {
-  return numberStats
-    .map((stat, index) =>
-      scoreNumber({
-        inputWindow: windowSize,
-        rank: index + 1,
-        stat,
-        strategy
-      })
-    )
-    .sort((left, right) => right.score - left.score)
-    .slice(0, candidateCount)
-    .map((result) => result.number);
+  if (generatedCount <= 0 || actualCount <= 0 || universeSize <= 0) {
+    return 0;
+  }
+
+  const safeGeneratedCount = Math.min(generatedCount, universeSize);
+  const safeActualCount = Math.min(actualCount, universeSize);
+  let missProbability = 1;
+
+  for (let index = 0; index < safeGeneratedCount; index += 1) {
+    missProbability *= Math.max(0, universeSize - safeActualCount - index) / (universeSize - index);
+  }
+
+  return 1 - missProbability;
 }
 
 function getLongestMissStreak(results: readonly ApiBacktestResult[]) {

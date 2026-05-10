@@ -251,6 +251,7 @@ describe("api router", () => {
           numberLength: "2",
           prizeType: "TWO_DIGIT",
           strategyId: "balanced",
+          targetDrawCount: "30",
           windowSize: "120"
         }),
         headers: {
@@ -409,6 +410,7 @@ describe("api router", () => {
       q: undefined,
       startDate: undefined,
       strategyId: "balanced",
+      targetDrawCount: 30,
       windowSize: 120,
       year: undefined
     });

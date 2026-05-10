@@ -8,7 +8,15 @@ type SearchParamsInput =
   | undefined;
 
 export function parseAnalyticsSearchParams(searchParams?: SearchParamsInput): FilterContext {
-  return filterContextSchema.parse(toSearchParamRecord(searchParams));
+  const record = toSearchParamRecord(searchParams);
+  const query = filterContextSchema.parse(record);
+
+  return {
+    ...query,
+    numberLength: query.numberLength ?? getDefaultNumberLength(query.prizeType),
+    prizeType: query.prizeType ?? "TWO_DIGIT",
+    windowSize: record.windowSize === undefined ? 30 : query.windowSize
+  };
 }
 
 export function buildAnalyticsHref(
@@ -57,4 +65,22 @@ function toSearchParamRecord(searchParams?: SearchParamsInput) {
   }
 
   return searchParams;
+}
+
+function getDefaultNumberLength(prizeType: FilterContext["prizeType"]) {
+  switch (prizeType) {
+    case "THREE_DIGIT":
+    case "THREE_FRONT":
+    case "THREE_BACK":
+      return 3;
+    case "FIRST":
+    case "NEAR_FIRST":
+    case "PRIZE2":
+    case "PRIZE3":
+    case "PRIZE4":
+    case "PRIZE5":
+      return 6;
+    default:
+      return 2;
+  }
 }
