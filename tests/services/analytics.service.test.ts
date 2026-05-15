@@ -11,55 +11,65 @@ afterEach(() => {
 });
 
 describe("analytics.service", () => {
-  test("returns materialized stats when a canonical cached context exists", async () => {
+  test("returns analysis snapshot stats when a cached context exists", async () => {
     const queryCalls: string[] = [];
+    const analyticsReadModel = {
+      digitStats: [
+        {
+          computedAt: "2026-04-29T00:00:00.000Z",
+          digit: "0",
+          drawCount: 50,
+          frequencyPercent: 20,
+          hitCount: 10,
+          lastSeenDrawDate: "2026-04-16T00:00:00.000Z",
+          lotteryType: "THAI_GOVERNMENT",
+          missingDrawCount: 1,
+          position: 1,
+          prizeType: "TWO_DIGIT",
+          trendDirection: "up",
+          windowSize: 50
+        }
+      ],
+      generatedAt: "2026-04-29T00:00:00.000Z",
+      numberStats: [
+        {
+          averageGap: 15,
+          computedAt: "2026-04-29T00:00:00.000Z",
+          drawCount: 50,
+          frequencyPercent: 8,
+          hitCount: 4,
+          lastSeenDrawDate: "2026-04-16T00:00:00.000Z",
+          lotteryType: "THAI_GOVERNMENT",
+          maxGap: 21,
+          missingDrawCount: 1,
+          number: "09",
+          numberLength: 2,
+          patternFlags: ["odd", "high"],
+          prizeType: "TWO_DIGIT",
+          trendScore: 39.33,
+          windowSize: 50
+        }
+      ],
+      patternSummaries: [],
+      source: "api",
+      summary: {
+        drawCount: 50,
+        generatedAt: "2026-04-29T00:00:00.000Z"
+      }
+    };
 
     (globalThis as { prisma?: unknown }).prisma = {
       $queryRaw: async (...args: unknown[]) => {
         const sql = getSqlText(args[0]);
         queryCalls.push(sql);
 
-        if (sql.includes('FROM "number_stat_snapshots"') && sql.includes("LIMIT 1")) {
-          return [{ computedAt: new Date("2026-04-29T00:00:00.000Z") }];
-        }
-
-        if (sql.includes('FROM "digit_stat_snapshots"')) {
+        if (sql.includes('FROM "analysis_snapshot_runs"')) {
           return [
             {
+              analyticsReadModel,
+              calendarReadModel: null,
               computedAt: new Date("2026-04-29T00:00:00.000Z"),
-              digit: "0",
-              drawCount: 30,
-              frequencyPercent: 20,
-              hitCount: 6,
-              lastSeenDrawDate: new Date("2026-04-16T00:00:00.000Z"),
-              lotteryType: "THAI_GOVERNMENT",
-              missingDrawCount: 1,
-              position: 1,
-              prizeType: "TWO_DIGIT",
-              trendDirection: "up",
-              windowSize: 30
-            }
-          ];
-        }
-
-        if (sql.includes('FROM "number_stat_snapshots"')) {
-          return [
-            {
-              averageGap: 15,
-              computedAt: new Date("2026-04-29T00:00:00.000Z"),
-              drawCount: 30,
-              frequencyPercent: 13.33,
-              hitCount: 4,
-              lastSeenDrawDate: new Date("2026-04-16T00:00:00.000Z"),
-              lotteryType: "THAI_GOVERNMENT",
-              maxGap: 21,
-              missingDrawCount: 1,
-              number: "09",
-              numberLength: 2,
-              patternFlags: ["odd", "high"],
-              prizeType: "TWO_DIGIT",
-              trendScore: 39.33,
-              windowSize: 30
+              patternReadModel: null
             }
           ];
         }
@@ -74,12 +84,13 @@ describe("analytics.service", () => {
       page: 1,
       pageSize: 20,
       prizeType: "TWO_DIGIT",
-      windowSize: 30
+      windowPreset: "50",
+      windowSize: 50
     });
 
-    expect(queryCalls.some((sql) => sql.includes('FROM "number_stat_snapshots"'))).toBe(true);
+    expect(queryCalls.some((sql) => sql.includes('FROM "analysis_snapshot_runs"'))).toBe(true);
     expect(analyticsReadModelSchema.parse(model)).toEqual(model);
-    expect(model.summary.drawCount).toBe(30);
+    expect(model.summary.drawCount).toBe(50);
     expect(model.numberStats[0]?.number).toBe("09");
   });
 
@@ -249,7 +260,7 @@ describe("analytics.service", () => {
     expect(model.numberStats).toHaveLength(4);
   });
 
-  test("falls back to on-demand analytics when materialized rows are unavailable", async () => {
+  test("falls back to direct analytics when analysis snapshots do not cover a query", async () => {
     let drawArgsSeen: unknown;
 
     (globalThis as { prisma?: unknown }).prisma = {

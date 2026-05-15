@@ -1131,15 +1131,15 @@ score >= 30 = cool
 ต่ำกว่า 30 = cold
 ```
 
-## 14. Materialized Stats
+## 14. Analysis Snapshot Engine
 
 ไฟล์หลัก:
 
-`src/api/service/analytics/materialized-stats.ts:216`
+`src/api/service/analysis-snapshot/compute-analysis-snapshot.ts`
 
 script:
 
-`scripts/compute-stats.ts:15`
+`scripts/compute-analysis.ts`
 
 หน้าที่:
 
@@ -1152,15 +1152,18 @@ flow:
 เรียก getPrizeWindow
 เรียก buildAnalyticsReadModelFromPrizes
 ลบ snapshot เก่า
-insert digit_stat_snapshots
-insert number_stat_snapshots
+insert analysis_snapshot_runs
+insert analysis_digit_stats
+insert analysis_number_stats
+insert analysis_pattern_summaries
+insert analysis_calendar_heatmaps
 ```
 
 ใช้กับ canonical context:
 
-`src/api/service/analytics/materialized-stats.ts:321`
+`src/api/service/analysis-snapshot/snapshot-reader.ts`
 
-เงื่อนไขที่ใช้ materialized ได้:
+เงื่อนไขที่ใช้ analysis snapshot ได้:
 
 ```text
 prizeType ต้องอยู่ใน catalog
@@ -1171,22 +1174,22 @@ numberLength ต้องตรงกับ prizeType
 
 catalog:
 
-`src/api/service/analytics/materialized-stats.ts:343`
+`src/api/service/analysis-snapshot/analysis-context.ts`
 
 script full recompute:
 
-`scripts/compute-stats.ts:153`
+`scripts/compute-analysis.ts`
 
 script incremental:
 
-`scripts/compute-stats.ts:128`
+`scripts/compute-analysis.ts`
 
 ตัวอย่าง command:
 
 ```bash
-bun scripts/compute-stats.ts
-bun scripts/compute-stats.ts --prizeType=TWO_DIGIT --windowSize=120
-bun scripts/compute-stats.ts --startDate=2026-01-01 --endDate=2026-05-01
+bun scripts/compute-analysis.ts
+bun scripts/compute-analysis.ts --prizeType=TWO_DIGIT --scope=ALL_TIME --windowPreset=50
+bun scripts/compute-analysis.ts --prizeType=FIRST --scope=MONTH --month=5 --windowPreset=100
 ```
 
 ## 15. Dashboard
@@ -1292,7 +1295,7 @@ analytics/digit-events
 
 analytics/number-stats
   -> analytics/analytics-engine
-  -> analytics/materialized-stats
+  -> analysis-snapshot/snapshot-reader
 
 lib/app/number-shape
   -> analytics/number-stats
@@ -1407,4 +1410,3 @@ score = 67.51
 เลขนี้คะแนนดีพอประมาณ เพราะ digit รายตำแหน่งมีความถี่และ overdue พอใช้ รูปทรงเลขดีมาก และ trend กลาง ๆ
 
 แต่ยังต้องอ่านเป็น signal จากอดีต ไม่ใช่คำทำนายที่รับประกันผล
-

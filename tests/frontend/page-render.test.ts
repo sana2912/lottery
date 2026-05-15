@@ -19,7 +19,7 @@ mock.module("@/frontend/pages/analytics/analytics.data", () => ({
 }));
 
 describe("page rendering", () => {
-  test("renders analytics views for 2, 3, and 6 digit prize contexts", async () => {
+  test("renders analytics view for 2 digit prize contexts", async () => {
     const { AnalyticsPage } = await import("@/frontend/pages/analytics");
 
     const twoDigitMarkup = renderToStaticMarkup(
@@ -28,12 +28,28 @@ describe("page rendering", () => {
         searchParams: { numberLength: "2", prizeType: "TWO_DIGIT", windowSize: "30" }
       })
     );
+
+    expect(twoDigitMarkup).toContain("Hot");
+    expect(twoDigitMarkup).toContain("09");
+  });
+
+  test("renders analytics view for 3 digit prize contexts", async () => {
+    const { AnalyticsPage } = await import("@/frontend/pages/analytics");
+
     const threeDigitMarkup = renderToStaticMarkup(
       await AnalyticsPage({
         pageData: { model: analyticsModel(3, "THREE_FRONT"), state: "ready" },
         searchParams: { numberLength: "3", prizeType: "THREE_FRONT", windowSize: "60" }
       })
     );
+
+    expect(threeDigitMarkup).toContain("Shape");
+    expect(threeDigitMarkup).toContain("123");
+  });
+
+  test("renders analytics view for 6 digit prize contexts", async () => {
+    const { AnalyticsPage } = await import("@/frontend/pages/analytics");
+
     const sixDigitMarkup = renderToStaticMarkup(
       await AnalyticsPage({
         pageData: { model: analyticsModel(6, "FIRST"), state: "ready" },
@@ -41,10 +57,6 @@ describe("page rendering", () => {
       })
     );
 
-    expect(twoDigitMarkup).toContain("Hot");
-    expect(twoDigitMarkup).toContain("09");
-    expect(threeDigitMarkup).toContain("Shape");
-    expect(threeDigitMarkup).toContain("123");
     expect(sixDigitMarkup).toContain("Explore deeper shape patterns");
     expect(sixDigitMarkup).toContain("123456");
   });
@@ -55,18 +67,24 @@ describe("page rendering", () => {
     const markup = renderToStaticMarkup(
       await CalendarPage({
         pageData: {
-          filters: { month: 4, prizeType: "FIRST", windowSize: 30 },
+          filters: {
+            month: 4,
+            prizeType: "FIRST",
+            scope: "MONTH",
+            windowPreset: "50",
+            windowSize: 50
+          },
           model: calendarModel(),
           state: "ready"
         },
-        searchParams: { month: "4", prizeType: "FIRST", windowSize: "30" }
+        searchParams: { month: "4", prizeType: "FIRST", scope: "MONTH", windowPreset: "50" }
       })
     );
 
     expect(markup).toContain("16 April 2026");
     expect(markup).toContain("April");
     expect(markup).toContain("Hit 8");
-    expect(markup).toContain("Window 30");
+    expect(markup).toContain("Window 50");
   });
 
   test("renders patterns page from analytics data and active filters", async () => {
@@ -227,8 +245,10 @@ function calendarModel() {
         ],
         prizeType: "FIRST" as const,
         sampleSize: 8,
+        scope: "MONTH" as const,
         summary: "April has 8 historical draws in sample.",
-        windowSize: 30
+        windowPreset: "50" as const,
+        windowSize: 50
       }
     ],
     nextDraw: {

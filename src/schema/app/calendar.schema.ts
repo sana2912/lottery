@@ -1,11 +1,20 @@
 import { z } from "zod";
+import {
+  analysisScopeSchema,
+  analysisWindowPresetSchema,
+  lotteryPrizeTypeSchema
+} from "@/schema/app/query.schema";
+
+const calendarPrizeTypeSchema = lotteryPrizeTypeSchema.exclude(["OTHER"]);
 
 export const calendarHeatmapToneSchema = z.enum(["hot", "warm", "neutral", "cool", "cold"]);
 
 export const calendarHeatmapQuerySchema = z.object({
   month: z.coerce.number().int().min(1).max(12).optional(),
-  prizeType: z.enum(["FIRST", "PRIZE2", "PRIZE3", "PRIZE4", "PRIZE5", "NEAR_FIRST"]).optional(),
-  windowSize: z.coerce.number().int().min(1).max(200).optional()
+  prizeType: calendarPrizeTypeSchema.optional(),
+  scope: analysisScopeSchema.optional(),
+  windowPreset: analysisWindowPresetSchema.optional(),
+  windowSize: z.coerce.number().int().min(1).max(500).optional()
 });
 
 export const calendarHeatmapCellSchema = z.object({
@@ -37,11 +46,13 @@ export const monthlyInsightSchema = z.object({
   id: z.string(),
   heatmapRows: z.array(calendarHeatmapRowSchema),
   hotNumbers: z.array(z.string()),
-  month: z.number(),
+  month: z.number().optional(),
   label: z.string(),
   sampleSize: z.number(),
   summary: z.string(),
-  prizeType: z.enum(["FIRST", "PRIZE2", "PRIZE3", "PRIZE4", "PRIZE5", "NEAR_FIRST"]).optional(),
+  prizeType: calendarPrizeTypeSchema.optional(),
+  scope: analysisScopeSchema.optional(),
+  windowPreset: analysisWindowPresetSchema.optional(),
   windowSize: z.number().int().positive().optional(),
   positionInsights: z.array(
     z.object({

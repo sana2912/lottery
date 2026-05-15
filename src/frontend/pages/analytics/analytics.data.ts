@@ -57,7 +57,10 @@ export async function getAnalyticsModel(query?: FilterContext): Promise<Analytic
         lotteryType: "THAI_GOVERNMENT",
         page: 1,
         pageSize: 20,
-        windowSize: 120
+        prizeType: "TWO_DIGIT",
+        scope: "ALL_TIME",
+        windowPreset: "50",
+        windowSize: 50
       }
     )
   ).model;

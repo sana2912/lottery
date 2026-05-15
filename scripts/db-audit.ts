@@ -13,10 +13,12 @@ async function main() {
       backtestRunCount,
       latestDraw,
       sourceStatusRows,
-      digitSnapshotCount,
-      numberSnapshotCount,
-      latestDigitSnapshot,
-      latestNumberSnapshot
+      analysisRunCount,
+      analysisDigitStatCount,
+      analysisNumberStatCount,
+      analysisPatternSummaryCount,
+      analysisCalendarHeatmapCount,
+      latestAnalysisSnapshot
     ] = await Promise.all([
       prisma.lotteryDraw.count(),
       prisma.lotteryPrize.count(),
@@ -37,16 +39,12 @@ async function main() {
           _all: true
         }
       }),
-      prisma.digitStatSnapshot.count(),
-      prisma.numberStatSnapshot.count(),
-      prisma.digitStatSnapshot.findFirst({
-        orderBy: { computedAt: "desc" },
-        select: { computedAt: true }
-      }),
-      prisma.numberStatSnapshot.findFirst({
-        orderBy: { computedAt: "desc" },
-        select: { computedAt: true }
-      })
+      getAnalysisSnapshotRunCount(prisma),
+      getAnalysisDigitStatCount(prisma),
+      getAnalysisNumberStatCount(prisma),
+      getAnalysisPatternSummaryCount(prisma),
+      getAnalysisCalendarHeatmapCount(prisma),
+      getLatestAnalysisComputedAt(prisma)
     ]);
 
     const sourceStatusSummary = formatSourceStatusSummary(sourceStatusRows);
@@ -69,8 +67,11 @@ async function main() {
       `Source status counts: ${sourceStatusSummary}`,
       `Prediction runs: ${predictionRunCount}`,
       `Backtest runs: ${backtestRunCount}`,
-      `Digit stat snapshots: ${digitSnapshotCount}${formatComputedAtSuffix(latestDigitSnapshot?.computedAt)}`,
-      `Number stat snapshots: ${numberSnapshotCount}${formatComputedAtSuffix(latestNumberSnapshot?.computedAt)}`
+      `Analysis snapshot runs: ${analysisRunCount}${formatComputedAtSuffix(latestAnalysisSnapshot?.computedAt)}`,
+      `Analysis digit stats: ${analysisDigitStatCount}`,
+      `Analysis number stats: ${analysisNumberStatCount}`,
+      `Analysis pattern summaries: ${analysisPatternSummaryCount}`,
+      `Analysis calendar heatmaps: ${analysisCalendarHeatmapCount}`
     ];
 
     console.info(auditLines.join("\n"));
@@ -100,6 +101,54 @@ function formatSourceStatusSummary(
 
 function formatDate(value: Date) {
   return value.toISOString().slice(0, 10);
+}
+
+async function getAnalysisSnapshotRunCount(prisma: ReturnType<typeof getPrisma>) {
+  const [row] = await prisma.$queryRaw<Array<{ count: number }>>`
+    SELECT COUNT(*)::int AS count FROM "analysis_snapshot_runs"
+  `;
+
+  return row?.count ?? 0;
+}
+
+async function getAnalysisDigitStatCount(prisma: ReturnType<typeof getPrisma>) {
+  const [row] = await prisma.$queryRaw<Array<{ count: number }>>`
+    SELECT COUNT(*)::int AS count FROM "analysis_digit_stats"
+  `;
+
+  return row?.count ?? 0;
+}
+
+async function getAnalysisNumberStatCount(prisma: ReturnType<typeof getPrisma>) {
+  const [row] = await prisma.$queryRaw<Array<{ count: number }>>`
+    SELECT COUNT(*)::int AS count FROM "analysis_number_stats"
+  `;
+
+  return row?.count ?? 0;
+}
+
+async function getAnalysisPatternSummaryCount(prisma: ReturnType<typeof getPrisma>) {
+  const [row] = await prisma.$queryRaw<Array<{ count: number }>>`
+    SELECT COUNT(*)::int AS count FROM "analysis_pattern_summaries"
+  `;
+
+  return row?.count ?? 0;
+}
+
+async function getAnalysisCalendarHeatmapCount(prisma: ReturnType<typeof getPrisma>) {
+  const [row] = await prisma.$queryRaw<Array<{ count: number }>>`
+    SELECT COUNT(*)::int AS count FROM "analysis_calendar_heatmaps"
+  `;
+
+  return row?.count ?? 0;
+}
+
+async function getLatestAnalysisComputedAt(prisma: ReturnType<typeof getPrisma>) {
+  const [row] = await prisma.$queryRaw<Array<{ computedAt: Date }>>`
+    SELECT "computedAt" FROM "analysis_snapshot_runs" ORDER BY "computedAt" DESC LIMIT 1
+  `;
+
+  return row;
 }
 
 function formatComputedAtSuffix(value?: Date | null) {

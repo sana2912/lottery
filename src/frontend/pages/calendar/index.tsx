@@ -255,7 +255,10 @@ export async function CalendarPage({
 
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Badge variant="neutral">{insight.prizeType}</Badge>
-                  <Badge variant="neutral">Window {insight.windowSize}</Badge>
+                  <Badge variant="neutral">{insight.scope ?? "MONTH"}</Badge>
+                  <Badge variant="neutral">
+                    Window {insight.windowPreset ?? insight.windowSize}
+                  </Badge>
                   <Badge variant="brand">{insight.sampleSize} draws</Badge>
                 </div>
 

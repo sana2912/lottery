@@ -78,6 +78,7 @@ export function toApiMonthlyInsight(insight: MonthlyInsightDtoInput): ApiMonthly
     month: insight.month,
     patternNotes: [...insight.patternNotes],
     prizeType: insight.prizeType,
+    scope: insight.scope,
     positionInsights: insight.positionInsights.map((positionInsight) => ({
       coldNumbers: positionInsight.coldNumbers.map((number) => ({ ...number })),
       hotNumbers: positionInsight.hotNumbers.map((number) => ({ ...number })),
@@ -85,6 +86,7 @@ export function toApiMonthlyInsight(insight: MonthlyInsightDtoInput): ApiMonthly
     })),
     sampleSize: insight.sampleSize,
     summary: insight.summary,
+    windowPreset: insight.windowPreset,
     windowSize: insight.windowSize
   };
 }

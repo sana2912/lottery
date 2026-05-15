@@ -185,6 +185,14 @@ id String @id @default(uuid(7)) @map("_id") @db.Uuid
 
 Do not put `url = env("DATABASE_URL")` back into `schema.prisma`; this project uses `prisma.config.ts` for the datasource URL.
 
+### Prisma Migration Safety
+
+- AI/code agents must not create, edit, delete, or hand-write files under `prisma/migrations`.
+- When a Prisma schema change is needed, edit only `prisma/schema.prisma`.
+- After changing `prisma/schema.prisma`, tell the user to run the appropriate Prisma command themselves, such as `bun run db:migrate`, `bun run db:push`, or `bun run db:generate`.
+- Do not run migration/apply commands unless the user explicitly asks in the current turn.
+- If migration drift appears, report it and explain the recovery options instead of modifying migration history.
+
 ## UI System
 
 Use the local UI layers intentionally:
