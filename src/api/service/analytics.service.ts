@@ -1,18 +1,30 @@
+import { buildOnDemandAnalysisReadModel } from "@/api/service/analysis-snapshot/on-demand-read-model";
+import {
+  getAnalysisContextForFilterQuery,
+  getAnalysisSnapshotAnalyticsReadModel
+} from "@/api/service/analysis-snapshot/snapshot-reader";
 import {
   type AnalyticsQuery,
   buildAnalyticsReadModelFromPrizes,
   getPrizeWindow
 } from "@/api/service/analytics/analytics-engine";
-import { getMaterializedAnalyticsReadModel } from "@/api/service/analytics/materialized-stats";
 import { getPrisma } from "@/api/service/prisma";
 
 export async function getAnalyticsReadModel(query: AnalyticsQuery) {
-  const materialized = await timeAsync("analytics.materialized snapshot lookup", () =>
-    getMaterializedAnalyticsReadModel(query)
+  const analysisSnapshot = await timeAsync("analytics.analysis snapshot lookup", () =>
+    getAnalysisSnapshotAnalyticsReadModel(query)
   );
 
-  if (materialized) {
-    return materialized;
+  if (analysisSnapshot) {
+    return analysisSnapshot;
+  }
+
+  const analysisContext = getAnalysisContextForFilterQuery(query);
+
+  if (analysisContext) {
+    return timeAsync("analytics.analysis on-demand fallback", () =>
+      buildOnDemandAnalysisReadModel(analysisContext)
+    );
   }
 
   const prisma = getPrisma();

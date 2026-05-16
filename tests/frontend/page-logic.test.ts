@@ -400,7 +400,7 @@ describe("frontend logic helpers", () => {
     const firstQuery = parsePatternSearchParams({
       pattern: "has_repeat",
       prizeType: "FIRST",
-      windowSize: "60"
+      windowPreset: "100"
     });
     const defaultQuery = parsePatternSearchParams();
     const firstModel = buildPatternReadModel(analytics, firstQuery);
@@ -408,7 +408,8 @@ describe("frontend logic helpers", () => {
     expect(toPatternsAnalyticsQuery(firstQuery)).toMatchObject({
       numberLength: 6,
       prizeType: "FIRST",
-      windowSize: 60
+      windowPreset: "100",
+      windowSize: 100
     });
     expect(firstModel.prizeLabel).toBe("FIRST");
     expect(firstModel.numberLengthLabel).toBe("6 digits");
@@ -417,12 +418,16 @@ describe("frontend logic helpers", () => {
     expect(firstModel.overviewCards.find((card) => card.id === "has_repeat")?.value).toBe(6);
     expect(defaultQuery).toMatchObject({
       prizeType: "TWO_DIGIT",
-      windowSize: 30
+      scope: "ALL_TIME",
+      windowPreset: "50",
+      windowSize: "50"
     });
 
     const threeModel = buildPatternReadModel(analytics, {
       prizeType: "THREE_FRONT",
-      windowSize: 30
+      scope: "ALL_TIME",
+      windowPreset: "50",
+      windowSize: "50"
     });
 
     expect(threeModel.playground.map((pattern) => pattern.id)).toContain("palindrome");
@@ -430,13 +435,15 @@ describe("frontend logic helpers", () => {
 
     const twoModel = buildPatternReadModel(analytics, {
       prizeType: "TWO_DIGIT",
-      windowSize: 1
+      scope: "ALL_TIME",
+      windowPreset: "50",
+      windowSize: "50"
     });
 
     expect(twoModel.playground.map((pattern) => pattern.id)).toEqual(
       expect.arrayContaining(["odd_last_digit", "double", "mirror"])
     );
-    expect(twoModel.windowLabel).toBe("latest draw");
+    expect(twoModel.windowLabel).toBe("50 draws");
   });
 
   test("results helpers map API models and query shapes", () => {
@@ -593,23 +600,30 @@ describe("frontend logic helpers", () => {
       parseCalendarPageFilters({
         month: "5",
         prizeType: "FIRST",
-        windowSize: "48"
+        scope: "MONTH",
+        windowPreset: "100"
       })
     ).toEqual({
       month: 5,
       prizeType: "FIRST",
-      windowSize: 48
+      scope: "MONTH",
+      windowPreset: "100",
+      windowSize: 100
     });
     expect(
       toCalendarApiQuery({
         month: 5,
         prizeType: "FIRST",
-        windowSize: 48
+        scope: "MONTH",
+        windowPreset: "100",
+        windowSize: 100
       })
     ).toEqual({
       month: 5,
       prizeType: "FIRST",
-      windowSize: 48
+      scope: "MONTH",
+      windowPreset: "100",
+      windowSize: 100
     });
     expect(
       getDaysUntilNextDraw(

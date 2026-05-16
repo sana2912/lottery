@@ -134,11 +134,45 @@ model PredictionResult {
   @@map("prediction_results")
 }
 
-model DigitStatSnapshot {
-  id               String      @id @default(uuid(7)) @map("_id") @db.Uuid
+model AnalysisSnapshotRun {
+  id                 String                    @id @default(uuid(7)) @map("_id") @db.Uuid
+  contextKey         String                    @unique
+  lotteryType        LotteryType
+  prizeType          LotteryPrizeType
+  numberLength       Int
+  scope              String
+  month              Int?
+  windowPreset       String
+  windowSize         Int?
+  sampleDrawCount    Int
+  samplePrizeCount   Int
+  invalidPrizeCount  Int                       @default(0)
+  startDrawDate      DateTime?
+  endDrawDate        DateTime?
+  analyticsReadModel Json
+  patternReadModel   Json?
+  calendarReadModel  Json?
+  engineVersion      String
+  computedAt         DateTime
+  digitStats         AnalysisDigitStat[]
+  numberStats        AnalysisNumberStat[]
+  patternSummaries   AnalysisPatternSummary[]
+  calendarHeatmaps   AnalysisCalendarHeatmap[]
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
+
+  @@index([lotteryType, prizeType, scope, month, windowPreset], map: "analysis_runs_context_idx")
+  @@index([engineVersion, computedAt], map: "analysis_runs_engine_idx")
+  @@map("analysis_snapshot_runs")
+}
+
+model AnalysisDigitStat {
+  id               String              @id @default(uuid(7)) @map("_id") @db.Uuid
+  runId            String              @db.Uuid
+  run              AnalysisSnapshotRun @relation(fields: [runId], references: [id], onDelete: Cascade)
   lotteryType      LotteryType
   prizeType        LotteryPrizeType
-  windowSize       Int
+  windowPreset     String
   digit            String
   position         Int?
   drawCount        Int
@@ -148,19 +182,21 @@ model DigitStatSnapshot {
   missingDrawCount Int
   trendDirection   String
   computedAt       DateTime
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
 
-  @@index([lotteryType, prizeType, windowSize, computedAt])
-  @@index([lotteryType, prizeType, windowSize, digit, position])
-  @@map("digit_stat_snapshots")
+  @@index([runId])
+  @@index([lotteryType, prizeType, windowPreset, position, digit], map: "analysis_digit_position_idx")
+  @@map("analysis_digit_stats")
 }
 
-model NumberStatSnapshot {
-  id               String      @id @default(uuid(7)) @map("_id") @db.Uuid
+model AnalysisNumberStat {
+  id               String              @id @default(uuid(7)) @map("_id") @db.Uuid
+  runId            String              @db.Uuid
+  run              AnalysisSnapshotRun @relation(fields: [runId], references: [id], onDelete: Cascade)
   lotteryType      LotteryType
   prizeType        LotteryPrizeType
-  windowSize       Int
+  windowPreset     String
   number           String
   numberLength     Int
   drawCount        Int
@@ -173,13 +209,58 @@ model NumberStatSnapshot {
   trendScore       Float
   patternFlags     Json?
   computedAt       DateTime
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
 
-  @@index([lotteryType, prizeType, windowSize, computedAt])
-  @@index([lotteryType, prizeType, windowSize, number], map: "number_stat_snapshots_window_number_idx")
-  @@index([lotteryType, prizeType, windowSize, numberLength], map: "number_stat_snapshots_window_number_length_idx")
-  @@map("number_stat_snapshots")
+  @@index([runId])
+  @@index([lotteryType, prizeType, windowPreset, number], map: "analysis_number_value_idx")
+  @@index([lotteryType, prizeType, windowPreset, numberLength], map: "analysis_number_length_idx")
+  @@map("analysis_number_stats")
+}
+
+model AnalysisPatternSummary {
+  id               String              @id @default(uuid(7)) @map("_id") @db.Uuid
+  runId            String              @db.Uuid
+  run              AnalysisSnapshotRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  lotteryType      LotteryType
+  prizeType        LotteryPrizeType
+  windowPreset     String
+  pattern          String
+  hitCount         Int
+  frequencyPercent Float
+  sampleSize       Int
+  examples         String[]
+  computedAt       DateTime
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  @@index([runId])
+  @@index([lotteryType, prizeType, windowPreset, pattern], map: "analysis_pattern_value_idx")
+  @@map("analysis_pattern_summaries")
+}
+
+model AnalysisCalendarHeatmap {
+  id              String              @id @default(uuid(7)) @map("_id") @db.Uuid
+  runId           String              @db.Uuid
+  run             AnalysisSnapshotRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  lotteryType     LotteryType
+  prizeType       LotteryPrizeType
+  scope           String
+  month           Int?
+  windowPreset    String
+  position        Int
+  digit           String
+  appearanceCount Int
+  missingRounds   Int
+  score           Float
+  tone            String
+  computedAt      DateTime
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@index([runId])
+  @@index([lotteryType, prizeType, scope, month, windowPreset, position, digit], map: "analysis_heatmap_cell_idx")
+  @@map("analysis_calendar_heatmaps")
 }
 
 model BacktestRun {

@@ -21,11 +21,29 @@ export const patternPrizeOptions = [
 ] as const;
 
 export const patternWindowOptions = [
-  { label: "latest draw", value: 1 },
-  { label: "30 draws", value: 30 },
-  { label: "60 draws", value: 60 },
-  { label: "120 draws", value: 120 }
+  { label: "50 draws", value: "50" },
+  { label: "100 draws", value: "100" },
+  { label: "500 draws", value: "500" },
+  { label: "All draws", value: "ALL" }
 ] as const;
+export const patternScopeOptions = [
+  { label: "All months", value: "ALL_TIME" },
+  { label: "Specific month", value: "MONTH" }
+] as const;
+export const patternMonthOptions = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December"
+].map((label, index) => ({ label, value: index + 1 }));
 
 type PatternPrizeValue = (typeof patternPrizeOptions)[number]["value"];
 type PatternWindowValue = (typeof patternWindowOptions)[number]["value"];
@@ -57,8 +75,11 @@ export type PatternDistributionItem = {
 };
 
 export type PatternPageQuery = {
+  month?: number;
   pattern?: string;
   prizeType: PatternPrizeValue;
+  scope: NonNullable<FilterContext["scope"]>;
+  windowPreset: PatternWindowValue;
   windowSize: PatternWindowValue;
 };
 
@@ -72,8 +93,11 @@ export type PatternReadModel = {
   prizeLabel: string;
   prizeType: PatternPrizeValue;
   sampleSize: number;
+  scope: NonNullable<FilterContext["scope"]>;
+  scopeLabel: string;
   totalHits: number;
   windowLabel: string;
+  windowPreset: PatternWindowValue;
   windowSize: PatternWindowValue;
 };
 
@@ -198,24 +222,33 @@ export function parsePatternSearchParams(
 ): PatternPageQuery {
   const record = toSearchParamRecord(searchParams);
   const prizeType = getSingleValue(record.prizeType);
-  const windowSize = Number(getSingleValue(record.windowSize));
+  const windowPreset = getSingleValue(record.windowPreset) ?? getSingleValue(record.windowSize);
+  const scope = getSingleValue(record.scope);
+  const month = Number(getSingleValue(record.month));
   const pattern = getSingleValue(record.pattern);
+  const parsedScope = scope === "MONTH" ? "MONTH" : "ALL_TIME";
 
   return {
+    month: parsedScope === "MONTH" && isValidMonth(month) ? month : undefined,
     pattern: pattern || undefined,
     prizeType: isPatternPrizeValue(prizeType) ? prizeType : "TWO_DIGIT",
-    windowSize: isPatternWindowValue(windowSize) ? windowSize : 30
+    scope: parsedScope,
+    windowPreset: isPatternWindowValue(windowPreset) ? windowPreset : "50",
+    windowSize: isPatternWindowValue(windowPreset) ? windowPreset : "50"
   };
 }
 
 export function toPatternsAnalyticsQuery(query: PatternPageQuery): FilterContext {
   return {
     lotteryType: "THAI_GOVERNMENT",
+    month: query.month,
     numberLength: getPrizeNumberLength(query.prizeType),
     page: 1,
     pageSize: 100,
     prizeType: query.prizeType,
-    windowSize: query.windowSize
+    scope: query.scope,
+    windowPreset: query.windowPreset,
+    windowSize: query.windowPreset === "ALL" ? 2000 : Number(query.windowPreset)
   };
 }
 
@@ -230,8 +263,16 @@ export function buildPatternsHref(
     searchParams.set("prizeType", next.prizeType);
   }
 
-  if (next.windowSize !== 30) {
-    searchParams.set("windowSize", String(next.windowSize));
+  if (next.scope !== "ALL_TIME") {
+    searchParams.set("scope", next.scope);
+  }
+
+  if (next.scope === "MONTH" && next.month) {
+    searchParams.set("month", String(next.month));
+  }
+
+  if (next.windowPreset !== "50") {
+    searchParams.set("windowPreset", next.windowPreset);
   }
 
   if (next.pattern) {
@@ -251,7 +292,7 @@ export function buildPatternReadModel(
   const definitions = getDefinitionsForStats(query);
   const totalHits = getTotalHits(stats);
   const overviewCards = definitions.map((definition) =>
-    toOverviewCard(definition, stats, totalHits, query.windowSize)
+    toOverviewCard(definition, stats, totalHits, query.windowPreset)
   );
   const activePattern = overviewCards.some((card) => card.id === query.pattern)
     ? query.pattern
@@ -268,8 +309,11 @@ export function buildPatternReadModel(
     prizeLabel: getPrizeLabel(query.prizeType),
     prizeType: query.prizeType,
     sampleSize: totalHits,
+    scope: query.scope,
+    scopeLabel: getScopeLabel(query),
     totalHits,
-    windowLabel: getWindowLabel(query.windowSize),
+    windowLabel: getWindowLabel(query.windowPreset),
+    windowPreset: query.windowPreset,
     windowSize: query.windowSize
   };
 }
@@ -293,7 +337,7 @@ function toOverviewCard(
   definition: PatternDefinition,
   stats: readonly NumberStat[],
   totalHits: number,
-  windowSize: number
+  windowPreset: PatternWindowValue
 ): PatternOverviewCard {
   const matches = stats.filter((stat) => definition.matches(stat.number));
   const value = getTotalHits(matches);
@@ -305,7 +349,7 @@ function toOverviewCard(
     id: definition.id,
     label: definition.label,
     percent,
-    summary: getHumanSummary(definition.label, value, totalHits, percent, windowSize, examples),
+    summary: getHumanSummary(definition.label, value, totalHits, percent, windowPreset, examples),
     tone: definition.tone,
     total: totalHits,
     value
@@ -392,10 +436,10 @@ function getHumanSummary(
   value: number,
   total: number,
   percent: number,
-  windowSize: number,
+  windowPreset: PatternWindowValue,
   examples: readonly string[]
 ) {
-  const windowLabel = windowSize === 1 ? "latest draw" : `${windowSize} previous draws`;
+  const windowLabel = windowPreset === "ALL" ? "all historical draws" : `${windowPreset} draws`;
   const exampleCopy = examples.length > 0 ? ` Examples: ${examples.join(", ")}` : "";
 
   return `Found ${label.toLowerCase()} ${value} of ${total} records in ${windowLabel} (${percent}%).${exampleCopy}`;
@@ -431,7 +475,15 @@ function getPrizeLabel(prizeType: PatternPrizeValue) {
 }
 
 function getWindowLabel(windowSize: PatternWindowValue) {
-  return patternWindowOptions.find((option) => option.value === windowSize)?.label ?? "30 draws";
+  return patternWindowOptions.find((option) => option.value === windowSize)?.label ?? "50 draws";
+}
+
+function getScopeLabel(query: PatternPageQuery) {
+  if (query.scope === "MONTH" && query.month) {
+    return patternMonthOptions.find((option) => option.value === query.month)?.label ?? "Month";
+  }
+
+  return "All months";
 }
 
 function getNumberLengthLabel(prizeType: PatternPrizeValue) {
@@ -443,8 +495,12 @@ function isPatternPrizeValue(value: string | undefined): value is PatternPrizeVa
   return patternPrizeOptions.some((option) => option.value === value);
 }
 
-function isPatternWindowValue(value: number): value is PatternWindowValue {
+function isPatternWindowValue(value: string | undefined): value is PatternWindowValue {
   return patternWindowOptions.some((option) => option.value === value);
+}
+
+function isValidMonth(value: number) {
+  return Number.isInteger(value) && value >= 1 && value <= 12;
 }
 
 function toSearchParamRecord(

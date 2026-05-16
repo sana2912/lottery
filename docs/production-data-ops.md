@@ -19,7 +19,7 @@ Run these commands in order against `.env.development`:
 bun run db:migrate
 bun run db:generate
 bun run db:seed lottory-histoty
-bun run db:compute-stats
+bun run db:compute-analysis
 bun run db:audit
 bun run dev
 ```
@@ -29,7 +29,7 @@ Expected outcome:
 - Prisma schema is applied.
 - Generated Prisma client matches the current schema.
 - Historical draw data is present.
-- Materialized analytics snapshots are present.
+- Analysis snapshots are present for analytics, patterns, and calendar heatmaps.
 - `db:audit` prints a non-zero draw count, prize count, and snapshot counts.
 
 ## Local Refresh After Data Import
@@ -38,21 +38,21 @@ If you rerun the historical import or add new CSV data, refresh the derived laye
 
 ```bash
 bun run db:seed lottory-histoty
-bun run db:compute-stats
+bun run db:compute-analysis
 bun run db:audit
 ```
 
-If you know the affected date range and only want to refresh canonical contexts touched by that import:
+If you need to refresh one analysis context only:
 
 ```bash
-bun run db:compute-stats -- --startDate=2026-04-01 --endDate=2026-04-30
+bun run db:compute-analysis -- --prizeType=TWO_DIGIT --scope=ALL_TIME --windowPreset=50
 bun run db:audit
 ```
 
-If you need to refresh one canonical analytics context only:
+If you need to refresh one month-scoped analysis context only:
 
 ```bash
-bun run db:compute-stats -- --prizeType=TWO_DIGIT --windowSize=120
+bun run db:compute-analysis -- --prizeType=FIRST --scope=MONTH --month=5 --windowPreset=100
 bun run db:audit
 ```
 
@@ -66,8 +66,8 @@ bun run db:audit
 - draw source-status distribution
 - prediction run count
 - backtest run count
-- digit snapshot row count and latest `computedAt`
-- number snapshot row count and latest `computedAt`
+- analysis snapshot run count and latest `computedAt`
+- analysis digit/number/pattern/calendar row counts
 
 Use it after every seed/import or stats recompute step. If counts are unexpectedly zero or the latest draw date is stale, stop and inspect the import or compute step before continuing.
 
@@ -80,7 +80,7 @@ Recommended sequence:
 1. Apply database migrations.
 2. Generate the Prisma client in the build or release environment.
 3. Import draw data through a trusted operator task or one-off job.
-4. Recompute materialized stats.
+4. Recompute analysis snapshots.
 5. Run `db:audit`.
 6. Serve the application.
 
@@ -100,14 +100,14 @@ For production data refresh in a shell where `DATABASE_URL` is already injected,
 
 ```bash
 bun run db:migrate:prod
-bun scripts/compute-stats.ts
+bun scripts/compute-analysis.ts
 bun scripts/db-audit.ts
 ```
 
 If you need to use a secure env file outside version control, use `scripts/run-with-env.ts` instead of committing `.env.production`:
 
 ```bash
-bun run scripts/run-with-env.ts <secure-env-file> -- bun scripts/compute-stats.ts
+bun run scripts/run-with-env.ts <secure-env-file> -- bun scripts/compute-analysis.ts
 bun run scripts/run-with-env.ts <secure-env-file> -- bun scripts/db-audit.ts
 ```
 
@@ -120,9 +120,9 @@ If `db:seed` fails:
 - rerun seed
 - rerun `db:audit`
 
-If `db:compute-stats` fails:
+If `db:compute-analysis` fails:
 
-- rerun with a single context or incremental date range to isolate the problem
+- rerun with a single `prizeType`, `scope`, `month`, and `windowPreset` to isolate the problem
 - confirm snapshot counts with `db:audit`
 
 If `db:audit` reports stale or zero counts:

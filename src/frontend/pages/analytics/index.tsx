@@ -6,9 +6,12 @@ import {
   getAnalyticsPageData
 } from "@/frontend/pages/analytics/analytics.data";
 import {
+  analyticsMonthOptions,
   analyticsPrizeOptions,
+  analyticsScopeOptions,
   analyticsWindowOptions,
   buildAnalyticsHrefQuery,
+  buildAnalyticsScopeHrefQuery,
   buildAnalyticsViewModel
 } from "@/frontend/pages/analytics/analytics.mappers";
 import {
@@ -76,19 +79,59 @@ export async function AnalyticsPage({
 
             <div className="sm:col-span-2 xl:col-span-2">
               <p className="text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                {analyticsContent.filters.windowLabel}
+                Scope
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
-                {analyticsWindowOptions.map((windowSize) => (
+                {analyticsScopeOptions.map((option) => (
                   <Button
                     asChild
                     className="rounded-none"
-                    key={windowSize}
+                    key={option.value}
                     size="sm"
-                    variant={query.windowSize === windowSize ? "secondary" : "outline"}
+                    variant={query.scope === option.value ? "secondary" : "outline"}
                   >
-                    <Link href={buildAnalyticsHref(query, { page: 1, windowSize })}>
-                      {windowSize} draws
+                    <Link
+                      href={buildAnalyticsHref(query, buildAnalyticsScopeHrefQuery(option.value))}
+                    >
+                      {option.label}
+                    </Link>
+                  </Button>
+                ))}
+              </div>
+              {query.scope === "MONTH" ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {analyticsMonthOptions.map((option) => (
+                    <Button
+                      asChild
+                      className="rounded-none"
+                      key={option.value}
+                      size="sm"
+                      variant={query.month === option.value ? "secondary" : "ghost"}
+                    >
+                      <Link href={buildAnalyticsHref(query, { month: option.value, page: 1 })}>
+                        {option.label.slice(0, 3)}
+                      </Link>
+                    </Button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="sm:col-span-2 xl:col-span-2">
+              <p className="text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
+                {analyticsContent.filters.windowLabel}
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {analyticsWindowOptions.map((option) => (
+                  <Button
+                    asChild
+                    className="rounded-none"
+                    key={option.value}
+                    size="sm"
+                    variant={query.windowPreset === option.value ? "secondary" : "outline"}
+                  >
+                    <Link href={buildAnalyticsHref(query, { page: 1, windowPreset: option.value })}>
+                      {option.label}
                     </Link>
                   </Button>
                 ))}
@@ -120,8 +163,9 @@ export async function AnalyticsPage({
             />
             <MetricCard
               label={analyticsContent.metrics.windowSize}
-              value={`${view.context.windowSize} draws`}
+              value={view.context.windowLabel}
             />
+            <MetricCard label="Scope" value={view.context.scopeLabel} />
             <MetricCard
               label={analyticsContent.metrics.sampleSize}
               value={`${view.context.sampleSize} draws`}
@@ -224,7 +268,7 @@ function SixDigitAnalytics({
         </p>
         <Button asChild className="mt-4 rounded-none" size="sm" variant="outline">
           <Link
-            href={`/patterns?prizeType=${view.context.prizeType}&windowSize=${query.windowSize}`}
+            href={`/patterns?prizeType=${view.context.prizeType}&windowPreset=${view.context.windowPreset}&scope=${view.context.scope}${query.month ? `&month=${query.month}` : ""}`}
           >
             Explore deeper shape patterns
           </Link>

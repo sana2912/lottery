@@ -23,11 +23,23 @@ export interface ApiMonthlyInsight {
     position: number;
   }>;
   hotNumbers: string[];
-  month: number;
+  month?: number;
   label: string;
   sampleSize: number;
   summary: string;
-  prizeType?: "FIRST" | "PRIZE2" | "PRIZE3" | "PRIZE4" | "PRIZE5" | "NEAR_FIRST";
+  prizeType?:
+    | "FIRST"
+    | "THREE_DIGIT"
+    | "THREE_FRONT"
+    | "THREE_BACK"
+    | "TWO_DIGIT"
+    | "NEAR_FIRST"
+    | "PRIZE2"
+    | "PRIZE3"
+    | "PRIZE4"
+    | "PRIZE5";
+  scope?: "ALL_TIME" | "MONTH";
+  windowPreset?: "50" | "100" | "500" | "ALL";
   windowSize?: number;
   positionInsights: Array<{
     coldNumbers: Array<{

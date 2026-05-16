@@ -13,7 +13,32 @@ export const analyticsPrizeOptions = [
   { label: "รางวัลที่ 5", numberLength: 6, value: "PRIZE5" }
 ] as const;
 
-export const analyticsWindowOptions = [30, 60, 120] as const;
+export const analyticsWindowOptions = [
+  { label: "50 draws", value: "50" },
+  { label: "100 draws", value: "100" },
+  { label: "500 draws", value: "500" },
+  { label: "All draws", value: "ALL" }
+] as const;
+
+export const analyticsScopeOptions = [
+  { label: "All months", value: "ALL_TIME" },
+  { label: "Specific month", value: "MONTH" }
+] as const;
+
+export const analyticsMonthOptions = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December"
+].map((label, index) => ({ label, value: index + 1 }));
 
 export type AnalyticsNumberLength = 2 | 3 | 6;
 
@@ -24,6 +49,10 @@ export type AnalyticsViewModel = {
     prizeLabel: string;
     prizeType: string;
     sampleSize: number;
+    scope: NonNullable<FilterContext["scope"]>;
+    scopeLabel: string;
+    windowLabel: string;
+    windowPreset: NonNullable<FilterContext["windowPreset"]>;
     windowSize: number;
   };
   digitPositions: Array<{
@@ -80,6 +109,10 @@ export function buildAnalyticsViewModel(
       prizeLabel: getPrizeLabel(query.prizeType),
       prizeType: query.prizeType ?? "TWO_DIGIT",
       sampleSize: analytics.summary.drawCount,
+      scope: query.scope ?? "ALL_TIME",
+      scopeLabel: getScopeLabel(query),
+      windowLabel: getWindowLabel(query.windowPreset),
+      windowPreset: query.windowPreset ?? "50",
       windowSize: query.windowSize
     },
     digitPositions: getPositionDigitStats(filteredDigits, query.prizeType, numberLength),
@@ -127,11 +160,36 @@ export function buildAnalyticsHrefQuery(
   };
 }
 
+export function buildAnalyticsScopeHrefQuery(
+  scope: NonNullable<FilterContext["scope"]>
+): Partial<FilterContext> {
+  return {
+    month: scope === "MONTH" ? new Date().getUTCMonth() + 1 : undefined,
+    page: 1,
+    scope
+  };
+}
+
 export function getPrizeLabel(prizeType: FilterContext["prizeType"]) {
   return (
     analyticsPrizeOptions.find((option) => option.value === prizeType)?.label ??
     analyticsPrizeOptions[0].label
   );
+}
+
+function getWindowLabel(windowPreset: FilterContext["windowPreset"]) {
+  return (
+    analyticsWindowOptions.find((option) => option.value === windowPreset)?.label ??
+    analyticsWindowOptions[0].label
+  );
+}
+
+function getScopeLabel(query: FilterContext) {
+  if (query.scope === "MONTH" && query.month) {
+    return analyticsMonthOptions.find((option) => option.value === query.month)?.label ?? "Month";
+  }
+
+  return "All months";
 }
 
 function getNumberLength(query: FilterContext): AnalyticsNumberLength {
