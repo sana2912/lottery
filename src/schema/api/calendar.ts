@@ -37,8 +37,7 @@ export interface ApiMonthlyInsight {
     | "PRIZE2"
     | "PRIZE3"
     | "PRIZE4"
-    | "PRIZE5"
-    | "SIX_DIGIT_ALL";
+    | "PRIZE5";
   scope?: "ALL_TIME" | "MONTH";
   windowPreset?: "50" | "100" | "500" | "ALL";
   windowSize?: number;

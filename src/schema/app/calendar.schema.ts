@@ -1,17 +1,28 @@
 import { z } from "zod";
-import {
-  analysisPrizeTypeSchema,
-  analysisScopeSchema,
-  analysisWindowPresetSchema
-} from "@/schema/app/query.schema";
+import { analysisScopeSchema, analysisWindowPresetSchema } from "@/schema/app/query.schema";
 
-const calendarPrizeTypeSchema = analysisPrizeTypeSchema;
+const calendarPrizeTypeSchema = z.enum([
+  "FIRST",
+  "THREE_DIGIT",
+  "THREE_FRONT",
+  "THREE_BACK",
+  "TWO_DIGIT",
+  "NEAR_FIRST",
+  "PRIZE2",
+  "PRIZE3",
+  "PRIZE4",
+  "PRIZE5"
+]);
+const optionalCalendarPrizeTypeSchema = z.preprocess(
+  (value) => (value === "SIX_DIGIT_ALL" ? undefined : value),
+  calendarPrizeTypeSchema.optional()
+);
 
 export const calendarHeatmapToneSchema = z.enum(["hot", "warm", "neutral", "cool", "cold"]);
 
 export const calendarHeatmapQuerySchema = z.object({
   month: z.coerce.number().int().min(1).max(12).optional(),
-  prizeType: calendarPrizeTypeSchema.optional(),
+  prizeType: optionalCalendarPrizeTypeSchema,
   scope: analysisScopeSchema.optional(),
   windowPreset: analysisWindowPresetSchema.optional(),
   windowSize: z.coerce.number().int().min(1).max(500).optional()

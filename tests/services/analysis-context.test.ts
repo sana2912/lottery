@@ -114,7 +114,7 @@ describe("analysis context", () => {
       getAnalysisContextForCalendarQuery(
         {
           month: 4,
-          prizeType: "SIX_DIGIT_ALL",
+          prizeType: "PRIZE5",
           windowSize: 50
         },
         new Date("2026-05-12T00:00:00.000Z")
@@ -122,7 +122,7 @@ describe("analysis context", () => {
     ).toMatchObject({
       month: 4,
       numberLength: 6,
-      prizeType: "SIX_DIGIT_ALL",
+      prizeType: "PRIZE5",
       scope: "MONTH",
       windowPreset: "50"
     });

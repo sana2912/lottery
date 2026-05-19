@@ -1,8 +1,7 @@
 import { toApiCalendarReadModel } from "@/api/model/dto/calendar.dto";
 import {
   getAnalysisPrizeSourceTypes,
-  isAnalysisPrizeType,
-  isGroupedAnalysisPrizeType
+  isAnalysisPrizeType
 } from "@/api/service/analysis-snapshot/analysis-context";
 import type { AnalysisCalendarHeatmapReadModel } from "@/api/service/analysis-snapshot/calendar-heatmap-read-model";
 import { getAnalysisSnapshotCalendarReadModel } from "@/api/service/analysis-snapshot/snapshot-reader";
@@ -51,7 +50,6 @@ const DEFAULT_ANALYSIS_WINDOW_PRESET = "50";
 export async function getCalendarReadModel(query: CalendarHeatmapQuery = {}) {
   const prisma = getPrisma();
   const computedAt = new Date();
-  const useGroupedPrizeType = isGroupedAnalysisPrizeType(query.prizeType);
   const [nextPersistedDraw, recentDraws, cachedHeatmap] = await Promise.all([
     timeAsync("calendar.next draw query", () =>
       prisma.lotteryDraw.findFirst({
@@ -78,13 +76,11 @@ export async function getCalendarReadModel(query: CalendarHeatmapQuery = {}) {
         }
       })
     ),
-    useGroupedPrizeType
-      ? Promise.resolve(null)
-      : timeAsync("calendar.analysis snapshot lookup", () =>
-          getAnalysisSnapshotCalendarReadModel(query, computedAt)
-        )
+    timeAsync("calendar.analysis snapshot lookup", () =>
+      getAnalysisSnapshotCalendarReadModel(query, computedAt)
+    )
   ]);
-  const useSnapshot = Boolean(cachedHeatmap) && !useGroupedPrizeType;
+  const useSnapshot = Boolean(cachedHeatmap);
   const heatmapDraws = useSnapshot
     ? []
     : await timeAsync("calendar.heatmap draws query", () =>
@@ -132,7 +128,7 @@ export async function getCalendarReadModel(query: CalendarHeatmapQuery = {}) {
       ],
       generatedAt: computedAt,
       monthlyInsights: timeSync("calendar.monthly insights build", () =>
-        cachedHeatmap && !useGroupedPrizeType
+        cachedHeatmap
           ? [buildMonthlyInsightFromSnapshot(cachedHeatmap, query, computedAt)]
           : buildMonthlyInsights(heatmapDraws, query)
       ),
@@ -325,10 +321,6 @@ function getPrizeWhere(
 }
 
 function getCalendarPrizeTypes(prizeType: CalendarHeatmapQuery["prizeType"]) {
-  if (prizeType === "SIX_DIGIT_ALL") {
-    return [...getAnalysisPrizeSourceTypes(prizeType)];
-  }
-
   return [prizeType ?? "FIRST"];
 }
 
