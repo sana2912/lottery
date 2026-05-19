@@ -229,7 +229,10 @@ export async function recomputeAnalysisSnapshot(
                 ${summary.hitCount},
                 ${summary.frequencyPercent},
                 ${summary.sampleSize},
-                ${patternReadModel.overview.find((item) => item.id === summary.id)?.examples ?? []},
+                ${
+                  patternReadModel.overview.find((item) => item.pattern === summary.pattern)
+                    ?.examples ?? []
+                },
                 ${computedAt},
                 CURRENT_TIMESTAMP,
                 CURRENT_TIMESTAMP

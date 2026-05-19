@@ -5,6 +5,7 @@ import { recomputeAnalysisSnapshot } from "@/api/service/analysis-snapshot/compu
 import { buildOnDemandAnalysisReadModel } from "@/api/service/analysis-snapshot/on-demand-read-model";
 import { buildAnalysisPatternReadModel } from "@/api/service/analysis-snapshot/pattern-read-model";
 import { resolveAnalysisSample } from "@/api/service/analysis-snapshot/sample-resolver";
+import { getAnalysisSnapshotPatternReadModel } from "@/api/service/analysis-snapshot/snapshot-reader";
 import type { ApiAnalyticsReadModel } from "@/schema/api/analytics";
 
 afterEach(() => {
@@ -207,6 +208,71 @@ describe("analysis snapshot engine", () => {
     expect(model.summary.drawCount).toBe(2);
     expect(model.numberStats.map((stat) => stat.number)).toContain("09");
     expect(model.numberStats.every((stat) => stat.prizeType === "TWO_DIGIT")).toBe(true);
+  });
+
+  test("reads precomputed pattern snapshots without loading the full analytics payload", async () => {
+    const queryCalls: string[] = [];
+
+    (globalThis as { prisma?: unknown }).prisma = {
+      $queryRaw: async (...args: unknown[]) => {
+        const sql = getSqlText(args[0]);
+        queryCalls.push(sql);
+
+        return [
+          {
+            computedAt: new Date("2026-04-29T00:00:00.000Z"),
+            patternReadModel: {
+              distribution: [],
+              examples: [
+                {
+                  dna: "O/L E/L O/L E/L O/L E/L",
+                  flags: ["has_repeat"],
+                  number: "121212",
+                  prizeType: "SIX_DIGIT_ALL"
+                }
+              ],
+              overview: [
+                {
+                  examples: ["121212"],
+                  hitCount: 3,
+                  id: "has_repeat",
+                  label: "has_repeat",
+                  pattern: "has_repeat",
+                  percent: 100,
+                  sampleSize: 3
+                }
+              ],
+              sampleSize: 3
+            },
+            sampleDrawCount: 2,
+            samplePrizeCount: 3,
+            windowSize: 50
+          }
+        ];
+      }
+    };
+
+    const model = await getAnalysisSnapshotPatternReadModel({
+      lotteryType: "THAI_GOVERNMENT",
+      numberLength: 6,
+      page: 1,
+      pageSize: 20,
+      prizeType: "SIX_DIGIT_ALL",
+      scope: "ALL_TIME",
+      windowPreset: "50",
+      windowSize: 50
+    });
+
+    expect(queryCalls[0]).toContain('"patternReadModel"');
+    expect(queryCalls[0]).not.toContain('"analyticsReadModel"');
+    expect(model?.source).toBe("snapshot");
+    expect(model?.context).toMatchObject({
+      numberLength: 6,
+      prizeType: "SIX_DIGIT_ALL",
+      scope: "ALL_TIME",
+      windowPreset: "50"
+    });
+    expect(model?.pattern.sampleSize).toBe(3);
   });
 });
 

@@ -11,8 +11,10 @@ import {
 import type { AnalysisCalendarHeatmapReadModel } from "@/api/service/analysis-snapshot/calendar-heatmap-read-model";
 import { getPrisma } from "@/api/service/prisma";
 import type { ApiAnalyticsReadModel } from "@/schema/api/analytics";
+import type { ApiPatternsReadModel } from "@/schema/api/patterns";
 import { analyticsReadModelSchema } from "@/schema/app/analytics.schema";
 import type { CalendarHeatmapQuery } from "@/schema/app/calendar.schema";
+import { analysisPatternReadModelSchema } from "@/schema/app/patterns.schema";
 import type { FilterContext } from "@/schema/app/query.schema";
 
 type AnalysisSnapshotRow = {
@@ -22,6 +24,17 @@ type AnalysisSnapshotRow = {
   patternReadModel: unknown;
 };
 
+type AnalysisSnapshotAnalyticsRow = {
+  analyticsReadModel: unknown;
+};
+
+type AnalysisSnapshotPatternRow = {
+  computedAt: Date;
+  patternReadModel: unknown;
+  sampleDrawCount: number;
+  windowSize: number | null;
+};
+
 export async function getAnalysisSnapshotAnalyticsReadModel(query: FilterContext) {
   const context = getAnalysisContextForFilterQuery(query);
 
@@ -29,10 +42,48 @@ export async function getAnalysisSnapshotAnalyticsReadModel(query: FilterContext
     return null;
   }
 
-  const snapshot = await getAnalysisSnapshot(context);
+  const snapshot = await getAnalysisSnapshotAnalyticsRow(context);
   const parsed = analyticsReadModelSchema.safeParse(snapshot?.analyticsReadModel);
 
   return parsed.success ? (parsed.data satisfies ApiAnalyticsReadModel) : null;
+}
+
+export async function getAnalysisSnapshotPatternReadModel(
+  query: FilterContext
+): Promise<ApiPatternsReadModel | null> {
+  const context = getAnalysisContextForFilterQuery(query);
+
+  if (!context) {
+    return null;
+  }
+
+  const snapshot = await getAnalysisSnapshotPatternRow(context);
+  const parsed = analysisPatternReadModelSchema.safeParse(snapshot?.patternReadModel);
+
+  if (!snapshot || !parsed.success) {
+    return null;
+  }
+
+  const generatedAt = snapshot.computedAt.toISOString();
+
+  return {
+    context: {
+      lotteryType: context.lotteryType,
+      month: context.month,
+      numberLength: context.numberLength,
+      prizeType: context.prizeType,
+      scope: context.scope,
+      windowPreset: context.windowPreset,
+      windowSize: snapshot.windowSize ?? snapshot.sampleDrawCount
+    },
+    generatedAt,
+    pattern: parsed.data,
+    source: "snapshot",
+    summary: {
+      drawCount: snapshot.sampleDrawCount,
+      generatedAt
+    }
+  };
 }
 
 export async function getAnalysisSnapshotCalendarReadModel(query: CalendarHeatmapQuery, now: Date) {
@@ -104,6 +155,51 @@ export function getAnalysisContextForCalendarQuery(
     scope,
     windowPreset
   });
+}
+
+async function getAnalysisSnapshotAnalyticsRow(
+  context: AnalysisContext
+): Promise<AnalysisSnapshotAnalyticsRow | null> {
+  const prisma = getPrisma();
+  const contextKey = getAnalysisContextKey(context);
+
+  try {
+    const [snapshot] = await prisma.$queryRaw<AnalysisSnapshotAnalyticsRow[]>`
+      SELECT
+        "analyticsReadModel"
+      FROM "analysis_snapshot_runs"
+      WHERE "contextKey" = ${contextKey}
+      LIMIT 1
+    `;
+
+    return snapshot ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function getAnalysisSnapshotPatternRow(
+  context: AnalysisContext
+): Promise<AnalysisSnapshotPatternRow | null> {
+  const prisma = getPrisma();
+  const contextKey = getAnalysisContextKey(context);
+
+  try {
+    const [snapshot] = await prisma.$queryRaw<AnalysisSnapshotPatternRow[]>`
+      SELECT
+        "patternReadModel",
+        "sampleDrawCount",
+        "windowSize",
+        "computedAt"
+      FROM "analysis_snapshot_runs"
+      WHERE "contextKey" = ${contextKey}
+      LIMIT 1
+    `;
+
+    return snapshot ?? null;
+  } catch {
+    return null;
+  }
 }
 
 async function getAnalysisSnapshot(context: AnalysisContext): Promise<AnalysisSnapshotRow | null> {

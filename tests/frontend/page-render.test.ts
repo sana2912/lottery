@@ -1,6 +1,10 @@
 import { describe, expect, mock, test } from "bun:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import {
+  buildPatternReadModel,
+  parsePatternSearchParams
+} from "@/frontend/pages/patterns/patterns.mappers";
 
 mock.module("next/navigation", () => ({
   usePathname: () => "/patterns",
@@ -109,9 +113,15 @@ describe("page rendering", () => {
     "renders patterns page from analytics data and active filters",
     async () => {
       const { PatternsPage } = await import("@/frontend/pages/patterns");
+      const query = parsePatternSearchParams({ prizeType: "TWO_DIGIT", windowSize: "30" });
 
       const markup = renderToStaticMarkup(
         await PatternsPage({
+          pageData: {
+            model: buildPatternReadModel(analyticsModel(2, "TWO_DIGIT"), query),
+            query,
+            state: "ready"
+          },
           searchParams: { prizeType: "TWO_DIGIT", windowSize: "30" }
         })
       );

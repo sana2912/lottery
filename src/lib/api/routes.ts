@@ -5,6 +5,7 @@ export const apiRoutes = {
   compare: "/api/compare",
   dashboard: "/api/dashboard",
   draws: "/api/draws",
+  patterns: "/api/patterns",
   predictions: "/api/predictions",
   search: "/api/search",
   watchlist: "/api/watchlist"

@@ -23,6 +23,7 @@ import {
 } from "@/frontend/pages/calendar/calendar.mappers";
 import {
   buildPatternReadModel,
+  buildPatternReadModelFromSnapshot,
   parsePatternSearchParams,
   toPatternsAnalyticsQuery
 } from "@/frontend/pages/patterns/patterns.mappers";
@@ -478,6 +479,59 @@ describe("frontend logic helpers", () => {
       expect.arrayContaining(["odd_last_digit", "double", "mirror"])
     );
     expect(twoModel.windowLabel).toBe("50 draws");
+
+    const snapshotModel = buildPatternReadModelFromSnapshot(
+      {
+        context: {
+          lotteryType: "THAI_GOVERNMENT",
+          numberLength: 6,
+          prizeType: "SIX_DIGIT_ALL",
+          scope: "ALL_TIME",
+          windowPreset: "100",
+          windowSize: 100
+        },
+        generatedAt: "2026-04-29T00:00:00.000Z",
+        pattern: {
+          distribution: [
+            { id: "repeat", label: "Repeat shape", value: "Repeat digits: 6 of 6 records" }
+          ],
+          examples: [
+            {
+              dna: "O/H E/H E/L O/L E/H O/H",
+              flags: ["has_repeat", "mid_sum"],
+              number: "588367",
+              prizeType: "SIX_DIGIT_ALL"
+            }
+          ],
+          overview: [
+            {
+              examples: ["588367"],
+              hitCount: 6,
+              id: "has_repeat",
+              label: "has_repeat",
+              pattern: "has_repeat",
+              percent: 100,
+              sampleSize: 6
+            }
+          ],
+          sampleSize: 6
+        },
+        source: "snapshot",
+        summary: {
+          drawCount: 10,
+          generatedAt: "2026-04-29T00:00:00.000Z"
+        }
+      },
+      parsePatternSearchParams({
+        pattern: "has_repeat",
+        prizeType: "SIX_DIGIT_ALL",
+        windowPreset: "100"
+      })
+    );
+
+    expect(snapshotModel.drawCount).toBe(10);
+    expect(snapshotModel.overviewCards.find((card) => card.id === "has_repeat")?.value).toBe(6);
+    expect(snapshotModel.examples[0]?.flags).toContain("Has repeat");
   });
 
   test("results helpers map API models and query shapes", () => {

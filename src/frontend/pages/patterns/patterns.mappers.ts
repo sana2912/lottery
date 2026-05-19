@@ -5,6 +5,7 @@ import {
   type NumberShapeFlag
 } from "@/lib/app/number-shape";
 import type { AnalyticsReadModel, NumberStat } from "@/schema/app/analytics.schema";
+import type { AnalysisPatternReadModel, PatternsApiReadModel } from "@/schema/app/patterns.schema";
 import type { FilterContext } from "@/schema/app/query.schema";
 
 export const patternPrizeOptions = [
@@ -87,7 +88,9 @@ export type PatternPageQuery = {
 export type PatternReadModel = {
   activePattern?: string;
   distribution: PatternDistributionItem[];
+  drawCount: number;
   examples: PatternExample[];
+  generatedAt: string;
   numberLengthLabel: string;
   overviewCards: PatternOverviewCard[];
   playground: Array<{ id: string; label: string }>;
@@ -103,6 +106,7 @@ export type PatternReadModel = {
 };
 
 type PatternDefinition = {
+  flag: NumberShapeFlag;
   id: string;
   label: string;
   matches: (number: string) => boolean;
@@ -114,67 +118,153 @@ function matchesShape(flag: NumberShapeFlag) {
 }
 
 const patternDefinitions: PatternDefinition[] = [
-  { id: "odd_last_digit", label: "Odd last digit", matches: matchesShape("odd"), tone: "neutral" },
   {
+    flag: "odd",
+    id: "odd_last_digit",
+    label: "Odd last digit",
+    matches: matchesShape("odd"),
+    tone: "neutral"
+  },
+  {
+    flag: "even",
     id: "even_last_digit",
     label: "Even last digit",
     matches: matchesShape("even"),
     tone: "neutral"
   },
-  { id: "high_last_digit", label: "High last digit", matches: matchesShape("high"), tone: "hot" },
-  { id: "low_last_digit", label: "Low last digit", matches: matchesShape("low"), tone: "cold" },
-  { id: "double", label: "Double", matches: matchesShape("double"), tone: "overdue" },
-  { id: "has_repeat", label: "Has repeat", matches: matchesShape("has_repeat"), tone: "overdue" },
-  { id: "all_unique", label: "All unique", matches: matchesShape("all_unique"), tone: "success" },
   {
+    flag: "high",
+    id: "high_last_digit",
+    label: "High last digit",
+    matches: matchesShape("high"),
+    tone: "hot"
+  },
+  {
+    flag: "low",
+    id: "low_last_digit",
+    label: "Low last digit",
+    matches: matchesShape("low"),
+    tone: "cold"
+  },
+  {
+    flag: "double",
+    id: "double",
+    label: "Double",
+    matches: matchesShape("double"),
+    tone: "overdue"
+  },
+  {
+    flag: "has_repeat",
+    id: "has_repeat",
+    label: "Has repeat",
+    matches: matchesShape("has_repeat"),
+    tone: "overdue"
+  },
+  {
+    flag: "all_unique",
+    id: "all_unique",
+    label: "All unique",
+    matches: matchesShape("all_unique"),
+    tone: "success"
+  },
+  {
+    flag: "double_pair",
     id: "double_pair",
     label: "Double pair",
     matches: matchesShape("double_pair"),
     tone: "overdue"
   },
-  { id: "triple", label: "Triple", matches: matchesShape("triple"), tone: "warning" },
   {
+    flag: "triple",
+    id: "triple",
+    label: "Triple",
+    matches: matchesShape("triple"),
+    tone: "warning"
+  },
+  {
+    flag: "quad_or_more",
     id: "quad_or_more",
     label: "Quad or more",
     matches: matchesShape("quad_or_more"),
     tone: "warning"
   },
-  { id: "ascending", label: "Ascending", matches: matchesShape("ascending"), tone: "success" },
   {
+    flag: "ascending",
+    id: "ascending",
+    label: "Ascending",
+    matches: matchesShape("ascending"),
+    tone: "success"
+  },
+  {
+    flag: "descending",
     id: "descending",
     label: "Descending",
     matches: matchesShape("descending"),
     tone: "warning"
   },
   {
+    flag: "ascending_run",
     id: "ascending_run",
     label: "Ascending run",
     matches: matchesShape("ascending_run"),
     tone: "success"
   },
   {
+    flag: "descending_run",
     id: "descending_run",
     label: "Descending run",
     matches: matchesShape("descending_run"),
     tone: "warning"
   },
-  { id: "mirror", label: "Mirror / reverse", matches: matchesShape("mirror"), tone: "neutral" },
-  { id: "palindrome", label: "Palindrome", matches: matchesShape("palindrome"), tone: "neutral" },
   {
+    flag: "mirror",
+    id: "mirror",
+    label: "Mirror / reverse",
+    matches: matchesShape("mirror"),
+    tone: "neutral"
+  },
+  {
+    flag: "palindrome",
+    id: "palindrome",
+    label: "Palindrome",
+    matches: matchesShape("palindrome"),
+    tone: "neutral"
+  },
+  {
+    flag: "balanced_odd_even",
     id: "balanced_odd_even",
     label: "Odd/even balance",
     matches: matchesShape("balanced_odd_even"),
     tone: "success"
   },
   {
+    flag: "balanced_high_low",
     id: "balanced_high_low",
     label: "High/low balance",
     matches: matchesShape("balanced_high_low"),
     tone: "success"
   },
-  { id: "low_sum", label: "Low digit sum", matches: matchesShape("low_sum"), tone: "cold" },
-  { id: "mid_sum", label: "Mid digit sum", matches: matchesShape("mid_sum"), tone: "neutral" },
-  { id: "high_sum", label: "High digit sum", matches: matchesShape("high_sum"), tone: "hot" }
+  {
+    flag: "low_sum",
+    id: "low_sum",
+    label: "Low digit sum",
+    matches: matchesShape("low_sum"),
+    tone: "cold"
+  },
+  {
+    flag: "mid_sum",
+    id: "mid_sum",
+    label: "Mid digit sum",
+    matches: matchesShape("mid_sum"),
+    tone: "neutral"
+  },
+  {
+    flag: "high_sum",
+    id: "high_sum",
+    label: "High digit sum",
+    matches: matchesShape("high_sum"),
+    tone: "hot"
+  }
 ];
 
 const definitionIdsByLength = {
@@ -303,7 +393,9 @@ export function buildPatternReadModel(
   return {
     activePattern,
     distribution: getDistribution(stats, totalHits),
+    drawCount: analytics.summary.drawCount,
     examples,
+    generatedAt: analytics.generatedAt,
     numberLengthLabel: getNumberLengthLabel(query.prizeType),
     overviewCards,
     playground: definitions.map(({ id, label }) => ({ id, label })),
@@ -313,6 +405,86 @@ export function buildPatternReadModel(
     scope: query.scope,
     scopeLabel: getScopeLabel(query),
     totalHits,
+    windowLabel: getWindowLabel(query.windowPreset),
+    windowPreset: query.windowPreset,
+    windowSize: query.windowSize
+  };
+}
+
+export function buildPatternReadModelFromSnapshot(
+  snapshot: PatternsApiReadModel,
+  query: PatternPageQuery
+): PatternReadModel {
+  const definitions = getDefinitionsForStats(query);
+  const overviewByPattern = getSnapshotOverviewByPattern(snapshot.pattern);
+  const totalHits = snapshot.pattern.sampleSize;
+  const overviewCards = definitions.map((definition) => {
+    const overview = overviewByPattern.get(definition.flag) ?? overviewByPattern.get(definition.id);
+    const value = overview?.hitCount ?? 0;
+    const percent = totalHits > 0 ? round((value / totalHits) * 100) : 0;
+    const examples = overview?.examples.slice(0, 3) ?? [];
+
+    return {
+      examples,
+      id: definition.id,
+      label: definition.label,
+      percent,
+      summary: getHumanSummary(
+        definition.label,
+        value,
+        totalHits,
+        percent,
+        query.windowPreset,
+        examples
+      ),
+      tone: definition.tone,
+      total: totalHits,
+      value
+    };
+  });
+  const activePattern = overviewCards.some((card) => card.id === query.pattern)
+    ? query.pattern
+    : undefined;
+
+  return {
+    activePattern,
+    distribution: snapshot.pattern.distribution,
+    drawCount: snapshot.summary.drawCount,
+    examples: getSnapshotExamples(snapshot.pattern, definitions, activePattern),
+    generatedAt: snapshot.generatedAt,
+    numberLengthLabel: getNumberLengthLabel(query.prizeType),
+    overviewCards,
+    playground: definitions.map(({ id, label }) => ({ id, label })),
+    prizeLabel: getPrizeLabel(query.prizeType),
+    prizeType: query.prizeType,
+    sampleSize: totalHits,
+    scope: query.scope,
+    scopeLabel: getScopeLabel(query),
+    totalHits,
+    windowLabel: getWindowLabel(query.windowPreset),
+    windowPreset: query.windowPreset,
+    windowSize: query.windowSize
+  };
+}
+
+export function buildEmptyPatternReadModel(query: PatternPageQuery): PatternReadModel {
+  const generatedAt = new Date().toISOString();
+
+  return {
+    activePattern: undefined,
+    distribution: [],
+    drawCount: 0,
+    examples: [],
+    generatedAt,
+    numberLengthLabel: getNumberLengthLabel(query.prizeType),
+    overviewCards: [],
+    playground: getDefinitionsForStats(query).map(({ id, label }) => ({ id, label })),
+    prizeLabel: getPrizeLabel(query.prizeType),
+    prizeType: query.prizeType,
+    sampleSize: 0,
+    scope: query.scope,
+    scopeLabel: getScopeLabel(query),
+    totalHits: 0,
     windowLabel: getWindowLabel(query.windowPreset),
     windowPreset: query.windowPreset,
     windowSize: query.windowSize
@@ -432,6 +604,93 @@ function getDistribution(
     }
   ];
 }
+
+function getSnapshotOverviewByPattern(snapshot: AnalysisPatternReadModel) {
+  const overviewByPattern = new Map<string, AnalysisPatternReadModel["overview"][number]>();
+
+  for (const overview of snapshot.overview) {
+    overviewByPattern.set(normalizeSnapshotPatternId(overview.pattern ?? overview.id), overview);
+  }
+
+  return overviewByPattern;
+}
+
+function getSnapshotExamples(
+  snapshot: AnalysisPatternReadModel,
+  definitions: readonly PatternDefinition[],
+  activePattern?: string
+): PatternExample[] {
+  const activeDefinition = definitions.find((definition) => definition.id === activePattern);
+  const definitionByFlag = new Map(definitions.map((definition) => [definition.flag, definition]));
+  const snapshotExamples = activeDefinition
+    ? snapshot.examples.filter((example) => example.flags.includes(activeDefinition.flag))
+    : snapshot.examples;
+  const examples = snapshotExamples.map((example) =>
+    toPatternExampleFromSnapshot(example, definitions, definitionByFlag)
+  );
+
+  if (!activeDefinition || examples.length >= 12) {
+    return uniquePatternExamples(examples).slice(0, 12);
+  }
+
+  const overviewByPattern = getSnapshotOverviewByPattern(snapshot);
+  const overviewExamples =
+    overviewByPattern.get(activeDefinition.flag)?.examples ??
+    overviewByPattern.get(activeDefinition.id)?.examples ??
+    [];
+  const supplementalExamples = overviewExamples.map((number) => ({
+    dna: getMiniDna(number),
+    flags: definitions
+      .filter((definition) => definition.matches(number))
+      .slice(0, 4)
+      .map((definition) => definition.label),
+    number,
+    prizeType: snapshot.examples[0]?.prizeType ?? ""
+  }));
+
+  return uniquePatternExamples([...examples, ...supplementalExamples]).slice(0, 12);
+}
+
+function toPatternExampleFromSnapshot(
+  example: AnalysisPatternReadModel["examples"][number],
+  definitions: readonly PatternDefinition[],
+  definitionByFlag: ReadonlyMap<NumberShapeFlag, PatternDefinition>
+): PatternExample {
+  const labels = example.flags
+    .map((flag) => definitionByFlag.get(flag)?.label)
+    .filter((label): label is string => Boolean(label));
+  const fallbackLabels = definitions
+    .filter((definition) => definition.matches(example.number))
+    .slice(0, 4)
+    .map((definition) => definition.label);
+
+  return {
+    dna: example.dna,
+    flags: labels.length > 0 ? labels.slice(0, 4) : fallbackLabels,
+    number: example.number,
+    prizeType: example.prizeType
+  };
+}
+
+function uniquePatternExamples(examples: readonly PatternExample[]) {
+  const seen = new Set<string>();
+
+  return examples.filter((example) => {
+    const key = `${example.prizeType}-${example.number}`;
+
+    if (seen.has(key)) {
+      return false;
+    }
+
+    seen.add(key);
+    return true;
+  });
+}
+
+function normalizeSnapshotPatternId(value: string) {
+  return value.startsWith("pattern-") ? value.slice("pattern-".length) : value;
+}
+
 function getHumanSummary(
   label: string,
   value: number,

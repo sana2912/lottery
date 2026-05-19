@@ -1,32 +1,10 @@
 import { getDigitSum, getMiniDna } from "@/lib/app/number-shape";
 import type { ApiAnalyticsReadModel, ApiNumberStat, ApiPatternFlag } from "@/schema/api/analytics";
-
-export type AnalysisPatternReadModel = {
-  distribution: Array<{
-    id: string;
-    label: string;
-    value: string;
-  }>;
-  examples: Array<{
-    dna: string;
-    flags: ApiPatternFlag[];
-    number: string;
-    prizeType: string;
-  }>;
-  overview: Array<{
-    examples: string[];
-    hitCount: number;
-    id: string;
-    label: string;
-    percent: number;
-    sampleSize: number;
-  }>;
-  sampleSize: number;
-};
+import type { ApiAnalysisPatternReadModel } from "@/schema/api/patterns";
 
 export function buildAnalysisPatternReadModel(
   analytics: ApiAnalyticsReadModel
-): AnalysisPatternReadModel {
+): ApiAnalysisPatternReadModel {
   const stats = analytics.numberStats;
   const sampleSize = getTotalHits(stats);
 
@@ -41,8 +19,9 @@ export function buildAnalysisPatternReadModel(
     overview: analytics.patternSummaries.map((summary) => ({
       examples: getPatternExamples(stats, summary.pattern),
       hitCount: summary.hitCount,
-      id: summary.id,
+      id: summary.pattern,
       label: summary.label,
+      pattern: summary.pattern,
       percent: summary.frequencyPercent,
       sampleSize: summary.sampleSize
     })),
@@ -56,6 +35,13 @@ function buildPatternDistribution(stats: readonly ApiNumberStat[], totalHits: nu
   const balancedOddEvenCount = getFlagHitCount(stats, "balanced_odd_even");
   const balancedHighLowCount = getFlagHitCount(stats, "balanced_high_low");
   const digitSums = stats.map((stat) => getDigitSum(stat.number));
+  const averageUniqueDigits =
+    totalHits > 0
+      ? round(
+          stats.reduce((total, stat) => total + new Set([...stat.number]).size * stat.hitCount, 0) /
+            totalHits
+        )
+      : 0;
 
   return [
     {
@@ -82,6 +68,11 @@ function buildPatternDistribution(stats: readonly ApiNumberStat[], totalHits: nu
       id: "sum-range",
       label: "Digit sum range",
       value: digitSums.length > 0 ? `${Math.min(...digitSums)} to ${Math.max(...digitSums)}` : "-"
+    },
+    {
+      id: "unique-distribution",
+      label: "Unique digit distribution",
+      value: `${averageUniqueDigits} unique digits on average`
     }
   ];
 }
@@ -102,5 +93,9 @@ function getTotalHits(stats: readonly ApiNumberStat[]) {
 }
 
 function getPercent(value: number, total: number) {
-  return total > 0 ? Math.round((value / total) * 10_000) / 100 : 0;
+  return total > 0 ? round((value / total) * 100) : 0;
+}
+
+function round(value: number) {
+  return Math.round(value * 100) / 100;
 }

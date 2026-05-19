@@ -5,6 +5,7 @@ import { calendarRouter } from "@/api/router/calendar.router";
 import { compareRouter } from "@/api/router/compare.router";
 import { dashboardRouter } from "@/api/router/dashboard.router";
 import { drawRouter } from "@/api/router/draw.router";
+import { patternsRouter } from "@/api/router/patterns.router";
 import { predictionRouter } from "@/api/router/prediction.router";
 import { searchRouter } from "@/api/router/search.router";
 import { watchlistRouter } from "@/api/router/watchlist.router";
@@ -17,6 +18,7 @@ export function createApiRouter() {
     }))
     .use(drawRouter)
     .use(analyticsRouter)
+    .use(patternsRouter)
     .use(predictionRouter)
     .use(backtestRouter)
     .use(compareRouter)
