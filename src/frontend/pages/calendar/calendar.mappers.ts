@@ -27,7 +27,8 @@ const CALENDAR_PRIZE_TYPE_OPTIONS = [
   { label: "Prize 2", value: "PRIZE2" },
   { label: "Prize 3", value: "PRIZE3" },
   { label: "Prize 4", value: "PRIZE4" },
-  { label: "Prize 5", value: "PRIZE5" }
+  { label: "Prize 5", value: "PRIZE5" },
+  { label: "รวมรางวัล 6 หลักทั้งหมด", value: "SIX_DIGIT_ALL" }
 ] as const;
 
 const CALENDAR_SCOPE_OPTIONS = [

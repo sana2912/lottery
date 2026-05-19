@@ -37,13 +37,48 @@ describe("analysis snapshot engine", () => {
       })
     );
 
-    expect(queryCalls[0]).toContain('prize."type" =');
+    expect(queryCalls[0]).toContain('prize."type" IN');
     expect(queryCalls[0]).toContain("EXTRACT(MONTH");
     expect(queryCalls[1]).toContain('prize."drawId" IN');
     expect(sample.drawCount).toBe(2);
     expect(sample.prizeCount).toBe(3);
     expect(sample.invalidPrizeCount).toBe(1);
     expect(sample.prizes.map((prize) => prize.number)).toEqual(["09", "11", "22"]);
+  });
+
+  test("resolves grouped six-digit samples from all six-digit prize sources", async () => {
+    const queryCalls: string[] = [];
+
+    (globalThis as { prisma?: unknown }).prisma = {
+      $queryRaw: async (...args: unknown[]) => {
+        const sql = getSqlText(args[0]);
+        queryCalls.push(sql);
+
+        if (sql.includes("SELECT DISTINCT")) {
+          return drawRows();
+        }
+
+        return sixDigitPrizeRows();
+      }
+    };
+
+    const sample = await resolveAnalysisSample(
+      createAnalysisContext({
+        prizeType: "SIX_DIGIT_ALL",
+        scope: "ALL_TIME",
+        windowPreset: "50"
+      })
+    );
+
+    expect(queryCalls[0]).toContain('prize."type" IN');
+    expect(sample.prizeCount).toBe(3);
+    expect(sample.invalidPrizeCount).toBe(1);
+    expect(sample.prizes.map((prize) => prize.type)).toEqual([
+      "SIX_DIGIT_ALL",
+      "SIX_DIGIT_ALL",
+      "SIX_DIGIT_ALL"
+    ]);
+    expect(sample.prizes.map((prize) => prize.number)).toEqual(["123456", "654321", "222222"]);
   });
 
   test("builds pattern and calendar read models from the same sample shape", () => {
@@ -203,14 +238,57 @@ function prizeRows() {
   ];
 }
 
+function sixDigitPrizeRows() {
+  return [
+    prizeRowWithType(
+      "00000000-0000-7000-8000-000000000001",
+      "2026-04-01T00:00:00.000Z",
+      "123456",
+      1,
+      "FIRST"
+    ),
+    prizeRowWithType(
+      "00000000-0000-7000-8000-000000000001",
+      "2026-04-01T00:00:00.000Z",
+      "654321",
+      1,
+      "PRIZE2"
+    ),
+    prizeRowWithType(
+      "00000000-0000-7000-8000-000000000002",
+      "2026-04-16T00:00:00.000Z",
+      "222222",
+      2,
+      "PRIZE5"
+    ),
+    prizeRowWithType(
+      "00000000-0000-7000-8000-000000000002",
+      "2026-04-16T00:00:00.000Z",
+      "1234567",
+      1,
+      "FIRST"
+    )
+  ];
+}
+
 function prizeRow(drawId: string, drawDate: string, number: string, position: number) {
+  return prizeRowWithType(drawId, drawDate, number, position, "TWO_DIGIT");
+}
+
+function prizeRowWithType(
+  drawId: string,
+  drawDate: string,
+  number: string,
+  position: number,
+  type: string
+) {
   return {
     drawDate: new Date(drawDate),
     drawId,
     lotteryType: "THAI_GOVERNMENT",
     number,
     position,
-    type: "TWO_DIGIT"
+    type
   };
 }
 

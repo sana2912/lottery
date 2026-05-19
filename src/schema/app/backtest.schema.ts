@@ -4,9 +4,11 @@ import {
   predictionScoreBreakdownSchema,
   predictionStrategyIdSchema
 } from "@/schema/app/prediction.schema";
-import { filterContextSchema } from "@/schema/app/query.schema";
+import { lotteryFilterContextSchema, lotteryPrizeTypeSchema } from "@/schema/app/query.schema";
 
-export const backtestRequestSchema = filterContextSchema.extend({
+const backtestPrizeTypeSchema = lotteryPrizeTypeSchema.exclude(["OTHER"]);
+
+export const backtestRequestSchema = lotteryFilterContextSchema.extend({
   strategyId: predictionStrategyIdSchema.optional().default("balanced"),
   candidateCount: z.coerce.number().int().min(1).max(20).default(5),
   targetDrawCount: z.coerce.number().int().min(1).max(500).default(30),
@@ -14,6 +16,7 @@ export const backtestRequestSchema = filterContextSchema.extend({
     .number()
     .pipe(z.union([z.literal(2), z.literal(3), z.literal(6)]))
     .default(2),
+  prizeType: backtestPrizeTypeSchema.optional(),
   params: z.record(z.string(), z.unknown()).optional().default({})
 });
 

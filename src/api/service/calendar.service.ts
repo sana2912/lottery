@@ -1,4 +1,8 @@
 import { toApiCalendarReadModel } from "@/api/model/dto/calendar.dto";
+import {
+  getAnalysisPrizeSourceTypes,
+  isAnalysisPrizeType
+} from "@/api/service/analysis-snapshot/analysis-context";
 import type { AnalysisCalendarHeatmapReadModel } from "@/api/service/analysis-snapshot/calendar-heatmap-read-model";
 import { getAnalysisSnapshotCalendarReadModel } from "@/api/service/analysis-snapshot/snapshot-reader";
 import {
@@ -9,6 +13,7 @@ import {
   sortPositionHeatmapCells
 } from "@/api/service/analytics/position-heatmap";
 import { getPrisma } from "@/api/service/prisma";
+import type { LotteryPrizeWhereInput } from "@/generated/prisma/models/LotteryPrize";
 import type { CalendarHeatmapQuery } from "@/schema/app/calendar.schema";
 
 const MONTH_LABELS = [
@@ -81,11 +86,7 @@ export async function getCalendarReadModel(query: CalendarHeatmapQuery = {}) {
         prisma.lotteryDraw.findMany({
           include: {
             prizes: {
-              where: query.prizeType
-                ? {
-                    type: query.prizeType
-                  }
-                : undefined
+              where: getPrizeWhere(query.prizeType)
             }
           },
           orderBy: {
@@ -292,6 +293,25 @@ function getPrizeNumberLength(prizeType: NonNullable<CalendarHeatmapQuery["prize
     default:
       return 6;
   }
+}
+
+function getPrizeWhere(
+  prizeType: CalendarHeatmapQuery["prizeType"]
+): LotteryPrizeWhereInput | undefined {
+  if (!prizeType || !isAnalysisPrizeType(prizeType)) {
+    return undefined;
+  }
+
+  const sourcePrizeTypes = getAnalysisPrizeSourceTypes(prizeType);
+  const sourcePrizeType = sourcePrizeTypes[0];
+
+  if (!sourcePrizeType) {
+    return undefined;
+  }
+
+  return sourcePrizeTypes.length > 1
+    ? { type: { in: [...sourcePrizeTypes] } }
+    : { type: sourcePrizeType };
 }
 
 function getCellForDigit(row: HeatmapRow, digit: string) {

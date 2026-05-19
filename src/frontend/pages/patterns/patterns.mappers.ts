@@ -17,7 +17,8 @@ export const patternPrizeOptions = [
   { label: "PRIZE2", value: "PRIZE2" },
   { label: "PRIZE3", value: "PRIZE3" },
   { label: "PRIZE4", value: "PRIZE4" },
-  { label: "PRIZE5", value: "PRIZE5" }
+  { label: "PRIZE5", value: "PRIZE5" },
+  { label: "รวมรางวัล 6 หลักทั้งหมด", value: "SIX_DIGIT_ALL" }
 ] as const;
 
 export const patternWindowOptions = [
@@ -466,6 +467,7 @@ function getPrizeNumberLength(prizeType: PatternPrizeValue): 2 | 3 | 6 {
     case "PRIZE3":
     case "PRIZE4":
     case "PRIZE5":
+    case "SIX_DIGIT_ALL":
       return 6;
   }
 }

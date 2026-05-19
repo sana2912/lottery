@@ -18,7 +18,7 @@ Run these commands in order against `.env.development`:
 ```bash
 bun run db:migrate
 bun run db:generate
-bun run db:seed lottory-histoty
+bun run db:seed
 bun run db:compute-analysis
 bun run db:audit
 bun run dev
@@ -37,10 +37,12 @@ Expected outcome:
 If you rerun the historical import or add new CSV data, refresh the derived layers after import:
 
 ```bash
-bun run db:seed lottory-histoty
+bun run db:seed
 bun run db:compute-analysis
 bun run db:audit
 ```
+
+`db:seed` defaults to the committed CSV history directory `lottory-histoty`. Pass a path only when importing a different JSON, CSV, or CSV directory.
 
 If you need to refresh one analysis context only:
 

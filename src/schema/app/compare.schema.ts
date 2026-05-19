@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { predictionStrategyIdSchema } from "@/schema/app/prediction.schema";
-import { filterContextSchema } from "@/schema/app/query.schema";
+import { lotteryFilterContextSchema, lotteryPrizeTypeSchema } from "@/schema/app/query.schema";
+
+const comparePrizeTypeSchema = lotteryPrizeTypeSchema.exclude(["OTHER"]);
 
 export const scoreBreakdownSchema = z.object({
   hot: z.number(),
@@ -10,12 +12,13 @@ export const scoreBreakdownSchema = z.object({
   pattern: z.number()
 });
 
-export const compareRequestSchema = filterContextSchema.extend({
+export const compareRequestSchema = lotteryFilterContextSchema.extend({
   numbers: z.array(z.string().trim().min(1)).min(1).max(20),
   numberLength: z.coerce
     .number()
     .pipe(z.union([z.literal(2), z.literal(3), z.literal(6)]))
     .default(2),
+  prizeType: comparePrizeTypeSchema.optional(),
   strategyId: predictionStrategyIdSchema.optional().default("balanced")
 });
 

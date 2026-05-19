@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+  buildAnalyticsViewModel,
   getTopDigits,
   getTopNumbers,
   toDigitHeatmapCells,
@@ -101,6 +102,39 @@ describe("frontend logic helpers", () => {
       label: "00",
       value: 0.25
     });
+    const sampleNumberStat = analytics.numberStats[0];
+
+    if (!sampleNumberStat) {
+      throw new Error("Expected analytics fixture to include one number stat.");
+    }
+
+    expect(
+      buildAnalyticsViewModel(
+        {
+          ...analytics,
+          digitStats: analytics.digitStats.map((stat) => ({
+            ...stat,
+            prizeType: "SIX_DIGIT_ALL"
+          })),
+          numberStats: [
+            {
+              ...sampleNumberStat,
+              number: "123456",
+              numberLength: 6,
+              prizeType: "SIX_DIGIT_ALL"
+            }
+          ]
+        },
+        {
+          lotteryType: "THAI_GOVERNMENT",
+          numberLength: 6,
+          page: 1,
+          pageSize: 20,
+          prizeType: "SIX_DIGIT_ALL",
+          windowSize: 50
+        }
+      ).context.numberLength
+    ).toBe(6);
   });
 
   test("backtest mappers shape payloads and history consistently", () => {

@@ -1,5 +1,6 @@
 import {
   type AnalysisContext,
+  getAnalysisPrizeSourceTypes,
   getAnalysisWindowLimit
 } from "@/api/service/analysis-snapshot/analysis-context";
 import { getPrisma } from "@/api/service/prisma";
@@ -66,7 +67,7 @@ export async function resolveAnalysisSample(context: AnalysisContext): Promise<A
     drawId: row.drawId,
     number: row.number,
     position: row.position,
-    type: row.type
+    type: context.prizeType
   }));
   const validPrizes = prizes.filter((prize) => prize.number.length === context.numberLength);
   const drawTimes = drawRows
@@ -85,6 +86,7 @@ export async function resolveAnalysisSample(context: AnalysisContext): Promise<A
 
 async function getAnalysisDrawRows(prisma: ReturnType<typeof getPrisma>, context: AnalysisContext) {
   const limit = getAnalysisWindowLimit(context.windowPreset);
+  const sourcePrizeTypes = getSourcePrizeTypeSql(context);
   const rows = await prisma.$queryRaw<DrawRow[]>`
     SELECT DISTINCT
       draw."_id"::text AS "id",
@@ -95,7 +97,7 @@ async function getAnalysisDrawRows(prisma: ReturnType<typeof getPrisma>, context
       ON prize."drawId" = draw."_id"
     WHERE
       draw."lotteryType" = ${context.lotteryType}::"LotteryType"
-      AND prize."type" = ${context.prizeType}::"LotteryPrizeType"
+      AND prize."type" IN (${sourcePrizeTypes})
       AND draw."drawDate" <= ${new Date()}
       AND (${context.scope} <> 'MONTH' OR EXTRACT(MONTH FROM draw."drawDate") = ${context.month ?? 0})
     ORDER BY draw."drawDate" DESC
@@ -110,6 +112,8 @@ async function getAnalysisPrizeRows(
   context: AnalysisContext,
   drawIds: readonly string[]
 ) {
+  const sourcePrizeTypes = getSourcePrizeTypeSql(context);
+
   return prisma.$queryRaw<PrizeRow[]>`
     SELECT
       prize."drawId"::text AS "drawId",
@@ -123,7 +127,15 @@ async function getAnalysisPrizeRows(
       ON draw."_id" = prize."drawId"
     WHERE
       prize."drawId" IN (${Prisma.join(drawIds.map((id) => Prisma.sql`${id}::uuid`))})
-      AND prize."type" = ${context.prizeType}::"LotteryPrizeType"
+      AND prize."type" IN (${sourcePrizeTypes})
     ORDER BY draw."drawDate" ASC, COALESCE(prize."position", 0) ASC, prize."number" ASC
   `;
+}
+
+function getSourcePrizeTypeSql(context: AnalysisContext) {
+  return Prisma.join(
+    getAnalysisPrizeSourceTypes(context.prizeType).map(
+      (prizeType) => Prisma.sql`${prizeType}::"LotteryPrizeType"`
+    )
+  );
 }

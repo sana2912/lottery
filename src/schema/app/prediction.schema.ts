@@ -6,6 +6,7 @@ import {
 } from "@/schema/app/query.schema";
 
 export const predictionStrategyIdSchema = z.enum(["balanced", "coldRebound", "hotTrend"]);
+export const predictionPrizeTypeSchema = lotteryPrizeTypeSchema.exclude(["OTHER"]);
 
 export const predictionScoreBreakdownSchema = z.object({
   hot: z.number(),
@@ -30,7 +31,7 @@ export const predictionRequestSchema = z.object({
   count: z.coerce.number().int().min(1).max(20).optional().default(5),
   lotteryType: lotteryTypeSchema.optional().default("THAI_GOVERNMENT"),
   numberLength: z.coerce.number().pipe(numberLengthSchema).optional().default(2),
-  prizeType: lotteryPrizeTypeSchema.optional().default("TWO_DIGIT"),
+  prizeType: predictionPrizeTypeSchema.optional().default("TWO_DIGIT"),
   strategyId: predictionStrategyIdSchema.optional().default("balanced"),
   windowSize: z.coerce.number().int().min(1).max(2000).optional().default(120)
 });

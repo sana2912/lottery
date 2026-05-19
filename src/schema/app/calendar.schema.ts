@@ -1,11 +1,11 @@
 import { z } from "zod";
 import {
+  analysisPrizeTypeSchema,
   analysisScopeSchema,
-  analysisWindowPresetSchema,
-  lotteryPrizeTypeSchema
+  analysisWindowPresetSchema
 } from "@/schema/app/query.schema";
 
-const calendarPrizeTypeSchema = lotteryPrizeTypeSchema.exclude(["OTHER"]);
+const calendarPrizeTypeSchema = analysisPrizeTypeSchema;
 
 export const calendarHeatmapToneSchema = z.enum(["hot", "warm", "neutral", "cool", "cold"]);
 

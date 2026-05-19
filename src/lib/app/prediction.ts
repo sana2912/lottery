@@ -1,9 +1,11 @@
 import type { ApiLotteryPrizeType } from "@/schema/api/query";
 
+type PredictionPrizeType = Exclude<ApiLotteryPrizeType, "OTHER">;
+
 export type PredictionPrizeOption = {
   label: string;
   numberLength: 2 | 3 | 6;
-  value: ApiLotteryPrizeType;
+  value: PredictionPrizeType;
 };
 
 export const predictionPrizeOptions = [
@@ -16,8 +18,7 @@ export const predictionPrizeOptions = [
   { label: "Three digit", numberLength: 3, value: "THREE_DIGIT" },
   { label: "Three front", numberLength: 3, value: "THREE_FRONT" },
   { label: "Three back", numberLength: 3, value: "THREE_BACK" },
-  { label: "Two digit", numberLength: 2, value: "TWO_DIGIT" },
-  { label: "Other", numberLength: 6, value: "OTHER" }
+  { label: "Two digit", numberLength: 2, value: "TWO_DIGIT" }
 ] satisfies ReadonlyArray<PredictionPrizeOption>;
 
 export function getPredictionNumberLength(prizeType: ApiLotteryPrizeType): 2 | 3 | 6 {

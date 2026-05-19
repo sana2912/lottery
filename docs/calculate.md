@@ -57,6 +57,53 @@ FIRST / NEAR_FIRST / PRIZE2 / PRIZE3 / PRIZE4 / PRIZE5 = 6 หลัก
 
 code: `src/lib/app/prediction.ts:9`, `src/lib/app/prediction.ts:23`
 
+### `SIX_DIGIT_ALL`
+
+`SIX_DIGIT_ALL` ไม่ใช่รางวัลจริงในตารางหวยดิบ แต่เป็น prize type ระดับ analysis ที่ใช้กับหน้า `/analytics`, `/patterns`, และ `/calendar`
+
+หน้าที่ของมันคือรวมรางวัล 6 หลักทุกกลุ่มเข้าด้วยกัน:
+
+```text
+SIX_DIGIT_ALL =
+  FIRST
+  + NEAR_FIRST
+  + PRIZE2
+  + PRIZE3
+  + PRIZE4
+  + PRIZE5
+```
+
+ตัวอย่างแบบบ้าน ๆ:
+
+```text
+windowPreset = 50
+scope = ALL_TIME
+prizeType = SIX_DIGIT_ALL
+```
+
+แปลว่า:
+
+1. เลือก 50 งวดล่าสุดที่มีรางวัล 6 หลักอย่างน้อยหนึ่งตัว
+2. ดึงเลขจาก `FIRST`, `NEAR_FIRST`, `PRIZE2`, `PRIZE3`, `PRIZE4`, `PRIZE5` ของงวดเหล่านั้นทั้งหมด
+3. ตัดเลขที่ความยาวไม่ใช่ 6 หลักออก เช่นข้อมูลเก่าที่ first prize เป็น 7 หลัก
+4. map `type` ของเลขเหล่านั้นให้เป็น `SIX_DIGIT_ALL`
+5. ค่อยเอาไปคำนวณ digit position, number frequency, pattern, และ calendar heatmap เหมือน prize type อื่น
+
+เหตุผลที่ไม่เพิ่ม `SIX_DIGIT_ALL` ลง raw enum `LotteryPrizeType`:
+
+- มันไม่ใช่รางวัลจริง
+- raw result page ต้องยังแสดงรางวัลตามประเภทจริง
+- analysis snapshot เท่านั้นที่ต้องรู้จักกลุ่มนี้
+
+ไฟล์หลัก:
+
+- `src/api/service/analysis-snapshot/analysis-context.ts:5`
+- `src/api/service/analysis-snapshot/sample-resolver.ts:1`
+- `src/api/service/analysis-snapshot/compute-analysis-snapshot.ts:1`
+- `prisma/schema.prisma:139`
+
+หลังเปลี่ยน logic กลุ่มนี้ ต้องรัน migration และ recompute snapshot ใหม่ เพราะข้อมูลใน `analysis_snapshot_runs` เป็น precomputed read model
+
 ## 1. Digit Events
 
 ไฟล์หลัก:
@@ -1175,6 +1222,26 @@ numberLength ต้องตรงกับ prizeType
 catalog:
 
 `src/api/service/analysis-snapshot/analysis-context.ts`
+
+`ANALYSIS_PRIZE_TYPES` ตอนนี้มี `SIX_DIGIT_ALL` ด้วย โดยเป็น grouped analysis prize type ไม่ใช่ raw lottery prize type
+
+เวลาคำนวณ `SIX_DIGIT_ALL`, `sample-resolver` จะ resolve source prize types แบบนี้:
+
+```text
+SIX_DIGIT_ALL -> FIRST, NEAR_FIRST, PRIZE2, PRIZE3, PRIZE4, PRIZE5
+```
+
+แล้วค่อย normalize prize type ใน read model เป็น `SIX_DIGIT_ALL` เพื่อให้ `/analytics`, `/patterns`, และ `/calendar` เห็นข้อมูลเป็นกลุ่มเดียว
+
+เพราะ snapshot tables ต้องเก็บ grouped value นี้ได้ field `prizeType` ใน analysis snapshot tables จึงเป็น string ไม่ใช่ `LotteryPrizeType` enum:
+
+```text
+analysis_snapshot_runs.prizeType
+analysis_digit_stats.prizeType
+analysis_number_stats.prizeType
+analysis_pattern_summaries.prizeType
+analysis_calendar_heatmaps.prizeType
+```
 
 script full recompute:
 

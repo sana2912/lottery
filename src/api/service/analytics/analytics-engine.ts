@@ -1,4 +1,9 @@
 import { toApiAnalyticsReadModel } from "@/api/model/dto/analytics.dto";
+import {
+  getAnalysisPrizeSourceTypes,
+  isAnalysisPrizeType,
+  isGroupedAnalysisPrizeType
+} from "@/api/service/analysis-snapshot/analysis-context";
 import { extractDigitEvents } from "@/api/service/analytics/digit-events";
 import {
   calculateDigitStats,
@@ -97,7 +102,8 @@ export async function getPrizeWindow(
 
       return {
         ...prize,
-        draw
+        draw,
+        type: isGroupedAnalysisPrizeType(query.prizeType) ? query.prizeType : prize.type
       };
     })
     .flatMap((prize) => (prize ? [prize] : []))
@@ -144,11 +150,20 @@ function buildPrizeWhere(
   query: AnalyticsQuery,
   drawIds: readonly string[]
 ): LotteryPrizeWhereInput {
+  const sourcePrizeTypes =
+    query.prizeType && isAnalysisPrizeType(query.prizeType)
+      ? getAnalysisPrizeSourceTypes(query.prizeType)
+      : undefined;
+  const sourcePrizeType = sourcePrizeTypes?.[0];
+
   return {
     drawId: {
       in: [...drawIds]
     },
-    type: query.prizeType
+    type:
+      sourcePrizeTypes && sourcePrizeTypes.length > 1
+        ? { in: [...sourcePrizeTypes] }
+        : sourcePrizeType
   };
 }
 

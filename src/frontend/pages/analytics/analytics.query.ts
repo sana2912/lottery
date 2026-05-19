@@ -94,6 +94,7 @@ function getDefaultNumberLength(prizeType: FilterContext["prizeType"]) {
     case "PRIZE3":
     case "PRIZE4":
     case "PRIZE5":
+    case "SIX_DIGIT_ALL":
       return 6;
     default:
       return 2;

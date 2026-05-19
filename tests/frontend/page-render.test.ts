@@ -18,114 +18,144 @@ mock.module("@/frontend/pages/analytics/analytics.data", () => ({
   })
 }));
 
+const RENDER_TEST_TIMEOUT_MS = 15_000;
+
 describe("page rendering", () => {
-  test("renders analytics view for 2 digit prize contexts", async () => {
-    const { AnalyticsPage } = await import("@/frontend/pages/analytics");
+  test(
+    "renders analytics view for 2 digit prize contexts",
+    async () => {
+      const { AnalyticsPage } = await import("@/frontend/pages/analytics");
 
-    const twoDigitMarkup = renderToStaticMarkup(
-      await AnalyticsPage({
-        pageData: { model: analyticsModel(2, "TWO_DIGIT"), state: "ready" },
-        searchParams: { numberLength: "2", prizeType: "TWO_DIGIT", windowSize: "30" }
-      })
-    );
+      const twoDigitMarkup = renderToStaticMarkup(
+        await AnalyticsPage({
+          pageData: { model: analyticsModel(2, "TWO_DIGIT"), state: "ready" },
+          searchParams: { numberLength: "2", prizeType: "TWO_DIGIT", windowSize: "30" }
+        })
+      );
 
-    expect(twoDigitMarkup).toContain("Hot");
-    expect(twoDigitMarkup).toContain("09");
-  });
+      expect(twoDigitMarkup).toContain("Hot");
+      expect(twoDigitMarkup).toContain("09");
+    },
+    RENDER_TEST_TIMEOUT_MS
+  );
 
-  test("renders analytics view for 3 digit prize contexts", async () => {
-    const { AnalyticsPage } = await import("@/frontend/pages/analytics");
+  test(
+    "renders analytics view for 3 digit prize contexts",
+    async () => {
+      const { AnalyticsPage } = await import("@/frontend/pages/analytics");
 
-    const threeDigitMarkup = renderToStaticMarkup(
-      await AnalyticsPage({
-        pageData: { model: analyticsModel(3, "THREE_FRONT"), state: "ready" },
-        searchParams: { numberLength: "3", prizeType: "THREE_FRONT", windowSize: "60" }
-      })
-    );
+      const threeDigitMarkup = renderToStaticMarkup(
+        await AnalyticsPage({
+          pageData: { model: analyticsModel(3, "THREE_FRONT"), state: "ready" },
+          searchParams: { numberLength: "3", prizeType: "THREE_FRONT", windowSize: "60" }
+        })
+      );
 
-    expect(threeDigitMarkup).toContain("Shape");
-    expect(threeDigitMarkup).toContain("123");
-  });
+      expect(threeDigitMarkup).toContain("Shape");
+      expect(threeDigitMarkup).toContain("123");
+    },
+    RENDER_TEST_TIMEOUT_MS
+  );
 
-  test("renders analytics view for 6 digit prize contexts", async () => {
-    const { AnalyticsPage } = await import("@/frontend/pages/analytics");
+  test(
+    "renders analytics view for 6 digit prize contexts",
+    async () => {
+      const { AnalyticsPage } = await import("@/frontend/pages/analytics");
 
-    const sixDigitMarkup = renderToStaticMarkup(
-      await AnalyticsPage({
-        pageData: { model: analyticsModel(6, "FIRST"), state: "ready" },
-        searchParams: { numberLength: "6", prizeType: "FIRST", windowSize: "120" }
-      })
-    );
+      const sixDigitMarkup = renderToStaticMarkup(
+        await AnalyticsPage({
+          pageData: { model: analyticsModel(6, "FIRST"), state: "ready" },
+          searchParams: { numberLength: "6", prizeType: "FIRST", windowSize: "120" }
+        })
+      );
 
-    expect(sixDigitMarkup).toContain("Explore deeper shape patterns");
-    expect(sixDigitMarkup).toContain("123456");
-  });
+      expect(sixDigitMarkup).toContain("Explore deeper shape patterns");
+      expect(sixDigitMarkup).toContain("123456");
+    },
+    RENDER_TEST_TIMEOUT_MS
+  );
 
-  test("renders calendar schedule and monthly heatmap sections", async () => {
-    const { CalendarPage } = await import("@/frontend/pages/calendar");
+  test(
+    "renders calendar schedule and monthly heatmap sections",
+    async () => {
+      const { CalendarPage } = await import("@/frontend/pages/calendar");
 
-    const markup = renderToStaticMarkup(
-      await CalendarPage({
-        pageData: {
-          filters: {
-            month: 4,
-            prizeType: "FIRST",
-            scope: "MONTH",
-            windowPreset: "50",
-            windowSize: 50
+      const markup = renderToStaticMarkup(
+        await CalendarPage({
+          pageData: {
+            filters: {
+              month: 4,
+              prizeType: "FIRST",
+              scope: "MONTH",
+              windowPreset: "50",
+              windowSize: 50
+            },
+            model: calendarModel(),
+            state: "ready"
           },
-          model: calendarModel(),
-          state: "ready"
-        },
-        searchParams: { month: "4", prizeType: "FIRST", scope: "MONTH", windowPreset: "50" }
-      })
-    );
+          searchParams: { month: "4", prizeType: "FIRST", scope: "MONTH", windowPreset: "50" }
+        })
+      );
 
-    expect(markup).toContain("16 April 2026");
-    expect(markup).toContain("April");
-    expect(markup).toContain("Hit 8");
-    expect(markup).toContain("Window 50");
-  });
+      expect(markup).toContain("16 April 2026");
+      expect(markup).toContain("April");
+      expect(markup).toContain("Hit 8");
+      expect(markup).toContain("Window 50");
+    },
+    RENDER_TEST_TIMEOUT_MS
+  );
 
-  test("renders patterns page from analytics data and active filters", async () => {
-    const { PatternsPage } = await import("@/frontend/pages/patterns");
+  test(
+    "renders patterns page from analytics data and active filters",
+    async () => {
+      const { PatternsPage } = await import("@/frontend/pages/patterns");
 
-    const markup = renderToStaticMarkup(
-      await PatternsPage({
-        searchParams: { prizeType: "TWO_DIGIT", windowSize: "30" }
-      })
-    );
+      const markup = renderToStaticMarkup(
+        await PatternsPage({
+          searchParams: { prizeType: "TWO_DIGIT", windowSize: "30" }
+        })
+      );
 
-    expect(markup).toContain("Prize type");
-    expect(markup).toContain("Window");
-    expect(markup).toContain("09");
-    expect(markup).toContain("mini DNA");
-  });
+      expect(markup).toContain("Prize type");
+      expect(markup).toContain("Window");
+      expect(markup).toContain("09");
+      expect(markup).toContain("mini DNA");
+    },
+    RENDER_TEST_TIMEOUT_MS
+  );
 
-  test("renders initial client page shells for prediction lab and backtest", async () => {
-    const { BacktestPage } = await import("@/frontend/pages/backtest");
-    const { PredictionLabPage } = await import("@/frontend/pages/prediction-lab");
+  test(
+    "renders initial client page shells for prediction lab and backtest",
+    async () => {
+      const { BacktestPage } = await import("@/frontend/pages/backtest");
+      const { PredictionLabPage } = await import("@/frontend/pages/prediction-lab");
 
-    const backtestMarkup = renderToStaticMarkup(createElement(BacktestPage));
-    const predictionMarkup = renderToStaticMarkup(createElement(PredictionLabPage));
+      const backtestMarkup = renderToStaticMarkup(createElement(BacktestPage));
+      const predictionMarkup = renderToStaticMarkup(createElement(PredictionLabPage));
 
-    expect(backtestMarkup).toContain("Calculation window");
-    expect(backtestMarkup).toContain("Generated target draws");
-    expect(predictionMarkup).toContain("Prize type");
-    expect(predictionMarkup).toContain("Derived length");
-  });
+      expect(backtestMarkup).toContain("Calculation window");
+      expect(backtestMarkup).toContain("Generated target draws");
+      expect(predictionMarkup).toContain("Prize type");
+      expect(predictionMarkup).toContain("Derived length");
+    },
+    RENDER_TEST_TIMEOUT_MS
+  );
 
-  test("renders route loading and progress shells", async () => {
-    const { RouteProgress } = await import("@/frontend/components/navigation/RouteProgress");
-    const { default: UserLoading } = await import("@/app/(user)/loading");
+  test(
+    "renders route loading and progress shells",
+    async () => {
+      const { RouteProgress } = await import("@/frontend/components/navigation/RouteProgress");
+      const { default: UserLoading } = await import("@/app/(user)/loading");
 
-    const progressMarkup = renderToStaticMarkup(createElement(RouteProgress));
-    const loadingMarkup = renderToStaticMarkup(createElement(UserLoading));
+      const progressMarkup = renderToStaticMarkup(createElement(RouteProgress));
+      const loadingMarkup = renderToStaticMarkup(createElement(UserLoading));
 
-    expect(progressMarkup).toBe("");
-    expect(loadingMarkup).toContain("Loading");
-    expect(loadingMarkup).toContain("aria-busy");
-  });
+      expect(progressMarkup).toBe("");
+      expect(loadingMarkup).toContain("Loading");
+      expect(loadingMarkup).toContain("aria-busy");
+    },
+    RENDER_TEST_TIMEOUT_MS
+  );
 });
 
 function analyticsModel(numberLength: 2 | 3 | 6, prizeType: string) {

@@ -10,7 +10,8 @@ export const analyticsPrizeOptions = [
   { label: "รางวัลที่ 2", numberLength: 6, value: "PRIZE2" },
   { label: "รางวัลที่ 3", numberLength: 6, value: "PRIZE3" },
   { label: "รางวัลที่ 4", numberLength: 6, value: "PRIZE4" },
-  { label: "รางวัลที่ 5", numberLength: 6, value: "PRIZE5" }
+  { label: "รางวัลที่ 5", numberLength: 6, value: "PRIZE5" },
+  { label: "รวมรางวัล 6 หลักทั้งหมด", numberLength: 6, value: "SIX_DIGIT_ALL" }
 ] as const;
 
 export const analyticsWindowOptions = [
@@ -212,6 +213,7 @@ function getPrizeNumberLength(prizeType: FilterContext["prizeType"]): AnalyticsN
     case "PRIZE3":
     case "PRIZE4":
     case "PRIZE5":
+    case "SIX_DIGIT_ALL":
       return 6;
     default:
       return 2;
