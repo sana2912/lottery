@@ -10,10 +10,10 @@
   --card: #ffffff;
   --card-foreground: #1c1917;
 
-  /* Brand: minimal orange */
-  --primary: #f97316;
-  --primary-hover: #ea580c;
-  --primary-soft: #fff7ed;
+  /* Brand: restrained red */
+  --primary: #e11d48;
+  --primary-hover: #be123c;
+  --primary-soft: #fff1f2;
   --primary-foreground: #ffffff;
 
   /* Supporting */
@@ -93,12 +93,12 @@
   --color-bg-dark-softer: rgba(255, 255, 255, 0.14);
 
   --color-bg-brand-soft: var(--primary-soft);
-  --color-bg-brand-soft-strong: #ffedd5;
+  --color-bg-brand-soft-strong: #ffe4e6;
 
   --color-bg-success-soft: var(--success-soft);
 
-  --color-bg-hero: linear-gradient(180deg, #ffffff 0%, #fff7ed 100%);
-  --color-bg-hero-accent: linear-gradient(90deg, rgba(249, 115, 22, 0.13), transparent 52%);
+  --color-bg-hero: linear-gradient(180deg, #ffffff 0%, #fff1f2 100%);
+  --color-bg-hero-accent: linear-gradient(90deg, rgba(225, 29, 72, 0.12), transparent 52%);
   --color-bg-hero-scrim: rgba(255, 255, 255, 0.9);
   --color-bg-hero-scrim-soft: rgba(255, 255, 255, 0.68);
 
@@ -138,7 +138,7 @@
   /* Brand aliases */
   --color-brand: var(--primary);
   --color-brand-strong: var(--primary-hover);
-  --color-brand-outline: #c2410c;
+  --color-brand-outline: #be123c;
 
   /* Shadows */
   --shadow-card: 0 12px 32px rgba(28, 25, 23, 0.06);
@@ -161,7 +161,7 @@
   --destructive-foreground: #ffffff;
 
   --input: var(--color-border-default);
-  --ring: rgba(249, 115, 22, 0.28);
+  --ring: rgba(225, 29, 72, 0.28);
 
   --radius: 0rem;
 
@@ -214,9 +214,9 @@
   --card: #1c1917;
   --card-foreground: #fafaf9;
 
-  --primary: #fb923c;
-  --primary-hover: #fdba74;
-  --primary-soft: #431407;
+  --primary: #fb7185;
+  --primary-hover: #fda4af;
+  --primary-soft: #4c0519;
   --primary-foreground: #1c1917;
 
   --secondary: #2dd4bf;
@@ -288,12 +288,12 @@
   --color-bg-dark-softer: rgba(255, 255, 255, 0.14);
 
   --color-bg-brand-soft: var(--primary-soft);
-  --color-bg-brand-soft-strong: #7c2d12;
+  --color-bg-brand-soft-strong: #881337;
 
   --color-bg-success-soft: var(--success-soft);
 
-  --color-bg-hero: linear-gradient(180deg, #1c1917 0%, #431407 100%);
-  --color-bg-hero-accent: linear-gradient(90deg, rgba(251, 146, 60, 0.18), transparent 52%);
+  --color-bg-hero: linear-gradient(180deg, #1c1917 0%, #4c0519 100%);
+  --color-bg-hero-accent: linear-gradient(90deg, rgba(251, 113, 133, 0.18), transparent 52%);
   --color-bg-hero-scrim: rgba(28, 25, 23, 0.9);
   --color-bg-hero-scrim-soft: rgba(28, 25, 23, 0.68);
 
@@ -329,7 +329,7 @@
 
   --color-brand: var(--primary);
   --color-brand-strong: var(--primary-hover);
-  --color-brand-outline: #fdba74;
+  --color-brand-outline: #fda4af;
 
   --shadow-card: 0 12px 32px rgba(0, 0, 0, 0.24);
   --shadow-micro: 0 1px 2px rgba(0, 0, 0, 0.2);
@@ -344,7 +344,7 @@
   --destructive-foreground: #ffffff;
 
   --input: var(--color-border-default);
-  --ring: rgba(251, 146, 60, 0.32);
+  --ring: rgba(251, 113, 133, 0.32);
 }
 
 * {
@@ -356,7 +356,7 @@ body {
   min-height: 100vh;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.56), rgba(255, 255, 255, 0) 22%),
-    linear-gradient(135deg, rgba(249, 115, 22, 0.05), transparent 34%),
+    linear-gradient(135deg, rgba(225, 29, 72, 0.045), transparent 34%),
     linear-gradient(180deg, #fcfcfb 0%, var(--color-bg-app) 28%, #f6f5f2 100%);
   color: var(--color-text-primary);
   font-family: var(--font-ui);
@@ -365,7 +365,7 @@ body {
 .dark body {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0) 22%),
-    linear-gradient(135deg, rgba(251, 146, 60, 0.08), transparent 34%),
+    linear-gradient(135deg, rgba(251, 113, 133, 0.08), transparent 34%),
     linear-gradient(180deg, #120f0e 0%, var(--color-bg-app) 28%, #090807 100%);
 }
 

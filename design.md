@@ -10,7 +10,7 @@ The visual system may use a restrained linear-glass treatment. This should feel 
 
 ## Palette
 
-Use a warm stone base with minimal orange as the brand color. Teal, amber, purple, and semantic colors support insight states. Avoid red/gold-heavy casino themes, excessive gradients, or loud lottery styling.
+Use a warm stone base with restrained red as the brand color. Teal, amber, purple, and semantic colors support insight states. Avoid red/gold-heavy casino pairings, excessive gradients, or loud lottery styling.
 
 For glass treatment:
 - favor soft white or smoke-tinted translucent surfaces
@@ -31,9 +31,9 @@ For glass treatment:
   --card: #ffffff;
   --card-foreground: #1c1917;
 
-  --primary: #f97316;
-  --primary-hover: #ea580c;
-  --primary-soft: #fff7ed;
+  --primary: #e11d48;
+  --primary-hover: #be123c;
+  --primary-soft: #fff1f2;
   --primary-foreground: #ffffff;
 
   --secondary: #0f766e;
@@ -122,13 +122,13 @@ Use the app aliases in composed UI when they improve readability or match an exi
 --color-bg-dark-softer: rgba(255, 255, 255, 0.14);
 
 --color-bg-brand-soft: var(--primary-soft);
---color-bg-brand-soft-strong: #ffedd5;
+--color-bg-brand-soft-strong: #ffe4e6;
 --color-bg-success-soft: var(--success-soft);
 
---color-bg-hero: linear-gradient(180deg, #ffffff 0%, #fff7ed 100%);
+--color-bg-hero: linear-gradient(180deg, #ffffff 0%, #fff1f2 100%);
 --color-bg-hero-accent: linear-gradient(
   90deg,
-  rgba(249, 115, 22, 0.13),
+  rgba(225, 29, 72, 0.12),
   transparent 52%
 );
 --color-bg-hero-scrim: rgba(255, 255, 255, 0.9);
@@ -154,7 +154,7 @@ Use the app aliases in composed UI when they improve readability or match an exi
 
 --color-brand: var(--primary);
 --color-brand-strong: var(--primary-hover);
---color-brand-outline: #c2410c;
+--color-brand-outline: #be123c;
 ```
 
 ### Shape, Shadow, And Font Tokens
@@ -188,9 +188,9 @@ Use the app aliases in composed UI when they improve readability or match an exi
   --card: #1c1917;
   --card-foreground: #fafaf9;
 
-  --primary: #fb923c;
-  --primary-hover: #fdba74;
-  --primary-soft: #431407;
+  --primary: #fb7185;
+  --primary-hover: #fda4af;
+  --primary-soft: #4c0519;
   --primary-foreground: #1c1917;
 
   --secondary: #2dd4bf;
@@ -272,7 +272,7 @@ Use the app aliases in composed UI when they improve readability or match an exi
 
 ### Buttons
 
-- Primary CTA uses minimal orange.
+- Primary CTA uses restrained red.
 - Secondary actions use teal when tied to analysis workflow.
 - Ghost and outline variants stay neutral.
 - Danger is reserved for destructive actions only.
@@ -292,7 +292,7 @@ Badges should be square soft labels with readable contrast. Avoid loud casino-li
 ### Inputs And Filters
 
 - Inputs are clean and large enough for search/filter workflows.
-- Use stone borders, white surfaces, and orange focus rings.
+- Use stone borders, white surfaces, and red focus rings.
 - Filters should wrap or collapse cleanly on mobile.
 - Inputs may use a subtle frosted surface, but text contrast and focus state must remain stronger than the blur effect.
 
@@ -325,7 +325,7 @@ Badges should be square soft labels with readable contrast. Avoid loud casino-li
 ### Dashboard
 
 - Use white cards on the warm stone background.
-- Main CTA uses primary orange.
+- Main CTA uses primary red.
 - Latest draw card may use primary-soft.
 - Hot, cold, and overdue cards use their semantic colors.
 - Hero and shell-adjacent cards can use the clearest linear-glass treatment in the app, as long as metrics stay immediately scannable.
@@ -358,7 +358,7 @@ Badges should be square soft labels with readable contrast. Avoid loud casino-li
 - Score breakdown colors:
   - Hot: hot red
   - Overdue: overdue amber
-  - Position: primary orange
+  - Position: primary red
   - Pattern: prediction purple
   - Pair: secondary teal
 - Every prediction result must have explanation space.
