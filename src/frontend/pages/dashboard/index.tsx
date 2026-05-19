@@ -42,7 +42,7 @@ export async function DashboardPage({ pageData }: Readonly<{ pageData?: Dashboar
           </Button>
         </Card>
 
-        <Card className="border-[color:rgba(249,115,22,0.18)] bg-[linear-gradient(180deg,rgba(255,247,237,0.9),rgba(255,255,255,0.72))] p-6 text-[var(--color-text-primary)] shadow-[var(--shadow-glass-strong)]">
+        <Card className="border-[color:rgba(225,29,72,0.18)] bg-[linear-gradient(180deg,rgba(255,241,242,0.9),rgba(255,255,255,0.72))] p-6 text-[var(--color-text-primary)] shadow-[var(--shadow-glass-strong)]">
           <p className="text-[11px] font-bold uppercase tracking-normal text-[var(--color-brand-outline)]">
             {dashboardContent.latestDraw.eyebrow}
           </p>

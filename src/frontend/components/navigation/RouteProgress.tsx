@@ -128,7 +128,7 @@ export function RouteProgress() {
       className="fixed inset-x-0 top-0 z-[70] h-1 overflow-hidden bg-[var(--color-bg-brand-soft)]"
     >
       <div
-        className="h-full origin-left bg-[var(--color-brand)] shadow-[0_0_18px_rgba(249,115,22,0.35)] will-change-transform"
+        className="h-full origin-left bg-[var(--color-brand)] shadow-[0_0_18px_rgba(225,29,72,0.35)] will-change-transform"
         style={{ transform: `scaleX(${progress / 100})` }}
       />
     </div>
