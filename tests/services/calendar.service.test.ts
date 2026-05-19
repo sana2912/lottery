@@ -95,4 +95,51 @@ describe("calendar.service", () => {
     expect(response.monthlyInsights).toEqual([]);
     expect(response.nextDraw.status).toBe("upcoming");
   });
+
+  test("splits SIX_DIGIT_ALL into separate prize-specific heatmaps", async () => {
+    (globalThis as { prisma?: unknown }).prisma = {
+      lotteryDraw: {
+        findFirst: async () => null,
+        findMany: async (args: { include?: { prizes: boolean } }) => {
+          if (args.include?.prizes) {
+            return [
+              {
+                drawDate: new Date("2026-04-16T00:00:00.000Z"),
+                id: "draw-2",
+                prizes: [
+                  { number: "123456", type: "FIRST" },
+                  { number: "223456", type: "NEAR_FIRST" },
+                  { number: "323456", type: "PRIZE2" },
+                  { number: "423456", type: "PRIZE3" },
+                  { number: "523456", type: "PRIZE4" },
+                  { number: "623456", type: "PRIZE5" }
+                ]
+              }
+            ];
+          }
+
+          return [];
+        }
+      }
+    };
+
+    const response = await calendarService.getCalendarReadModel({
+      prizeType: "SIX_DIGIT_ALL",
+      scope: "ALL_TIME",
+      windowSize: 1
+    });
+
+    expect(response.monthlyInsights).toHaveLength(6);
+    expect(response.monthlyInsights.map((insight) => insight.prizeType)).toEqual([
+      "FIRST",
+      "NEAR_FIRST",
+      "PRIZE2",
+      "PRIZE3",
+      "PRIZE4",
+      "PRIZE5"
+    ]);
+    expect(response.monthlyInsights.every((insight) => insight.heatmapRows[0]?.cells[0])).toBe(
+      true
+    );
+  });
 });
