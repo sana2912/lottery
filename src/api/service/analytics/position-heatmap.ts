@@ -3,10 +3,12 @@ export type PositionHeatmapCell = {
   digit: string;
   eventCount: number;
   eventRatePercent: number;
+  expectedRatePercent: number;
   expectedPresenceRatePercent: number;
   lift: number;
   missingRounds: number;
   presenceRatePercent: number;
+  sampleEventCount: number;
   score: number;
   tone: "cold" | "cool" | "hot" | "neutral" | "warm";
 };
@@ -72,7 +74,9 @@ export function buildPositionHeatmapRows(
       }
     }
 
-    const cells = buildHeatmapCells(digitStats, draws.length, positionEventCount);
+    const cells = assignWithinRowVisualTones(
+      buildHeatmapCells(digitStats, draws.length, positionEventCount)
+    );
     const rankedCells = [...cells].sort(sortPositionHeatmapCells);
 
     return {
@@ -87,6 +91,26 @@ export function buildPositionHeatmapRows(
   });
 }
 
+export function assignWithinRowVisualTones(
+  cells: readonly PositionHeatmapCell[]
+): PositionHeatmapCell[] {
+  const activeCells = cells.filter((cell) => cell.eventCount > 0);
+  const inactiveCells = cells.filter((cell) => cell.eventCount === 0);
+  const rankedActive = [...activeCells].sort(sortCellsForWithinRowTone);
+  const toneByDigit = new Map<string, PositionHeatmapCell["tone"]>(
+    inactiveCells.map((cell) => [cell.digit, "neutral"] as const)
+  );
+
+  for (const [rankIndex, cell] of rankedActive.entries()) {
+    toneByDigit.set(cell.digit, getWithinRowTone(rankIndex, rankedActive.length));
+  }
+
+  return cells.map((cell) => ({
+    ...cell,
+    tone: toneByDigit.get(cell.digit) ?? "neutral"
+  }));
+}
+
 export function buildOverallPositionDigitStats(rows: readonly PositionHeatmapRow[]) {
   const digitStats = new Map<string, PositionHeatmapCell>();
 
@@ -97,12 +121,17 @@ export function buildOverallPositionDigitStats(rows: readonly PositionHeatmapRow
       if (existing) {
         existing.appearanceCount += cell.appearanceCount;
         existing.eventCount += cell.eventCount;
-        existing.eventRatePercent = round((existing.eventRatePercent + cell.eventRatePercent) / 2);
+        existing.sampleEventCount += cell.sampleEventCount;
+        existing.eventRatePercent = getPercent(existing.eventCount, existing.sampleEventCount);
         existing.expectedPresenceRatePercent = round(
           (existing.expectedPresenceRatePercent + cell.expectedPresenceRatePercent) / 2
         );
-        existing.lift = round((existing.lift + cell.lift) / 2);
-        existing.score = round((existing.score + cell.score) / 2);
+        existing.lift = getLift(existing.eventRatePercent, existing.expectedRatePercent);
+        existing.score = getFrequencyEffectScore(
+          existing.eventCount,
+          existing.sampleEventCount,
+          existing.expectedRatePercent / 100
+        );
         existing.missingRounds = Math.min(existing.missingRounds, cell.missingRounds);
         existing.presenceRatePercent = round(
           (existing.presenceRatePercent + cell.presenceRatePercent) / 2
@@ -119,7 +148,8 @@ export function buildOverallPositionDigitStats(rows: readonly PositionHeatmapRow
 export function sortPositionHeatmapCells(left: PositionHeatmapCell, right: PositionHeatmapCell) {
   return (
     right.score - left.score ||
-    right.appearanceCount - left.appearanceCount ||
+    right.eventRatePercent - left.eventRatePercent ||
+    right.eventCount - left.eventCount ||
     left.missingRounds - right.missingRounds ||
     left.digit.localeCompare(right.digit)
   );
@@ -149,41 +179,64 @@ function buildHeatmapCells(
     const eventRate = getRate(eventCount, positionEventCount);
     const presenceRate = getRate(appearanceCount, drawCount);
     const lift = expectedDigitRate > 0 ? eventRate / expectedDigitRate : 0;
-    const score = getFrequencySignalScore(eventCount, positionEventCount, expectedDigitRate);
+    const score = getFrequencyEffectScore(eventCount, positionEventCount, expectedDigitRate);
 
     return {
       appearanceCount,
       digit,
       eventCount,
       eventRatePercent: round(eventRate * 100),
+      expectedRatePercent: round(expectedDigitRate * 100),
       expectedPresenceRatePercent: round(expectedPresenceRate * 100),
       lift: round(lift),
       missingRounds,
       presenceRatePercent: round(presenceRate * 100),
+      sampleEventCount: positionEventCount,
       score,
-      tone: getHeatmapTone(score)
+      tone: "neutral" as const
     };
   });
 }
 
-function getHeatmapTone(score: number): PositionHeatmapCell["tone"] {
-  if (score >= 80) {
-    return "hot";
-  }
+function sortCellsForWithinRowTone(left: PositionHeatmapCell, right: PositionHeatmapCell) {
+  return (
+    right.eventRatePercent - left.eventRatePercent ||
+    right.score - left.score ||
+    right.eventCount - left.eventCount ||
+    left.digit.localeCompare(right.digit)
+  );
+}
 
-  if (score >= 65) {
-    return "warm";
-  }
-
-  if (score >= 45) {
+function getWithinRowTone(rankIndex: number, total: number): PositionHeatmapCell["tone"] {
+  if (total <= 1) {
     return "neutral";
   }
 
-  if (score >= 30) {
+  const hotCount = Math.max(1, Math.round(total * 0.2));
+  const warmCount = Math.max(1, Math.round(total * 0.2));
+  const coolCount = Math.max(1, Math.round(total * 0.2));
+  const coldCount = Math.max(1, Math.round(total * 0.2));
+  const warmEnd = hotCount + warmCount;
+  const coldStart = total - coldCount;
+  const coolStart = coldStart - coolCount;
+
+  if (rankIndex < hotCount) {
+    return "hot";
+  }
+
+  if (rankIndex < warmEnd) {
+    return "warm";
+  }
+
+  if (rankIndex >= coldStart) {
+    return "cold";
+  }
+
+  if (rankIndex >= coolStart) {
     return "cool";
   }
 
-  return "cold";
+  return "neutral";
 }
 
 function round(value: number) {
@@ -194,36 +247,29 @@ function getRate(value: number, total: number) {
   return total > 0 ? value / total : 0;
 }
 
-function getFrequencySignalScore(eventCount: number, sampleSize: number, expectedRate: number) {
+function getPercent(value: number, total: number) {
+  return round(getRate(value, total) * 100);
+}
+
+function clamp(value: number) {
+  return Math.min(100, Math.max(0, round(value)));
+}
+
+function getLift(observedPercent: number, expectedPercent: number) {
+  return expectedPercent > 0 ? round(observedPercent / expectedPercent) : 0;
+}
+
+function getFrequencyEffectScore(eventCount: number, sampleSize: number, expectedRate: number) {
   if (sampleSize <= 0) {
     return 0;
   }
 
-  const variance = sampleSize * expectedRate * (1 - expectedRate);
-
-  if (variance <= 0) {
+  if (expectedRate <= 0) {
     return 50;
   }
 
-  const expectedCount = sampleSize * expectedRate;
-  const zScore = (eventCount - expectedCount) / Math.sqrt(variance);
+  const observedRate = eventCount / sampleSize;
+  const relativeMove = (observedRate - expectedRate) / expectedRate;
 
-  return round(normalCdf(zScore) * 100);
-}
-
-function normalCdf(value: number) {
-  return 0.5 * (1 + erf(value / Math.SQRT2));
-}
-
-function erf(value: number) {
-  const sign = value < 0 ? -1 : 1;
-  const x = Math.abs(value);
-  const t = 1 / (1 + 0.3275911 * x);
-  const y =
-    1 -
-    ((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t + 0.254829592) *
-      t *
-      Math.exp(-x * x);
-
-  return sign * y;
+  return clamp(50 + relativeMove * 100);
 }

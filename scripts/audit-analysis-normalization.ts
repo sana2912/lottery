@@ -1,10 +1,19 @@
 import { ANALYSIS_ENGINE_VERSION } from "@/api/service/analysis-snapshot/analysis-context";
+import {
+  getPrizeTypesForSampleQuery,
+  matchesAnalysisPrizeSample
+} from "@/api/service/analysis-snapshot/prize-sample-types";
 import { buildPositionHeatmapRows } from "@/api/service/analytics/position-heatmap";
 import { getPrisma } from "@/api/service/prisma";
-import { parseCliValues, printOrWriteJsonReport } from "./audit-utils";
+import { parseCliValues, printOrWriteJsonReport, writeTextReport } from "./audit-utils";
+import {
+  buildNormalizationAuditMarkdown,
+  type NormalizationAuditReport
+} from "./lib/normalization-audit-markdown";
 
 const LOTTERY_TYPE = "THAI_GOVERNMENT";
 const DEFAULT_OUT = "reports/audit/analysis-normalization.json";
+const DEFAULT_REPORT_OUT = "reports/audit/normalization-system-audit.md";
 const WINDOW_PRESETS = ["50", "100", "500", "ALL"] as const;
 const MONTHS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as const;
 const PRIZE_TYPES = [
@@ -50,6 +59,8 @@ const CALENDAR_DIAGNOSTIC_PRIZE_TYPES = [
   "PRIZE5",
   "SIX_DIGIT_ALL"
 ] as const;
+const MATRIX_DIAGNOSTIC_MONTHS = [1, 5, 12] as const;
+const MATRIX_DIAGNOSTIC_SCOPES = ["ALL_TIME", "MONTH"] as const;
 const EXPECTED_ROWS_PER_DRAW = {
   FIRST: 1,
   NEAR_FIRST: 2,
@@ -87,6 +98,8 @@ type SnapshotRow = {
 
 type CliOptions = {
   out: string;
+  report: boolean;
+  reportOut: string;
 };
 
 async function main() {
@@ -103,6 +116,13 @@ async function main() {
       out: options.out,
       value: report
     });
+
+    if (options.report) {
+      const markdown = buildNormalizationAuditMarkdown(report as NormalizationAuditReport);
+      const resolvedPath = await writeTextReport(options.reportOut, markdown);
+
+      console.info(`Audit markdown written to ${resolvedPath}`);
+    }
   } finally {
     await prisma.$disconnect();
   }
@@ -119,7 +139,9 @@ function parseArgs(args: readonly string[]): CliOptions {
   const values = parseCliValues(args);
 
   return {
-    out: values.out ?? DEFAULT_OUT
+    out: values.out ?? DEFAULT_OUT,
+    report: values.report === "true",
+    reportOut: values["report-out"] ?? DEFAULT_REPORT_OUT
   };
 }
 
@@ -183,6 +205,13 @@ function buildReport(
   warnings: string[]
 ) {
   const dateRange = getDateRange(draws);
+  const prizeProfiles = buildPrizeProfiles(draws);
+  const calendarHeatmapDiagnostics = buildCalendarHeatmapDiagnostics(draws);
+  const heatmapMatrixDiagnostics = buildHeatmapMatrixDiagnostics(draws);
+  const numberStatsMatrixDiagnostics = buildNumberStatsMatrixDiagnostics(draws);
+
+  warnings.push(...buildCalendarHeatmapWarnings(calendarHeatmapDiagnostics));
+  warnings.push(...buildHeatmapMatrixWarnings(heatmapMatrixDiagnostics));
 
   return {
     generatedAt: new Date().toISOString(),
@@ -192,12 +221,16 @@ function buildReport(
       lotteryType: LOTTERY_TYPE,
       prizeRowCount: draws.reduce((total, draw) => total + draw.prizes.length, 0)
     },
-    prizeProfiles: buildPrizeProfiles(draws),
+    prizeProfiles,
     lengthProfiles: buildLengthProfiles(draws),
     sixDigitAllProfile: buildSixDigitAllProfile(draws),
     windowSamples: buildWindowSamples(draws),
-    calendarHeatmapDiagnostics: buildCalendarHeatmapDiagnostics(draws),
+    calendarHeatmapDiagnostics,
+    heatmapMatrixDiagnostics,
     numberStatsDiagnostics: buildNumberStatsDiagnostics(draws),
+    numberStatsMatrixDiagnostics,
+    threeDigitPrizeDecision: buildThreeDigitPrizeDecision(prizeProfiles),
+    moduleAudit: buildModuleAudit(),
     snapshotCoverage: buildSnapshotCoverage(snapshots),
     warnings
   };
@@ -341,6 +374,250 @@ function buildWindowSample(
   };
 }
 
+function buildHeatmapMatrixDiagnostics(draws: readonly DrawRow[]) {
+  return CALENDAR_DIAGNOSTIC_PRIZE_TYPES.flatMap((prizeType) =>
+    WINDOW_PRESETS.flatMap((windowPreset) =>
+      MATRIX_DIAGNOSTIC_SCOPES.flatMap((scope) => {
+        if (scope === "MONTH") {
+          return MATRIX_DIAGNOSTIC_MONTHS.map((month) =>
+            buildHeatmapDiagnosticCell(draws, prizeType, scope, windowPreset, month)
+          );
+        }
+
+        return [buildHeatmapDiagnosticCell(draws, prizeType, scope, windowPreset)];
+      })
+    )
+  );
+}
+
+function buildHeatmapDiagnosticCell(
+  draws: readonly DrawRow[],
+  prizeType: AnalysisPrizeType,
+  scope: "ALL_TIME" | "MONTH",
+  windowPreset: WindowPreset,
+  month?: number
+) {
+  const sampleDraws = selectSampleDraws(draws, prizeType, scope, windowPreset, month);
+  const numberLength = getAnalysisPrizeNumberLength(prizeType);
+  const heatmapRows = buildHeatmapRows(sampleDraws, prizeType, numberLength);
+
+  return {
+    eventCountMismatchCount: heatmapRows.filter((row) => !row.eventCountMatchesSample).length,
+    flatBaselineHotScoreCount: heatmapRows.filter(
+      (row) => Math.abs(row.maxEventRatePercent - 10) <= 0.5 && row.maxScore > 80
+    ).length,
+    heatmapRowCount: heatmapRows.length,
+    month: month ?? null,
+    prizeType,
+    sampleDrawCount: sampleDraws.length,
+    scope,
+    windowPreset
+  };
+}
+
+function buildHeatmapMatrixWarnings(diagnostics: ReturnType<typeof buildHeatmapMatrixDiagnostics>) {
+  const warnings: string[] = [];
+
+  for (const diagnostic of diagnostics) {
+    if (diagnostic.eventCountMismatchCount > 0) {
+      warnings.push(
+        `heatmap matrix ${diagnostic.prizeType} ${diagnostic.scope} month=${diagnostic.month ?? "ALL"} window=${diagnostic.windowPreset}: ${diagnostic.eventCountMismatchCount} position rows with eventCount mismatch.`
+      );
+    }
+  }
+
+  return warnings;
+}
+
+function buildNumberStatsMatrixDiagnostics(draws: readonly DrawRow[]) {
+  const prizeTypes = ["TWO_DIGIT", "THREE_DIGIT", "PRIZE5", "SIX_DIGIT_ALL"] as const;
+
+  return prizeTypes.flatMap((prizeType) =>
+    WINDOW_PRESETS.flatMap((windowPreset) =>
+      MATRIX_DIAGNOSTIC_SCOPES.flatMap((scope) => {
+        if (scope === "MONTH") {
+          return MATRIX_DIAGNOSTIC_MONTHS.map((month) =>
+            buildNumberStatsMatrixCell(draws, prizeType, scope, windowPreset, month)
+          );
+        }
+
+        return [buildNumberStatsMatrixCell(draws, prizeType, scope, windowPreset)];
+      })
+    )
+  );
+}
+
+function buildNumberStatsMatrixCell(
+  draws: readonly DrawRow[],
+  prizeType: (typeof ANALYSIS_PRIZE_TYPES)[number],
+  scope: "ALL_TIME" | "MONTH",
+  windowPreset: WindowPreset,
+  month?: number
+) {
+  const sampleDraws = selectSampleDraws(draws, prizeType, scope, windowPreset, month);
+  const samplePrizes = sampleDraws.flatMap((draw) =>
+    filterValidAnalysisPrizes(draw.prizes, prizeType)
+  );
+  const sampleDrawCount = sampleDraws.length;
+  const samplePrizeCount = samplePrizes.length;
+  const maxInflationFactor = getMaxDrawDenominatorInflation(sampleDrawCount, samplePrizes);
+
+  return {
+    maxDrawDenominatorInflationFactor: maxInflationFactor,
+    month: month ?? null,
+    prizeType,
+    sampleDrawCount,
+    samplePrizeCount,
+    scope,
+    windowPreset
+  };
+}
+
+function getMaxDrawDenominatorInflation(
+  sampleDrawCount: number,
+  samplePrizes: readonly PrizeRow[]
+) {
+  const hitCountByNumber = new Map<string, number>();
+
+  for (const prize of samplePrizes) {
+    hitCountByNumber.set(prize.number, (hitCountByNumber.get(prize.number) ?? 0) + 1);
+  }
+
+  return Math.max(
+    0,
+    ...[...hitCountByNumber.values()].map((hitCount) => {
+      const rowBased = getPercent(hitCount, samplePrizes.length);
+      const drawBased = getPercent(hitCount, sampleDrawCount);
+
+      return rowBased > 0 ? round(drawBased / rowBased) : 0;
+    })
+  );
+}
+
+function buildThreeDigitPrizeDecision(prizeProfiles: ReturnType<typeof buildPrizeProfiles>) {
+  const threeDigit = prizeProfiles.find((profile) => profile.prizeType === "THREE_DIGIT");
+  const threeFront = prizeProfiles.find((profile) => profile.prizeType === "THREE_FRONT");
+  const threeBack = prizeProfiles.find((profile) => profile.prizeType === "THREE_BACK");
+
+  const frontHasRows = (threeFront?.drawCountWithPrize ?? 0) > 0;
+  const backHasRows = (threeBack?.drawCountWithPrize ?? 0) > 0;
+  const groupedHasRows = (threeDigit?.drawCountWithPrize ?? 0) > 0;
+
+  let recommendation: "native_rows" | "derive_from_three_digit" | "hide_until_seeded";
+
+  if (frontHasRows && backHasRows) {
+    recommendation = "native_rows";
+  } else if (groupedHasRows) {
+    recommendation = "derive_from_three_digit";
+  } else {
+    recommendation = "hide_until_seeded";
+  }
+
+  return {
+    profiles: {
+      THREE_BACK: threeBack,
+      THREE_DIGIT: threeDigit,
+      THREE_FRONT: threeFront
+    },
+    recommendation
+  };
+}
+
+function buildModuleAudit() {
+  return [
+    {
+      crossPrizeRawCompare: true,
+      metricUnit: "prize-row frequencyPercent",
+      module: "watchlist",
+      onDemandFallback: true,
+      primaryDenominator: "samplePrizeCount",
+      rawHitCountRanking: true,
+      risk: "high",
+      surfaces: ["watchlist enrichment"]
+    },
+    {
+      crossPrizeRawCompare: true,
+      metricUnit: "mixed prize-row stats",
+      module: "search",
+      onDemandFallback: true,
+      primaryDenominator: "samplePrizeCount per prizeType",
+      rawHitCountRanking: false,
+      risk: "high",
+      surfaces: ["6-digit stat search"]
+    },
+    {
+      crossPrizeRawCompare: false,
+      metricUnit: "prize-row + digit-event",
+      module: "analytics",
+      onDemandFallback: true,
+      primaryDenominator: "samplePrizeCount / sampleEventCount",
+      rawHitCountRanking: true,
+      risk: "medium",
+      surfaces: ["analytics UI signal cards"]
+    },
+    {
+      crossPrizeRawCompare: false,
+      metricUnit: "digit-event heatmap",
+      module: "calendar",
+      onDemandFallback: true,
+      primaryDenominator: "sampleEventCount",
+      rawHitCountRanking: false,
+      risk: "medium",
+      surfaces: ["calendar heatmap"]
+    },
+    {
+      crossPrizeRawCompare: false,
+      metricUnit: "pattern row distribution",
+      module: "patterns",
+      onDemandFallback: false,
+      primaryDenominator: "totalHits (prize rows)",
+      rawHitCountRanking: false,
+      risk: "medium",
+      surfaces: ["patterns snapshot-only"]
+    },
+    {
+      crossPrizeRawCompare: false,
+      metricUnit: "prediction score",
+      module: "prediction-lab",
+      onDemandFallback: true,
+      primaryDenominator: "mixed",
+      rawHitCountRanking: false,
+      risk: "medium",
+      surfaces: ["prediction scoring"]
+    },
+    {
+      crossPrizeRawCompare: false,
+      metricUnit: "prediction score",
+      module: "compare",
+      onDemandFallback: true,
+      primaryDenominator: "samplePrizeCount",
+      rawHitCountRanking: false,
+      risk: "low",
+      surfaces: ["compare ranking"]
+    },
+    {
+      crossPrizeRawCompare: false,
+      metricUnit: "walk-forward hit rate",
+      module: "backtest",
+      onDemandFallback: false,
+      primaryDenominator: "universeSize",
+      rawHitCountRanking: false,
+      risk: "low",
+      surfaces: ["backtest"]
+    },
+    {
+      crossPrizeRawCompare: false,
+      metricUnit: "prize-row frequencyPercent",
+      module: "dashboard",
+      onDemandFallback: true,
+      primaryDenominator: "samplePrizeCount",
+      rawHitCountRanking: false,
+      risk: "low",
+      surfaces: ["dashboard metrics"]
+    }
+  ];
+}
+
 function buildCalendarHeatmapDiagnostics(draws: readonly DrawRow[]) {
   return CALENDAR_DIAGNOSTIC_PRIZE_TYPES.map((prizeType) => {
     const sampleDraws = selectSampleDraws(draws, prizeType, "ALL_TIME", "50");
@@ -363,6 +640,24 @@ function buildCalendarHeatmapDiagnostics(draws: readonly DrawRow[]) {
       windowPreset: "50"
     };
   });
+}
+
+function buildCalendarHeatmapWarnings(
+  diagnostics: ReturnType<typeof buildCalendarHeatmapDiagnostics>
+) {
+  const warnings: string[] = [];
+
+  for (const diagnostic of diagnostics) {
+    for (const row of diagnostic.heatmapRows) {
+      if (!row.eventCountMatchesSample) {
+        warnings.push(
+          `${diagnostic.prizeType} P${row.position}: eventCountSum ${row.eventCountSum} does not match sampleEventCount ${row.sampleEventCount}.`
+        );
+      }
+    }
+  }
+
+  return warnings;
 }
 
 function buildNumberStatsDiagnostics(draws: readonly DrawRow[]) {
@@ -521,19 +816,26 @@ function buildHeatmapRows(
   ).map((row) => {
     const scores = row.cells.map((cell) => cell.score);
     const appearanceRates = row.cells.map((cell) => getRate(cell.appearanceCount, draws.length));
+    const eventCountSum = sum(row.cells.map((cell) => cell.eventCount));
     const eventRates = row.cells.map((cell) => cell.eventRatePercent);
     const lifts = row.cells.map((cell) => cell.lift);
+    const sampleEventCount = row.cells[0]?.sampleEventCount ?? 0;
 
     return {
       averageAppearanceRate: round(average(appearanceRates) * 100),
       averageEventRatePercent: round(average(eventRates)),
       averageLift: round(average(lifts)),
       averageScore: round(average(scores)),
+      eventCountMatchesSample: eventCountSum === sampleEventCount,
+      eventCountSum,
       hotCellCount: row.cells.filter((cell) => cell.score >= 80).length,
       maxAppearanceCount: Math.max(0, ...row.cells.map((cell) => cell.appearanceCount)),
+      maxEventRatePercent: Math.max(0, ...eventRates),
       maxScore: Math.max(0, ...scores),
+      minEventRatePercent: Math.min(...eventRates),
       minScore: Math.min(...scores),
       position: row.position,
+      sampleEventCount,
       warmOrHotCellCount: row.cells.filter((cell) => cell.score >= 65).length
     };
   });
@@ -548,9 +850,12 @@ function filterValidAnalysisPrizes(prizes: readonly PrizeRow[], prizeType: Analy
 }
 
 function filterPrizesForAnalysis(prizes: readonly PrizeRow[], prizeType: AnalysisPrizeType) {
-  const sourceTypes = getAnalysisPrizeSourceTypes(prizeType);
-
-  return prizes.filter((prize) => sourceTypes.includes(toPrizeType(prize.type)));
+  return prizes.filter((prize) =>
+    matchesAnalysisPrizeSample(
+      { position: prize.position, type: toPrizeType(prize.type) },
+      { prizeType }
+    )
+  );
 }
 
 function countPrizes(prizes: readonly PrizeRow[], prizeTypes: readonly PrizeType[]) {
@@ -558,7 +863,7 @@ function countPrizes(prizes: readonly PrizeRow[], prizeTypes: readonly PrizeType
 }
 
 function getAnalysisPrizeSourceTypes(prizeType: AnalysisPrizeType): readonly PrizeType[] {
-  return prizeType === "SIX_DIGIT_ALL" ? SIX_DIGIT_SOURCE_PRIZE_TYPES : [prizeType as PrizeType];
+  return getPrizeTypesForSampleQuery(prizeType) as readonly PrizeType[];
 }
 
 function getExpectedRowsPerDrawForAnalysisPrize(prizeType: AnalysisPrizeType) {

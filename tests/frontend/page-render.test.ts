@@ -103,7 +103,7 @@ describe("page rendering", () => {
 
       expect(markup).toContain("16 April 2026");
       expect(markup).toContain("April");
-      expect(markup).toContain("Hit 8");
+      expect(markup).toContain("Count 8/8");
       expect(markup).toContain("Window 50");
     },
     RENDER_TEST_TIMEOUT_MS
@@ -257,11 +257,27 @@ function calendarModel() {
         heatmapRows: [
           {
             cells: [
-              { appearanceCount: 8, digit: "0", missingRounds: 0, score: 90, tone: "hot" as const },
+              {
+                appearanceCount: 8,
+                digit: "0",
+                eventCount: 8,
+                eventRatePercent: 100,
+                expectedRatePercent: 10,
+                lift: 10,
+                missingRounds: 0,
+                sampleEventCount: 8,
+                score: 90,
+                tone: "hot" as const
+              },
               {
                 appearanceCount: 1,
                 digit: "9",
+                eventCount: 1,
+                eventRatePercent: 12.5,
+                expectedRatePercent: 10,
+                lift: 1.25,
                 missingRounds: 7,
+                sampleEventCount: 8,
                 score: 20,
                 tone: "cold" as const
               }

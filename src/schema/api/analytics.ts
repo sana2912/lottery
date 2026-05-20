@@ -80,7 +80,7 @@ export interface ApiPatternSummary {
 
 export interface ApiAnalyticsReadModel {
   generatedAt: string;
-  source: "mock" | "api";
+  source: "mock" | "api" | "snapshot" | "on-demand" | "prize-window";
   summary: ApiAnalyticsSummary;
   digitStats: ApiDigitStat[];
   numberStats: ApiNumberStat[];

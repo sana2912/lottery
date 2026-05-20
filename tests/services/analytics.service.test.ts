@@ -89,6 +89,8 @@ describe("analytics.service", () => {
     });
 
     expect(queryCalls.some((sql) => sql.includes('FROM "analysis_snapshot_runs"'))).toBe(true);
+    expect(queryCalls.some((sql) => sql.includes("engineVersion"))).toBe(true);
+    expect(model.source).toBe("snapshot");
     expect(analyticsReadModelSchema.parse(model)).toEqual(model);
     expect(model.summary.drawCount).toBe(50);
     expect(model.numberStats[0]?.number).toBe("09");

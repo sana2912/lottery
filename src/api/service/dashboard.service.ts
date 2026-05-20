@@ -238,6 +238,7 @@ function toSignal(
   stat:
     | undefined
     | {
+        drawCount: number;
         frequencyPercent: number;
         missingDrawCount: number;
         number: string;
@@ -249,7 +250,7 @@ function toSignal(
 
   const score =
     tone === "overdue"
-      ? Math.min(100, stat.missingDrawCount * 4)
+      ? Math.round(Math.min(100, (stat.missingDrawCount / Math.max(1, stat.drawCount)) * 100))
       : Math.round(stat.frequencyPercent);
 
   let reason = "Missing longer than neighboring numbers in the same evaluation window.";

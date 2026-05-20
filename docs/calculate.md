@@ -350,12 +350,13 @@ hitCount = 3
 สูตร:
 
 ```text
-frequencyPercent = (hitCount / drawCount) * 100
+frequencyPercent = (hitCount / samplePrizeCount) * 100
+frequencyPerDrawPercent = (hitCount / drawCount) * 100
 ```
 
 code:
 
-`src/api/service/analytics/number-stats.ts:341`
+`src/api/service/analytics/number-stats.ts`
 
 ข้อควรเข้าใจ:
 

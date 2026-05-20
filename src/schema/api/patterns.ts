@@ -42,7 +42,7 @@ export interface ApiPatternsReadModel {
   };
   generatedAt: string;
   pattern: ApiAnalysisPatternReadModel;
-  source: "missing" | "snapshot";
+  source: "missing" | "on-demand" | "snapshot";
   summary: {
     drawCount: number;
     generatedAt: string;

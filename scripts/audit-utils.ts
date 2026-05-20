@@ -1,6 +1,15 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 
+export async function writeTextReport(filePath: string, content: string) {
+  const resolvedPath = resolve(process.cwd(), filePath);
+
+  await mkdir(dirname(resolvedPath), { recursive: true });
+  await writeFile(resolvedPath, content, "utf8");
+
+  return resolvedPath;
+}
+
 export type CliValues = Record<string, string | undefined>;
 
 export function parseCliValues(args: readonly string[]): CliValues {

@@ -1,6 +1,6 @@
 import type { FilterContext } from "@/schema/app/query.schema";
 
-export const ANALYSIS_ENGINE_VERSION = "analysis-engine-v3";
+export const ANALYSIS_ENGINE_VERSION = "analysis-engine-v4";
 
 export const ANALYSIS_PRIZE_TYPES = [
   "TWO_DIGIT",

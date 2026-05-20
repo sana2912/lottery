@@ -301,9 +301,14 @@ export async function CalendarPage({
                             <div className="font-mono text-base font-bold text-[var(--color-text-primary)]">
                               {cell.digit}
                             </div>
-                            <div className="mt-2 space-y-1 text-[11px] text-[var(--color-text-secondary)]">
-                              <p>Hit {cell.appearanceCount}</p>
-                              <p>Gap {cell.missingRounds}</p>
+                            <div className="mt-2 space-y-1 text-[10px] leading-4 text-[var(--color-text-secondary)]">
+                              <p>
+                                Count {getHeatmapEventCount(cell)}/
+                                {getHeatmapSampleEventCount(cell)}
+                              </p>
+                              <p>Rate {getHeatmapEventRate(cell)}</p>
+                              <p>Expected {getHeatmapExpectedRate(cell)}</p>
+                              <p>Lift {getHeatmapLift(cell)}</p>
                               <p>Score {cell.score}</p>
                             </div>
                           </div>
@@ -333,10 +338,13 @@ export async function CalendarPage({
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-2 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                  <Badge variant="neutral">{calendarContent.heatmap.legend.frequency}</Badge>
-                  <Badge variant="neutral">{calendarContent.heatmap.legend.recency}</Badge>
+                  <Badge variant="neutral">{calendarContent.heatmap.legend.countSample}</Badge>
+                  <Badge variant="neutral">{calendarContent.heatmap.legend.eventRate}</Badge>
+                  <Badge variant="neutral">{calendarContent.heatmap.legend.expectedRate}</Badge>
+                  <Badge variant="neutral">{calendarContent.heatmap.legend.lift}</Badge>
                   <Badge variant="brand">{calendarContent.heatmap.legend.hot}</Badge>
                   <Badge variant="neutral">{calendarContent.heatmap.legend.cold}</Badge>
+                  <Badge variant="neutral">{calendarContent.heatmap.legend.relativeColor}</Badge>
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-2">
@@ -353,6 +361,26 @@ export async function CalendarPage({
       </Card>
     </main>
   );
+}
+
+function getHeatmapEventCount(cell: { eventCount?: number }) {
+  return cell.eventCount ?? 0;
+}
+
+function getHeatmapSampleEventCount(cell: { sampleEventCount?: number }) {
+  return cell.sampleEventCount ?? 0;
+}
+
+function getHeatmapEventRate(cell: { eventRatePercent?: number }) {
+  return cell.eventRatePercent === undefined ? "-" : `${cell.eventRatePercent}%`;
+}
+
+function getHeatmapExpectedRate(cell: { expectedRatePercent?: number }) {
+  return cell.expectedRatePercent === undefined ? "10%" : `${cell.expectedRatePercent}%`;
+}
+
+function getHeatmapLift(cell: { lift?: number }) {
+  return cell.lift === undefined ? "-" : `${cell.lift}x`;
 }
 
 function getHeatmapCellToneClass(tone: "hot" | "warm" | "neutral" | "cool" | "cold") {

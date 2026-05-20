@@ -2,7 +2,11 @@ export type ApiWatchlistScope = "global";
 export type ApiWatchlistSource = "MANUAL" | "NOTEBOOK" | "PREDICTION";
 export type ApiWatchlistPrizeType =
   | "FIRST"
+  | "NEAR_FIRST"
+  | "SIX_DIGIT_ALL"
   | "THREE_DIGIT"
+  | "THREE_FRONT"
+  | "THREE_BACK"
   | "TWO_DIGIT"
   | "PRIZE2"
   | "PRIZE3"
@@ -15,6 +19,7 @@ export interface ApiWatchlistStatSummary {
   lastSeenDrawDate?: string;
   missingDrawCount: number;
   prizeType: ApiWatchlistPrizeType;
+  samplePrizeCount?: number;
 }
 
 export interface ApiWatchlistItem {

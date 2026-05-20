@@ -108,7 +108,7 @@ function getPatternFlags(number: string): ApiPatternFlag[] {
 }
 
 function getSampleSize(numberStats: readonly ApiNumberStat[]) {
-  return Math.max(0, ...numberStats.map((stat) => stat.drawCount));
+  return Math.max(0, ...numberStats.map((stat) => stat.samplePrizeCount ?? stat.drawCount));
 }
 
 function getStrongestSignal(breakdowns: readonly ApiScoreBreakdown[]) {

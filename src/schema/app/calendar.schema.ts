@@ -33,10 +33,12 @@ export const calendarHeatmapCellSchema = z.object({
   digit: z.string(),
   eventCount: z.number().optional(),
   eventRatePercent: z.number().optional(),
+  expectedRatePercent: z.number().optional(),
   expectedPresenceRatePercent: z.number().optional(),
   lift: z.number().optional(),
   missingRounds: z.number(),
   presenceRatePercent: z.number().optional(),
+  sampleEventCount: z.number().optional(),
   score: z.number(),
   tone: calendarHeatmapToneSchema
 });

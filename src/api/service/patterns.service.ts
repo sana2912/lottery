@@ -1,3 +1,6 @@
+import { getAnalysisWindowLimit } from "@/api/service/analysis-snapshot/analysis-context";
+import { buildOnDemandAnalysisReadModel } from "@/api/service/analysis-snapshot/on-demand-read-model";
+import { buildAnalysisPatternReadModel } from "@/api/service/analysis-snapshot/pattern-read-model";
 import {
   getAnalysisContextForFilterQuery,
   getAnalysisSnapshotPatternReadModel
@@ -10,6 +13,37 @@ export async function getPatternsReadModel(query: FilterContext): Promise<ApiPat
 
   if (snapshot) {
     return snapshot;
+  }
+
+  const context = getAnalysisContextForFilterQuery(query);
+
+  if (context) {
+    console.warn(
+      `patterns.snapshot miss for ${context.prizeType}/${context.scope}/${context.month ?? "ALL_MONTHS"}/${context.windowPreset}; using on-demand fallback.`
+    );
+
+    const analytics = await buildOnDemandAnalysisReadModel(context);
+    const generatedAt = analytics.generatedAt;
+    const windowSize = getAnalysisWindowLimit(context.windowPreset) ?? analytics.summary.drawCount;
+
+    return {
+      context: {
+        lotteryType: context.lotteryType,
+        month: context.month,
+        numberLength: context.numberLength,
+        prizeType: context.prizeType,
+        scope: context.scope,
+        windowPreset: context.windowPreset,
+        windowSize
+      },
+      generatedAt,
+      pattern: buildAnalysisPatternReadModel(analytics),
+      source: "on-demand",
+      summary: {
+        drawCount: analytics.summary.drawCount,
+        generatedAt
+      }
+    };
   }
 
   return getMissingPatternsReadModel(query);

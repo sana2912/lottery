@@ -1,8 +1,12 @@
 import {
   type AnalysisContext,
-  getAnalysisPrizeSourceTypes,
   getAnalysisWindowLimit
 } from "@/api/service/analysis-snapshot/analysis-context";
+import {
+  getPrizeTypesForSampleQuery,
+  matchesAnalysisPrizeSample,
+  toAnalysisPrizeTypeLabel
+} from "@/api/service/analysis-snapshot/prize-sample-types";
 import { getPrisma } from "@/api/service/prisma";
 import { Prisma } from "@/generated/prisma/client";
 
@@ -59,7 +63,10 @@ export async function resolveAnalysisSample(context: AnalysisContext): Promise<A
     context,
     drawRows.map((draw) => draw.id)
   );
-  const prizes = prizeRows.map((row) => ({
+  const matchedRows = prizeRows.filter((row) =>
+    matchesAnalysisPrizeSample({ position: row.position, type: row.type }, context)
+  );
+  const prizes = matchedRows.map((row) => ({
     draw: {
       drawDate: row.drawDate,
       lotteryType: row.lotteryType
@@ -67,7 +74,7 @@ export async function resolveAnalysisSample(context: AnalysisContext): Promise<A
     drawId: row.drawId,
     number: row.number,
     position: row.position,
-    type: context.prizeType
+    type: toAnalysisPrizeTypeLabel({ position: row.position, type: row.type }, context)
   }));
   const validPrizes = prizes.filter((prize) => prize.number.length === context.numberLength);
   const drawTimes = drawRows
@@ -134,7 +141,7 @@ async function getAnalysisPrizeRows(
 
 function getSourcePrizeTypeSql(context: AnalysisContext) {
   return Prisma.join(
-    getAnalysisPrizeSourceTypes(context.prizeType).map(
+    getPrizeTypesForSampleQuery(context.prizeType).map(
       (prizeType) => Prisma.sql`${prizeType}::"LotteryPrizeType"`
     )
   );

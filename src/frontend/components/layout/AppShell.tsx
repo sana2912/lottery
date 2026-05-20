@@ -40,7 +40,7 @@ export function AppShell({ children }: AppShellProps) {
                 {appConfig.name}
               </p>
               <p className="truncate text-sm text-[var(--color-text-secondary)]">
-                พื้นที่ทดสอบหน้าโปรดักต์แบบ mock-first เพื่อยืนยัน data contract ของระบบหวย
+                สถิติและสัญญาณจากงวดย้อนหลัง — อ่านคู่กับ Methodology ก่อนตีความคะแนน
               </p>
             </div>
 

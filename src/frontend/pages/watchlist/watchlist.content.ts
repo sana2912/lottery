@@ -45,7 +45,7 @@ export const watchlistContent = {
     description:
       "This watchlist is shared globally because authentication is not enabled yet. Future auth work will scope saved numbers by user.",
     eyebrow: "Global Watchlist",
-    title: "Saved numbers for the current MVP workspace"
+    title: "Saved numbers for this workspace"
   },
   metrics: {
     savedNumbers: {

@@ -173,7 +173,7 @@ export function summarizePatterns(
         frequencyPercent: getFrequencyPercent(hitCount, totalHits),
         hitCount,
         id: `pattern-${flag}`,
-        insight: `Found ${hitCount} of ${totalHits} historical occurrences with ${flag} from ${drawCount} draws.`,
+        insight: `Found ${hitCount} of ${totalHits} prize rows with ${flag} (${drawCount} draws in window).`,
         label: flag,
         pattern: flag,
         sampleSize: totalHits

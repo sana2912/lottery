@@ -4,7 +4,7 @@ TEXT.txt
 out
 dist
 coverage
-reports/audit/*.json
+reports/audit/*
 src/generated/prisma
 .env
 .env.local

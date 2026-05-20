@@ -49,7 +49,7 @@ export const patternsReadModelSchema = z.object({
   }),
   generatedAt: z.string(),
   pattern: analysisPatternReadModelSchema,
-  source: z.enum(["missing", "snapshot"]),
+  source: z.enum(["missing", "on-demand", "snapshot"]),
   summary: z.object({
     drawCount: z.number(),
     generatedAt: z.string()

@@ -1,15 +1,19 @@
 import { toApiAnalyticsReadModel } from "@/api/model/dto/analytics.dto";
 import {
-  getAnalysisPrizeSourceTypes,
   isAnalysisPrizeType,
   isGroupedAnalysisPrizeType
 } from "@/api/service/analysis-snapshot/analysis-context";
+import {
+  getPrizeTypesForSampleQuery,
+  matchesAnalysisPrizeSample
+} from "@/api/service/analysis-snapshot/prize-sample-types";
 import { extractDigitEvents } from "@/api/service/analytics/digit-events";
 import {
   calculateDigitStats,
   calculateNumberStats,
   summarizePatterns
 } from "@/api/service/analytics/number-stats";
+import type { LotteryPrizeType } from "@/generated/prisma/client";
 import type { DateTimeFilter } from "@/generated/prisma/commonInputTypes";
 import type { LotteryDrawWhereInput } from "@/generated/prisma/models/LotteryDraw";
 import type { LotteryPrizeWhereInput } from "@/generated/prisma/models/LotteryPrize";
@@ -100,6 +104,17 @@ export async function getPrizeWindow(
         return undefined;
       }
 
+      if (
+        query.prizeType &&
+        isAnalysisPrizeType(query.prizeType) &&
+        !matchesAnalysisPrizeSample(
+          { position: prize.position ?? null, type: prize.type },
+          { prizeType: query.prizeType }
+        )
+      ) {
+        return undefined;
+      }
+
       return {
         ...prize,
         draw,
@@ -154,7 +169,7 @@ function buildPrizeWhere(
 ): LotteryPrizeWhereInput {
   const sourcePrizeTypes =
     query.prizeType && isAnalysisPrizeType(query.prizeType)
-      ? getAnalysisPrizeSourceTypes(query.prizeType)
+      ? getPrizeTypesForSampleQuery(query.prizeType)
       : undefined;
   const sourcePrizeType = sourcePrizeTypes?.[0];
 
@@ -164,8 +179,8 @@ function buildPrizeWhere(
     },
     type:
       sourcePrizeTypes && sourcePrizeTypes.length > 1
-        ? { in: [...sourcePrizeTypes] }
-        : sourcePrizeType
+        ? { in: [...sourcePrizeTypes] as LotteryPrizeType[] }
+        : (sourcePrizeType as LotteryPrizeType | undefined)
   };
 }
 

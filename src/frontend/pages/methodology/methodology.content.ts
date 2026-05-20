@@ -44,7 +44,7 @@ export const methodologyContent = {
         term: "Longest miss streak"
       }
     ],
-    title: "Core terms used across the MVP"
+    title: "Core terms used across the dashboard"
   },
   hero: {
     description:
@@ -64,7 +64,7 @@ export const methodologyContent = {
     ],
     linkHref: "#prediction-score",
     linkLabel: "Revisit the score sections",
-    title: "What this MVP does not claim"
+    title: "What this dashboard does not claim"
   },
   monthlyInsights: {
     cards: {

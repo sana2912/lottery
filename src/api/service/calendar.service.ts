@@ -200,7 +200,8 @@ function buildMonthlyInsights(draws: CalendarInsightDraw[], query: CalendarHeatm
           selectedScope === "MONTH" && selectedMonth ? MONTH_LABELS[selectedMonth] : "All months",
         month: selectedMonth,
         patternNotes: [
-          "Heatmap scores compare each digit-position event rate against its statistical baseline.",
+          "Cell colors rank digits within each position for the selected prize and window only.",
+          "Event rate, lift, and score still use the 10% digit baseline; colors are not win probabilities.",
           `Each row represents positions for ${selectedPrizeType}.`
         ],
         positionInsights: heatmapRows.map((row) => ({
@@ -253,7 +254,8 @@ function buildMonthlyInsightFromSnapshot(
     label: selectedScope === "MONTH" ? MONTH_LABELS[selectedMonth] : "All months",
     month: selectedScope === "MONTH" ? selectedMonth : undefined,
     patternNotes: [
-      "Heatmap scores compare each digit-position event rate against its statistical baseline.",
+      "Cell colors rank digits within each position for the selected prize and window only.",
+      "Event rate, lift, and score still use the 10% digit baseline; colors are not win probabilities.",
       "This insight is served from a precomputed analysis snapshot."
     ],
     positionInsights: heatmapRows.map((row) => ({

@@ -1,4 +1,5 @@
 import {
+  ANALYSIS_ENGINE_VERSION,
   type AnalysisContext,
   type AnalysisMonth,
   type AnalysisWindowPreset,
@@ -168,7 +169,9 @@ async function getAnalysisSnapshotAnalyticsRow(
       SELECT
         "analyticsReadModel"
       FROM "analysis_snapshot_runs"
-      WHERE "contextKey" = ${contextKey}
+      WHERE
+        "contextKey" = ${contextKey}
+        AND "engineVersion" = ${ANALYSIS_ENGINE_VERSION}
       LIMIT 1
     `;
 
@@ -192,7 +195,9 @@ async function getAnalysisSnapshotPatternRow(
         "windowSize",
         "computedAt"
       FROM "analysis_snapshot_runs"
-      WHERE "contextKey" = ${contextKey}
+      WHERE
+        "contextKey" = ${contextKey}
+        AND "engineVersion" = ${ANALYSIS_ENGINE_VERSION}
       LIMIT 1
     `;
 
@@ -214,7 +219,9 @@ async function getAnalysisSnapshot(context: AnalysisContext): Promise<AnalysisSn
         "calendarReadModel",
         "computedAt"
       FROM "analysis_snapshot_runs"
-      WHERE "contextKey" = ${contextKey}
+      WHERE
+        "contextKey" = ${contextKey}
+        AND "engineVersion" = ${ANALYSIS_ENGINE_VERSION}
       LIMIT 1
     `;
 

@@ -84,7 +84,7 @@ export const calendarContent = {
   },
   monthlyInsights: {
     description:
-      "The heatmap shows six-digit frequency and recency by position for the selected month, prize type, and window size. These are descriptive cues, not guarantees.",
+      "The heatmap shows digit-position event rates for the selected prize and window. Cell colors highlight the strongest and weakest digits within each position row, not across prize types.",
     eyebrow: "Monthly heatmap",
     title: "Digit heatmap by position"
   },
@@ -108,10 +108,13 @@ export const calendarContent = {
   },
   heatmap: {
     legend: {
-      cold: "Cold",
-      hot: "Hot",
-      recency: "Missing rounds",
-      frequency: "Appearance count"
+      cold: "Cold (lowest in row)",
+      countSample: "Count / sample",
+      eventRate: "Event rate",
+      expectedRate: "Expected 10%",
+      hot: "Hot (highest in row)",
+      lift: "Lift",
+      relativeColor: "Colors are relative within each position row"
     },
     title: "Heatmap details"
   },

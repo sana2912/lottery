@@ -1,6 +1,6 @@
 # Lottery Intelligence Dashboard
 
-Production-oriented MVP for a user-facing lottery analytics dashboard.
+Production lottery analytics dashboard for end users.
 
 ## Runtime
 
@@ -10,7 +10,7 @@ Production-oriented MVP for a user-facing lottery analytics dashboard.
 
 ## Scope
 
-This project keeps a modular MVP architecture and still has some mock-first surfaces, but it is no longer structure-only. The repository already includes API routes, Prisma-backed persistence, analytics utilities, and user-facing dashboard flows that can be extended incrementally.
+Modular production architecture: API routes, Prisma-backed persistence, precomputed analysis snapshots, and user-facing dashboard flows. Features are delivered end-to-end (data, API, UI, tests, audit) — see `AGENTS.md` for agent delivery rules.
 
 Agents working in this repo should read `AGENTS.md`. Any UI or UI feature work must read `design.md` first.
 
@@ -79,7 +79,7 @@ Agents working in this repo should read `AGENTS.md`. Any UI or UI feature work m
 
 The API is mounted through Next.js App Router at `src/app/api/[[...route]]/route.ts`, but request handling is delegated to Elysia via `apiApp.fetch`.
 
-Current placeholder modules:
+API modules:
 
 - `/api/draws`
 - `/api/analytics`

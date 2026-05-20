@@ -9,12 +9,14 @@ import { patternsRouter } from "@/api/router/patterns.router";
 import { predictionRouter } from "@/api/router/prediction.router";
 import { searchRouter } from "@/api/router/search.router";
 import { watchlistRouter } from "@/api/router/watchlist.router";
+import { ANALYSIS_ENGINE_VERSION } from "@/api/service/analysis-snapshot/analysis-context";
 
 export function createApiRouter() {
   return new Elysia({ prefix: "/api" })
     .get("/", () => ({
+      engineVersion: ANALYSIS_ENGINE_VERSION,
       name: "Lottery Intelligence API",
-      status: "scaffold"
+      status: "ok"
     }))
     .use(drawRouter)
     .use(analyticsRouter)
