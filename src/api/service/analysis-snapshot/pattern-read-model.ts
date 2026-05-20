@@ -1,4 +1,8 @@
-import { getDigitSum, getMiniDna } from "@/lib/app/number-shape";
+import { getMiniDna } from "@/lib/app/number-shape";
+import {
+  buildPatternDistributionCountsFromApiStats,
+  buildPatternDistributionItems
+} from "@/lib/app/pattern-distribution";
 import type { ApiAnalyticsReadModel, ApiNumberStat, ApiPatternFlag } from "@/schema/api/analytics";
 import type { ApiAnalysisPatternReadModel } from "@/schema/api/patterns";
 
@@ -9,7 +13,9 @@ export function buildAnalysisPatternReadModel(
   const sampleSize = getTotalHits(stats);
 
   return {
-    distribution: buildPatternDistribution(stats, sampleSize),
+    distribution: buildPatternDistributionItems(
+      buildPatternDistributionCountsFromApiStats(stats, sampleSize)
+    ),
     examples: stats.slice(0, 24).map((stat) => ({
       dna: getMiniDna(stat.number),
       flags: stat.patternFlags.slice(0, 6),
@@ -29,54 +35,6 @@ export function buildAnalysisPatternReadModel(
   };
 }
 
-function buildPatternDistribution(stats: readonly ApiNumberStat[], totalHits: number) {
-  const repeatCount = getFlagHitCount(stats, "has_repeat");
-  const uniqueCount = getFlagHitCount(stats, "all_unique");
-  const balancedOddEvenCount = getFlagHitCount(stats, "balanced_odd_even");
-  const balancedHighLowCount = getFlagHitCount(stats, "balanced_high_low");
-  const digitSums = stats.map((stat) => getDigitSum(stat.number));
-  const averageUniqueDigits =
-    totalHits > 0
-      ? round(
-          stats.reduce((total, stat) => total + new Set([...stat.number]).size * stat.hitCount, 0) /
-            totalHits
-        )
-      : 0;
-
-  return [
-    {
-      id: "repeat",
-      label: "Repeat shape",
-      value: `Repeat digits: ${repeatCount} of ${totalHits} records`
-    },
-    {
-      id: "unique",
-      label: "Unique shape",
-      value: `All-unique digits: ${uniqueCount} of ${totalHits} records`
-    },
-    {
-      id: "odd-even",
-      label: "Odd/even balance",
-      value: `Balanced in ${getPercent(balancedOddEvenCount, totalHits)}%`
-    },
-    {
-      id: "high-low",
-      label: "High/low balance",
-      value: `Balanced in ${getPercent(balancedHighLowCount, totalHits)}%`
-    },
-    {
-      id: "sum-range",
-      label: "Digit sum range",
-      value: digitSums.length > 0 ? `${Math.min(...digitSums)} to ${Math.max(...digitSums)}` : "-"
-    },
-    {
-      id: "unique-distribution",
-      label: "Unique digit distribution",
-      value: `${averageUniqueDigits} unique digits on average`
-    }
-  ];
-}
-
 function getPatternExamples(stats: readonly ApiNumberStat[], flag: ApiPatternFlag) {
   return stats
     .filter((stat) => stat.patternFlags.includes(flag))
@@ -84,18 +42,6 @@ function getPatternExamples(stats: readonly ApiNumberStat[], flag: ApiPatternFla
     .map((stat) => stat.number);
 }
 
-function getFlagHitCount(stats: readonly ApiNumberStat[], flag: ApiPatternFlag) {
-  return getTotalHits(stats.filter((stat) => stat.patternFlags.includes(flag)));
-}
-
 function getTotalHits(stats: readonly ApiNumberStat[]) {
   return stats.reduce((total, stat) => total + stat.hitCount, 0);
-}
-
-function getPercent(value: number, total: number) {
-  return total > 0 ? round((value / total) * 100) : 0;
-}
-
-function round(value: number) {
-  return Math.round(value * 100) / 100;
 }

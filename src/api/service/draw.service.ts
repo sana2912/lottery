@@ -1,8 +1,8 @@
 import { toApiDrawDetailResponse, toApiDrawListResponse } from "@/api/model/dto/draw.dto";
 import { getPrisma } from "@/api/service/prisma";
-import type { DateTimeFilter } from "@/generated/prisma/commonInputTypes";
 import type { LotteryDrawWhereInput } from "@/generated/prisma/models/LotteryDraw";
 import type { SearchQuery } from "@/schema/app/query.schema";
+import { buildDrawDateFilter } from "@/util/api/draw-date-filter";
 
 export type GetDrawsQuery = SearchQuery;
 
@@ -71,7 +71,7 @@ function buildDrawWhere(query: GetDrawsQuery): LotteryDrawWhereInput {
   const where: LotteryDrawWhereInput = {
     lotteryType: query.lotteryType
   };
-  const drawDate = buildDrawDateFilter(query);
+  const drawDate = buildDrawDateFilterForQuery(query);
 
   if (drawDate) {
     where.drawDate = drawDate;
@@ -107,43 +107,11 @@ function buildDrawWhere(query: GetDrawsQuery): LotteryDrawWhereInput {
   return where;
 }
 
-function buildDrawDateFilter(query: GetDrawsQuery): DateTimeFilter<"LotteryDraw"> | undefined {
-  const filter: DateTimeFilter<"LotteryDraw"> = {};
-  const yearMonthRange = buildYearMonthRange(query.year, query.month);
-
-  if (yearMonthRange) {
-    filter.gte = yearMonthRange.start;
-    filter.lt = yearMonthRange.end;
-  }
-
-  if (query.startDate) {
-    filter.gte = new Date(query.startDate);
-  }
-
-  if (query.endDate) {
-    filter.lte = new Date(query.endDate);
-  }
-
-  return Object.keys(filter).length > 0 ? filter : undefined;
-}
-
-function buildYearMonthRange(
-  year: number | undefined,
-  month: number | undefined
-): { end: Date; start: Date } | undefined {
-  if (!year) {
-    return undefined;
-  }
-
-  if (!month) {
-    return {
-      end: new Date(Date.UTC(year + 1, 0, 1)),
-      start: new Date(Date.UTC(year, 0, 1))
-    };
-  }
-
-  return {
-    end: new Date(Date.UTC(year, month, 1)),
-    start: new Date(Date.UTC(year, month - 1, 1))
-  };
+function buildDrawDateFilterForQuery(query: GetDrawsQuery) {
+  return buildDrawDateFilter({
+    endDate: query.endDate,
+    month: query.month,
+    startDate: query.startDate,
+    year: query.year
+  });
 }

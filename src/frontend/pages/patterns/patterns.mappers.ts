@@ -1,9 +1,9 @@
+import { getMiniDna, hasNumberShapeFlag, type NumberShapeFlag } from "@/lib/app/number-shape";
 import {
-  getDigitSum,
-  getMiniDna,
-  hasNumberShapeFlag,
-  type NumberShapeFlag
-} from "@/lib/app/number-shape";
+  buildPatternDistributionCountsFromHits,
+  buildPatternDistributionItems,
+  type PatternDistributionItem
+} from "@/lib/app/pattern-distribution";
 import type { AnalyticsReadModel, NumberStat } from "@/schema/app/analytics.schema";
 import type { AnalysisPatternReadModel, PatternsApiReadModel } from "@/schema/app/patterns.schema";
 import type { FilterContext } from "@/schema/app/query.schema";
@@ -70,11 +70,7 @@ export type PatternExample = {
   prizeType: string;
 };
 
-export type PatternDistributionItem = {
-  id: string;
-  label: string;
-  value: string;
-};
+export type { PatternDistributionItem };
 
 export type PatternPageQuery = {
   month?: number;
@@ -117,154 +113,37 @@ function matchesShape(flag: NumberShapeFlag) {
   return (number: string) => hasNumberShapeFlag(number, flag);
 }
 
+function definePattern(
+  flag: NumberShapeFlag,
+  id: string,
+  label: string,
+  tone: PatternTone
+): PatternDefinition {
+  return { flag, id, label, matches: matchesShape(flag), tone };
+}
+
 const patternDefinitions: PatternDefinition[] = [
-  {
-    flag: "odd",
-    id: "odd_last_digit",
-    label: "Odd last digit",
-    matches: matchesShape("odd"),
-    tone: "neutral"
-  },
-  {
-    flag: "even",
-    id: "even_last_digit",
-    label: "Even last digit",
-    matches: matchesShape("even"),
-    tone: "neutral"
-  },
-  {
-    flag: "high",
-    id: "high_last_digit",
-    label: "High last digit",
-    matches: matchesShape("high"),
-    tone: "hot"
-  },
-  {
-    flag: "low",
-    id: "low_last_digit",
-    label: "Low last digit",
-    matches: matchesShape("low"),
-    tone: "cold"
-  },
-  {
-    flag: "double",
-    id: "double",
-    label: "Double",
-    matches: matchesShape("double"),
-    tone: "overdue"
-  },
-  {
-    flag: "has_repeat",
-    id: "has_repeat",
-    label: "Has repeat",
-    matches: matchesShape("has_repeat"),
-    tone: "overdue"
-  },
-  {
-    flag: "all_unique",
-    id: "all_unique",
-    label: "All unique",
-    matches: matchesShape("all_unique"),
-    tone: "success"
-  },
-  {
-    flag: "double_pair",
-    id: "double_pair",
-    label: "Double pair",
-    matches: matchesShape("double_pair"),
-    tone: "overdue"
-  },
-  {
-    flag: "triple",
-    id: "triple",
-    label: "Triple",
-    matches: matchesShape("triple"),
-    tone: "warning"
-  },
-  {
-    flag: "quad_or_more",
-    id: "quad_or_more",
-    label: "Quad or more",
-    matches: matchesShape("quad_or_more"),
-    tone: "warning"
-  },
-  {
-    flag: "ascending",
-    id: "ascending",
-    label: "Ascending",
-    matches: matchesShape("ascending"),
-    tone: "success"
-  },
-  {
-    flag: "descending",
-    id: "descending",
-    label: "Descending",
-    matches: matchesShape("descending"),
-    tone: "warning"
-  },
-  {
-    flag: "ascending_run",
-    id: "ascending_run",
-    label: "Ascending run",
-    matches: matchesShape("ascending_run"),
-    tone: "success"
-  },
-  {
-    flag: "descending_run",
-    id: "descending_run",
-    label: "Descending run",
-    matches: matchesShape("descending_run"),
-    tone: "warning"
-  },
-  {
-    flag: "mirror",
-    id: "mirror",
-    label: "Mirror / reverse",
-    matches: matchesShape("mirror"),
-    tone: "neutral"
-  },
-  {
-    flag: "palindrome",
-    id: "palindrome",
-    label: "Palindrome",
-    matches: matchesShape("palindrome"),
-    tone: "neutral"
-  },
-  {
-    flag: "balanced_odd_even",
-    id: "balanced_odd_even",
-    label: "Odd/even balance",
-    matches: matchesShape("balanced_odd_even"),
-    tone: "success"
-  },
-  {
-    flag: "balanced_high_low",
-    id: "balanced_high_low",
-    label: "High/low balance",
-    matches: matchesShape("balanced_high_low"),
-    tone: "success"
-  },
-  {
-    flag: "low_sum",
-    id: "low_sum",
-    label: "Low digit sum",
-    matches: matchesShape("low_sum"),
-    tone: "cold"
-  },
-  {
-    flag: "mid_sum",
-    id: "mid_sum",
-    label: "Mid digit sum",
-    matches: matchesShape("mid_sum"),
-    tone: "neutral"
-  },
-  {
-    flag: "high_sum",
-    id: "high_sum",
-    label: "High digit sum",
-    matches: matchesShape("high_sum"),
-    tone: "hot"
-  }
+  definePattern("odd", "odd_last_digit", "Odd last digit", "neutral"),
+  definePattern("even", "even_last_digit", "Even last digit", "neutral"),
+  definePattern("high", "high_last_digit", "High last digit", "hot"),
+  definePattern("low", "low_last_digit", "Low last digit", "cold"),
+  definePattern("double", "double", "Double", "overdue"),
+  definePattern("has_repeat", "has_repeat", "Has repeat", "overdue"),
+  definePattern("all_unique", "all_unique", "All unique", "success"),
+  definePattern("double_pair", "double_pair", "Double pair", "overdue"),
+  definePattern("triple", "triple", "Triple", "warning"),
+  definePattern("quad_or_more", "quad_or_more", "Quad or more", "warning"),
+  definePattern("ascending", "ascending", "Ascending", "success"),
+  definePattern("descending", "descending", "Descending", "warning"),
+  definePattern("ascending_run", "ascending_run", "Ascending run", "success"),
+  definePattern("descending_run", "descending_run", "Descending run", "warning"),
+  definePattern("mirror", "mirror", "Mirror / reverse", "neutral"),
+  definePattern("palindrome", "palindrome", "Palindrome", "neutral"),
+  definePattern("balanced_odd_even", "balanced_odd_even", "Odd/even balance", "success"),
+  definePattern("balanced_high_low", "balanced_high_low", "High/low balance", "success"),
+  definePattern("low_sum", "low_sum", "Low digit sum", "cold"),
+  definePattern("mid_sum", "mid_sum", "Mid digit sum", "neutral"),
+  definePattern("high_sum", "high_sum", "High digit sum", "hot")
 ];
 
 const definitionIdsByLength = {
@@ -554,55 +433,14 @@ function getDistribution(
   stats: readonly NumberStat[],
   totalHits: number
 ): PatternDistributionItem[] {
-  const repeatCount = getTotalHits(stats.filter((stat) => matchesShape("has_repeat")(stat.number)));
-  const uniqueCount = getTotalHits(stats.filter((stat) => matchesShape("all_unique")(stat.number)));
-  const balancedOddEvenCount = getTotalHits(
-    stats.filter((stat) => matchesShape("balanced_odd_even")(stat.number))
+  return buildPatternDistributionItems(
+    buildPatternDistributionCountsFromHits(stats, totalHits, {
+      allUnique: matchesShape("all_unique"),
+      balancedHighLow: matchesShape("balanced_high_low"),
+      balancedOddEven: matchesShape("balanced_odd_even"),
+      hasRepeat: matchesShape("has_repeat")
+    })
   );
-  const balancedHighLowCount = getTotalHits(
-    stats.filter((stat) => matchesShape("balanced_high_low")(stat.number))
-  );
-  const averageUniqueDigits =
-    totalHits > 0
-      ? round(
-          stats.reduce((total, stat) => total + new Set([...stat.number]).size * stat.hitCount, 0) /
-            totalHits
-        )
-      : 0;
-  const digitSums = stats.map((stat) => getDigitSum(stat.number));
-
-  return [
-    {
-      id: "repeat",
-      label: "Repeat shape",
-      value: `Repeat digits: ${repeatCount} of ${totalHits} records`
-    },
-    {
-      id: "unique",
-      label: "Unique shape",
-      value: `All-unique digits: ${uniqueCount} of ${totalHits} records`
-    },
-    {
-      id: "odd-even",
-      label: "Odd/even balance",
-      value: `Balanced in ${getPercent(balancedOddEvenCount, totalHits)}%`
-    },
-    {
-      id: "high-low",
-      label: "High/low balance",
-      value: `Balanced in ${getPercent(balancedHighLowCount, totalHits)}%`
-    },
-    {
-      id: "sum-range",
-      label: "Digit sum range",
-      value: digitSums.length > 0 ? `${Math.min(...digitSums)} to ${Math.max(...digitSums)}` : "-"
-    },
-    {
-      id: "unique-distribution",
-      label: "Unique digit distribution",
-      value: `${averageUniqueDigits} unique digits on average`
-    }
-  ];
 }
 
 function getSnapshotOverviewByPattern(snapshot: AnalysisPatternReadModel) {
@@ -706,10 +544,6 @@ function getHumanSummary(
 }
 function getTotalHits(stats: readonly NumberStat[]) {
   return stats.reduce((total, stat) => total + stat.hitCount, 0);
-}
-
-function getPercent(value: number, total: number) {
-  return total > 0 ? round((value / total) * 100) : 0;
 }
 
 function getPrizeNumberLength(prizeType: PatternPrizeValue): 2 | 3 | 6 {

@@ -9,10 +9,9 @@ import { getAnalysisSnapshotCalendarReadModel } from "@/api/service/analysis-sna
 import {
   buildOverallPositionDigitStats,
   buildPositionHeatmapRows,
-  type PositionHeatmapCell,
-  type PositionHeatmapRow,
   sortPositionHeatmapCells
 } from "@/api/service/analytics/position-heatmap";
+import { mapHeatmapRowsToPositionInsights } from "@/api/service/calendar/calendar-insights";
 import { getPrisma } from "@/api/service/prisma";
 import type { LotteryPrizeWhereInput } from "@/generated/prisma/models/LotteryPrize";
 import type { CalendarHeatmapQuery } from "@/schema/app/calendar.schema";
@@ -37,15 +36,6 @@ type CalendarInsightDraw = {
   drawDate: Date;
   prizes: Array<{ number: string; type: string }>;
 };
-
-type PositionNumberStat = {
-  appearanceCount: number;
-  digit: string;
-  missingRounds: number;
-};
-
-type HeatmapCell = PositionHeatmapCell;
-type HeatmapRow = PositionHeatmapRow;
 
 const DEFAULT_ANALYSIS_WINDOW_PRESET = "50";
 export async function getCalendarReadModel(query: CalendarHeatmapQuery = {}) {
@@ -204,15 +194,7 @@ function buildMonthlyInsights(draws: CalendarInsightDraw[], query: CalendarHeatm
           "Event rate, lift, and score still use the 10% digit baseline; colors are not win probabilities.",
           `Each row represents positions for ${selectedPrizeType}.`
         ],
-        positionInsights: heatmapRows.map((row) => ({
-          coldNumbers: row.coldDigits
-            .map((digit) => toPositionNumberStat(getCellForDigit(row, digit)))
-            .flatMap((cell) => (cell ? [cell] : [])),
-          hotNumbers: row.hotDigits
-            .map((digit) => toPositionNumberStat(getCellForDigit(row, digit)))
-            .flatMap((cell) => (cell ? [cell] : [])),
-          position: row.position
-        })),
+        positionInsights: mapHeatmapRowsToPositionInsights(heatmapRows),
         prizeType: selectedPrizeType,
         sampleSize: matchingDraws.length,
         scope: selectedScope,
@@ -258,15 +240,7 @@ function buildMonthlyInsightFromSnapshot(
       "Event rate, lift, and score still use the 10% digit baseline; colors are not win probabilities.",
       "This insight is served from a precomputed analysis snapshot."
     ],
-    positionInsights: heatmapRows.map((row) => ({
-      coldNumbers: row.coldDigits
-        .map((digit) => toPositionNumberStat(getCellForDigit(row, digit)))
-        .flatMap((cell) => (cell ? [cell] : [])),
-      hotNumbers: row.hotDigits
-        .map((digit) => toPositionNumberStat(getCellForDigit(row, digit)))
-        .flatMap((cell) => (cell ? [cell] : [])),
-      position: row.position
-    })),
+    positionInsights: mapHeatmapRowsToPositionInsights(heatmapRows),
     prizeType: selectedPrizeType,
     sampleSize: snapshot.sampleSize,
     scope: selectedScope,
@@ -344,22 +318,6 @@ function getCalendarSourcePrizeTypes(prizeType: NonNullable<CalendarHeatmapQuery
 
 function isSnapshotEligibleCalendarQuery(query: CalendarHeatmapQuery) {
   return Boolean(query);
-}
-
-function getCellForDigit(row: HeatmapRow, digit: string) {
-  return row.cells.find((cell) => cell.digit === digit);
-}
-
-function toPositionNumberStat(cell: HeatmapCell | undefined): PositionNumberStat | null {
-  if (!cell) {
-    return null;
-  }
-
-  return {
-    appearanceCount: cell.appearanceCount,
-    digit: cell.digit,
-    missingRounds: cell.missingRounds
-  };
 }
 
 function getNextDrawDate(reference: Date, latestPastDrawDate?: Date) {
