@@ -1,7 +1,10 @@
 import { analyticsService } from "@/api/service/analytics.service";
 import { getPrisma } from "@/api/service/prisma";
-import type { ApiSearchReadModel, ApiSearchStatHit } from "@/schema/api/search";
-import type { ApiWatchlistPrizeType } from "@/schema/api/watchlist";
+import type {
+  ApiSearchPrizeHitPrizeType,
+  ApiSearchReadModel,
+  ApiSearchStatHit
+} from "@/schema/api/search";
 import type { SearchQuery } from "@/schema/app/query.schema";
 
 const SEARCH_STATS_WINDOW_SIZE = 120;
@@ -13,7 +16,7 @@ const SEARCHABLE_PRIZE_TYPES = [
   "PRIZE3",
   "PRIZE4",
   "PRIZE5"
-] as const satisfies readonly ApiWatchlistPrizeType[];
+] as const satisfies readonly ApiSearchPrizeHitPrizeType[];
 
 export async function search(query: SearchQuery): Promise<ApiSearchReadModel> {
   const prisma = getPrisma();
@@ -132,7 +135,7 @@ export async function search(query: SearchQuery): Promise<ApiSearchReadModel> {
         drawNo: prize.draw.drawNo ?? "-",
         id: prize.id,
         number: prize.number,
-        prizeType: prize.type as ApiWatchlistPrizeType
+        prizeType: prize.type as ApiSearchPrizeHitPrizeType
       })),
       stats,
       watchlist: watchlist.map((item) => ({
@@ -189,23 +192,18 @@ async function getSearchStats(query: SearchQuery) {
   }
 
   if (digitLength === 6) {
-    const prizeTypes = ["FIRST", "PRIZE2", "PRIZE3", "PRIZE4", "PRIZE5"] as const;
-    const stats = (
-      await Promise.all(
-        prizeTypes.map((prizeType) =>
-          analyticsService.getNumberStats({
-            lotteryType: query.lotteryType,
-            numberLength: 6,
-            page: 1,
-            pageSize: 1000,
-            prizeType,
-            windowSize: SEARCH_STATS_WINDOW_SIZE
-          })
-        )
-      )
-    ).flat();
-
-    return mapSearchStats(stats, query.q ?? "");
+    return mapSearchStats(
+      await analyticsService.getNumberStats({
+        lotteryType: query.lotteryType,
+        numberLength: 6,
+        page: 1,
+        pageSize: 1000,
+        prizeType: "SIX_DIGIT_ALL",
+        windowPreset: "100",
+        windowSize: SEARCH_STATS_WINDOW_SIZE
+      }),
+      query.q ?? ""
+    );
   }
 
   return [];
@@ -225,6 +223,7 @@ function mapSearchStats(
       missingDrawCount: stat.missingDrawCount,
       number: stat.number,
       prizeType: stat.prizeType as ApiSearchStatHit["prizeType"],
+      samplePrizeCount: stat.samplePrizeCount,
       trendScore: stat.trendScore,
       windowSize: stat.windowSize
     }));

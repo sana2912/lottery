@@ -1,4 +1,16 @@
-import type { ApiWatchlistPrizeType, ApiWatchlistSource } from "@/schema/api/watchlist";
+import type { ApiWatchlistSource } from "@/schema/api/watchlist";
+
+export type ApiSearchPrizeHitPrizeType =
+  | "FIRST"
+  | "NEAR_FIRST"
+  | "THREE_DIGIT"
+  | "THREE_FRONT"
+  | "THREE_BACK"
+  | "TWO_DIGIT"
+  | "PRIZE2"
+  | "PRIZE3"
+  | "PRIZE4"
+  | "PRIZE5";
 
 export interface ApiSearchDrawHit {
   drawDate: string;
@@ -13,7 +25,7 @@ export interface ApiSearchPrizeHit {
   drawNo: string;
   id: string;
   number: string;
-  prizeType: ApiWatchlistPrizeType;
+  prizeType: ApiSearchPrizeHitPrizeType;
 }
 
 export interface ApiSearchStatHit {
@@ -22,7 +34,8 @@ export interface ApiSearchStatHit {
   lastSeenDrawDate?: string;
   missingDrawCount: number;
   number: string;
-  prizeType: ApiWatchlistPrizeType;
+  prizeType: import("@/schema/api/watchlist").ApiWatchlistPrizeType; // analysis-facing stat context
+  samplePrizeCount?: number;
   trendScore: number;
   windowSize: number;
 }

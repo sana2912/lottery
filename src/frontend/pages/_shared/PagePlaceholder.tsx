@@ -7,7 +7,7 @@ export function PagePlaceholder({ title, description }: PagePlaceholderProps) {
   return (
     <main className="page-shell">
       <section className="page-heading">
-        <p className="eyebrow">MVP scaffold</p>
+        <p className="eyebrow">In progress</p>
         <h1>{title}</h1>
         <p>{description}</p>
       </section>

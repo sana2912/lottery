@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { analysisPrizeTypeSchema } from "@/schema/app/query.schema";
 
 export const watchlistScopeSchema = z.literal("global");
 export const watchlistSourceSchema = z.enum(["MANUAL", "NOTEBOOK", "PREDICTION"]);
@@ -7,7 +8,8 @@ export const watchlistStatSummarySchema = z.object({
   hitCount: z.number().int().nonnegative(),
   lastSeenDrawDate: z.string().optional(),
   missingDrawCount: z.number().int().nonnegative(),
-  prizeType: z.enum(["FIRST", "THREE_DIGIT", "TWO_DIGIT", "PRIZE2", "PRIZE3", "PRIZE4", "PRIZE5"])
+  prizeType: analysisPrizeTypeSchema,
+  samplePrizeCount: z.number().int().nonnegative().optional()
 });
 
 export const watchlistItemSchema = z.object({

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { calendarService } from "@/api/service/calendar.service";
-import { calendarReadModelSchema } from "@/schema/app/calendar.schema";
+import { calendarHeatmapQuerySchema, calendarReadModelSchema } from "@/schema/app/calendar.schema";
 
 afterEach(() => {
   delete (globalThis as { prisma?: unknown }).prisma;
@@ -94,5 +94,13 @@ describe("calendar.service", () => {
     expect(response.draws[0]).toEqual(response.nextDraw);
     expect(response.monthlyInsights).toEqual([]);
     expect(response.nextDraw.status).toBe("upcoming");
+  });
+
+  test("normalizes SIX_DIGIT_ALL out of calendar queries", () => {
+    const parsed = calendarHeatmapQuerySchema.parse({
+      prizeType: "SIX_DIGIT_ALL"
+    });
+
+    expect(parsed.prizeType).toBeUndefined();
   });
 });

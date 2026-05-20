@@ -14,7 +14,14 @@ export interface ApiMonthlyInsight {
     cells: Array<{
       appearanceCount: number;
       digit: string;
+      eventCount?: number;
+      eventRatePercent?: number;
+      expectedRatePercent?: number;
+      expectedPresenceRatePercent?: number;
+      lift?: number;
       missingRounds: number;
+      presenceRatePercent?: number;
+      sampleEventCount?: number;
       score: number;
       tone: "hot" | "warm" | "neutral" | "cool" | "cold";
     }>;

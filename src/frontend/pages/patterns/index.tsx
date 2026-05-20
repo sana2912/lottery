@@ -1,14 +1,12 @@
 import Link from "next/link";
 import { EmptyState, MetricCard } from "@/frontend/components";
-import { getAnalyticsPageData } from "@/frontend/pages/analytics/analytics.data";
 import { PatternsFilterPanel } from "@/frontend/pages/patterns/patterns.components";
 import { patternsContent } from "@/frontend/pages/patterns/patterns.content";
 import {
-  buildPatternReadModel,
-  buildPatternsHref,
-  parsePatternSearchParams,
-  toPatternsAnalyticsQuery
-} from "@/frontend/pages/patterns/patterns.mappers";
+  getPatternsPageData,
+  type PatternsPageData
+} from "@/frontend/pages/patterns/patterns.data";
+import { buildPatternsHref } from "@/frontend/pages/patterns/patterns.mappers";
 import {
   Badge,
   Button,
@@ -23,13 +21,12 @@ import {
 } from "@/frontend/primitives";
 
 type PatternsPageProps = Readonly<{
+  pageData?: PatternsPageData;
   searchParams?: Record<string, string | string[] | undefined>;
 }>;
 
-export async function PatternsPage({ searchParams }: PatternsPageProps = {}) {
-  const query = parsePatternSearchParams(searchParams);
-  const { model: analytics, state } = await getAnalyticsPageData(toPatternsAnalyticsQuery(query));
-  const patterns = buildPatternReadModel(analytics, query);
+export async function PatternsPage({ pageData, searchParams }: PatternsPageProps = {}) {
+  const { model: patterns, query, state } = pageData ?? (await getPatternsPageData(searchParams));
 
   return (
     <main className="space-y-6">
@@ -57,12 +54,12 @@ export async function PatternsPage({ searchParams }: PatternsPageProps = {}) {
             <MetricCard label="Prize type" value={patterns.prizeLabel} />
             <MetricCard label="Sample size" value={String(patterns.sampleSize)} />
             <MetricCard label="Number length" value={patterns.numberLengthLabel} />
-            <MetricCard label="Draw count" value={String(analytics.summary.drawCount)} />
+            <MetricCard label="Draw count" value={String(patterns.drawCount)} />
           </div>
         </Card>
       </section>
 
-      {state === "error" || patterns.overviewCards.length === 0 ? (
+      {state !== "ready" || patterns.totalHits === 0 ? (
         <EmptyState
           description={patternsContent.emptyState.description}
           title={patternsContent.emptyState.title}

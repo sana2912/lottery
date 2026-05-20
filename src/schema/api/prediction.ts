@@ -1,6 +1,7 @@
 import type { ApiLotteryPrizeType, ApiLotteryType, ApiNumberLength } from "@/schema/api/query";
 
 export type ApiPredictionStrategyId = "balanced" | "coldRebound" | "hotTrend";
+export type ApiPredictionPrizeType = Exclude<ApiLotteryPrizeType, "OTHER">;
 
 export interface ApiPredictionScoreBreakdown {
   hot: number;
@@ -40,7 +41,7 @@ export interface ApiPredictionRequest {
   count?: number;
   lotteryType?: ApiLotteryType;
   numberLength?: ApiNumberLength;
-  prizeType?: ApiLotteryPrizeType;
+  prizeType?: ApiPredictionPrizeType;
   strategyId?: ApiPredictionStrategyId;
   windowSize?: number;
 }

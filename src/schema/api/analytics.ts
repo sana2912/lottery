@@ -1,6 +1,7 @@
 export interface ApiAnalyticsSummary {
   drawCount: number;
   generatedAt: string;
+  prizeCount?: number;
 }
 
 export type ApiTrendDirection = "up" | "down" | "flat";
@@ -37,8 +38,11 @@ export interface ApiDigitStat {
   drawCount: number;
   hitCount: number;
   frequencyPercent: number;
+  expectedFrequencyPercent?: number;
   lastSeenDrawDate?: string;
+  lift?: number;
   missingDrawCount: number;
+  sampleEventCount?: number;
   trendDirection: ApiTrendDirection;
   computedAt: string;
 }
@@ -52,12 +56,15 @@ export interface ApiNumberStat {
   drawCount: number;
   hitCount: number;
   frequencyPercent: number;
+  frequencyPerDrawPercent?: number;
+  frequencyPerPrizeRowPercent?: number;
   lastSeenDrawDate?: string;
   missingDrawCount: number;
   averageGap?: number;
   maxGap?: number;
   trendScore: number;
   patternFlags: ApiPatternFlag[];
+  samplePrizeCount?: number;
   computedAt: string;
 }
 
@@ -73,7 +80,7 @@ export interface ApiPatternSummary {
 
 export interface ApiAnalyticsReadModel {
   generatedAt: string;
-  source: "mock" | "api";
+  source: "mock" | "api" | "snapshot" | "on-demand" | "prize-window";
   summary: ApiAnalyticsSummary;
   digitStats: ApiDigitStat[];
   numberStats: ApiNumberStat[];

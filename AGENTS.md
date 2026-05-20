@@ -1,325 +1,107 @@
 # Project Agent Guide
 
-This file is the operating guide for AI/code agents working in this repository.
+Operating guide for AI/code agents in this repository.
+
+## Agent workflow
+
+**Do not run verification or database commands yourself.** Ask the person prompting to run them and report results.
+
+| They run | When |
+| --- | --- |
+| `bun run check` | After non-trivial code changes |
+| `bun test` or targeted `bun test <path>` | When behavior or tests changed |
+| `bun run db:generate` / `db:migrate` / `db:push` | After `prisma/schema.prisma` changes |
+| `bun run db:compute-analysis` | After analytics engine or snapshot payload changes |
+| `bun run db:audit` | After seed, import, or compute |
+| `bun run db:audit:calc` | Deep audits: draw-prizes + normalization + compute scope matrix |
+| `bun run db:audit:scope` | Compute/snapshot scope only (572 contexts) |
+
+Agents may edit code, read files, and explain failures from user-provided output. Do not bypass Husky pre-commit unless the user asks.
 
 ## Product
 
-Lottery Intelligence Dashboard is a user-facing lottery statistics and prediction MVP. The current scope is scaffold-first: keep architecture modular, preserve boundaries, and avoid implementing feature behavior unless explicitly requested.
+**Lottery Intelligence Dashboard** — production user-facing lottery statistics, analytics, and prediction research. Modular boundaries are required; shallow or half-finished delivery is not.
 
-## Runtime And Package Manager
+**Banned framing (do not write in code, docs, commits, or comments):** `MVP`, `scaffold-only`, `placeholder until later`, `unless explicitly requested` as an excuse to skip depth. This project ships **complete, auditable features**, not demos.
 
-- Runtime/package manager: Bun `1.3.13`
-- Version pin: `.bun-version`
-- Package metadata: `packageManager: bun@1.3.13`
+## Delivery standard (required)
 
-Use Bun commands:
+When you touch a feature, page, API, or data pipeline, finish it **end-to-end** in that same effort unless the user explicitly narrows scope in the current message.
+
+**Definition of done for a feature unit:**
+
+1. **Data** — correct scope/window/prize semantics; snapshots recomputed when analytics change (`db:compute-analysis`).
+2. **API** — router + service + DTO + `src/schema/api` / `src/schema/app` aligned; no `501` stubs left for routes that are in use.
+3. **UI** — page wiring, filters, empty/error states, mobile behavior; read `design.md` first for user-facing work.
+4. **Tests** — behavior that changed must have targeted tests; ask the user to run `bun test`.
+5. **Audit** — analytics/metrics changes: user runs `db:audit:calc` (or at least `db:audit:scope` when only snapshot scope changed).
+6. **No drive-by** — do not start a second feature while the first is incomplete; do not leave TODO stubs, mock-only paths, or partial refactors.
+
+**One task, one completion.** If scope is too large, propose a split with a clear done checklist per slice — do not jump to a new feature and leave the prior slice half-wired.
+
+## Runtime
+
+- Bun `1.3.13` (see `.bun-version`, `packageManager` in `package.json`)
+- Use Bun only; do not add npm/pnpm/yarn lockfiles unless asked
+- Env: `.env.development` (local), `.env.example` (safe example values); production via platform env vars
+- Never commit real secrets
+
+## Requirements
+
+- Product and metrics: `docs/calculate.md`, `docs/production-data-ops.md`
+- UI/visual rules: `design.md` before any change under `src/frontend/**` or user-facing layout
+
+## Module boundaries
+
+| Layer | Path | Role |
+| --- | --- | --- |
+| Routes | `src/app` | Thin Next.js entry only |
+| Pages | `src/frontend/pages` | Route composition (`index.tsx`, `*.content.ts`, `*.data.ts`, `*.mappers.ts`, `*.components.tsx`) |
+| UI | `src/frontend/components`, `primitives`, `chart-primitives` | Reusable product UI |
+| API | `src/api/router`, `service`, `model/dto` | Elysia routes, logic, serialization |
+| Contracts | `src/schema/api` (TS transport), `src/schema/app` (Zod) | Public shapes and validation |
+| Clients | `src/lib/api`, `src/lib/app` | Frontend fetch/helpers |
+| Utils | `src/util/api`, `src/util/app` | Small helpers by consumer |
+| DB | `prisma/` | Schema only (agents do not edit `prisma/migrations/`) |
+
+**Import rules:** frontend must not import `src/api/*` or `src/util/api/*`; backend must not import `src/frontend/*`. DTOs are backend-only; frontend uses `src/schema/app` + `src/lib/api`.
+
+## API
+
+Elysia via `src/app/api/[[...route]]/route.ts` → `src/api/index.ts`. Routes: `/api/draws`, `/analytics`, `/predictions`, `/watchlist`, `/backtests`, `/compare`, `/calendar`.
+
+## Database (agents)
+
+- Edit `prisma/schema.prisma` only; tell the user to run `db:generate`, `db:migrate`, or `db:push`
+- Do not run migrations or `db:push` unless the user explicitly asks in the current turn
+- IDs: UUID v7 (`@default(uuid(7))`); datasource URL in `prisma.config.ts`, not `schema.prisma`
+
+## UI essentials
+
+- Square UI: `rounded-none`; semantic tokens from `globals.css` (no raw `text-sky-*` / hex)
+- Charts: `src/frontend/chart-primitives` (D3)
+- Icons: `lucide-react`; `cn` from `@/lib/app/cn`
+- Animate UI / shadcn: see `docs/animate-ui.md`, `components.json`
+
+## Implementation
+
+- Preserve unrelated user changes
+- Types at boundaries; no cross-layer logic in route files
+- State: URL params for filters; TanStack Query / Zustand / RHF only when needed
+- Read-heavy data in API services; filters in query params
+- Admin CMS and bulk import UIs are out of product scope unless the user requests them in the current turn
+
+## Human-run commands (reference)
 
 ```bash
 bun install
 bun run dev
-bun run lint
-bun run check
-bun run typecheck
-bun run db:generate
-bun run db:push
+bun run check          # biome + eslint + typecheck
+bun test
+bun run db:seed
+bun run db:compute-analysis
+bun run db:audit
+bun run db:audit:calc  # draw-prizes + analysis + scope → reports/audit/
 ```
 
-Do not introduce npm, pnpm, or yarn lockfiles unless the user explicitly asks.
-
-## Security And Environment
-
-Environment management uses plaintext local env files and platform-managed production env vars.
-
-- Development env file: `.env.development`
-- Example env file: `.env.example`
-- Production env values should be configured in the deployment platform, such as Render environment variables.
-- Do not add `.env.keys`, `.env.production`, or real production secrets to the repository.
-
-Runtime scripts load local env values directly when needed:
-
-```bash
-bun run dev
-bun run start
-bun run db:push
-bun run db:migrate
-```
-
-Do not add real secrets to documentation, examples, final responses, or committed files. If adding new required env vars, update `.env.development` and `.env.example` with safe local placeholders.
-
-## Code Quality And Git Hooks
-
-Pre-commit quality checks use Husky and lint-staged.
-
-- Hook file: `.husky/pre-commit`
-- Hook command: `bunx --bun lint-staged`
-- Biome config: `biome.json`
-- lint-staged config: `package.json`
-
-Run project checks with:
-
-```bash
-bun run check
-```
-
-Do not bypass the pre-commit hook unless the user explicitly asks.
-
-## Required UI Workflow
-
-Before making any UI change or UI feature implementation, read the root `design.md` file first.
-
-This includes changes to:
-
-- `src/frontend/pages`
-- `src/frontend/components`
-- `src/frontend/primitives`
-- `src/frontend/chart-primitives`
-- `src/frontend/styles`
-- Any route/page layout that affects user-facing UI
-
-The visual direction currently follows `design.md`. If a requested UI conflicts with it, call out the conflict briefly and choose the most product-consistent path.
-
-## Architecture
-
-Keep code modular and respect these boundaries:
-
-- `src/app`: Next.js route entry points only.
-- `src/frontend/pages`: Route-level page modules.
-- `src/frontend/components`: Composed product UI components.
-- `src/frontend/components/animate-ui`: Generated Animate UI registry components.
-- `src/frontend/primitives`: Local low-level UI primitives.
-- `src/frontend/chart-primitives`: D3-based reusable chart foundations.
-- `src/frontend/hooks`: Frontend hooks.
-- `src/api/router`: Elysia routers.
-- `src/api/model/dto`: API DTOs.
-- `src/api/service`: Business logic services.
-- `src/lib/api`: API/runtime shared helpers.
-- `src/lib/app`: App/frontend shared helpers.
-- `src/util/api`: Small API utilities.
-- `src/util/app`: Small app utilities.
-- `src/schema/api`: API TypeScript interfaces.
-- `src/schema/app`: App Zod schemas and inferred TypeScript types.
-- `prisma`: Prisma config and schema.
-
-## Documentation Source Of Truth
-
-Treat the two planning docs with different roles:
-
-- `docs/mvp-user-pages-implementation-plan.md` is the main requirement document. Use it as the source of truth for product scope, feature requirements, field dictionaries, and long-term MVP direction.
-
-## Folder Ownership
-
-Keep functions and logic in the folder that matches their consumer:
-
-| Folder                          | What belongs here                                                                                                   | Primary consumer                          |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
-| `src/app`                       | Route entrypoints, thin wiring only                                                                                 | Next.js routing/runtime                   |
-| `src/frontend/pages`            | Route-level page composition and page-specific view logic                                                           | App routes                                |
-| `src/frontend/components`       | Reusable composed UI components                                                                                     | Multiple pages/components                 |
-| `src/frontend/primitives`       | Low-level UI primitives only                                                                                        | Composed UI and pages                     |
-| `src/frontend/chart-primitives` | Shared chart foundations and D3 building blocks                                                                     | Analytics/chart surfaces                  |
-| `src/frontend/hooks`            | Frontend hooks used by UI                                                                                           | Frontend components/pages                 |
-| `src/api/router`                | API route definitions and request wiring                                                                            | API runtime                               |
-| `src/api/service`               | Business logic and data access orchestration                                                                        | API routers and DTOs                      |
-| `src/api/model/dto`             | Backend-only response mapping/serialization                                                                         | API services and routers                  |
-| `src/schema/api`                | Public API contract types                                                                                           | API and consumer code                     |
-| `src/schema/app`                | Zod validation schemas and inferred app types                                                                       | Frontend forms/queries and API validation |
-| `src/lib/api`                   | Frontend-facing API client helpers, fetch wrappers, and typed request helpers                                       | Frontend API consumers                    |
-| `src/lib/app`                   | Shared app/runtime helpers                                                                                          | Frontend app code                         |
-| `src/util/api`                  | Backend/API-route utilities such as query parsing, normalization, pagination parsing, and request parameter helpers | API routes and backend request handling   |
-| `src/util/app`                  | Small app utilities                                                                                                 | Frontend app code                         |
-| `prisma`                        | Schema and database configuration only                                                                              | Prisma CLI and API services               |
-
-Do not register, call, or re-export function implementations across these boundaries if doing so would move logic into the wrong layer. Keep route code thin, keep business logic in services, keep serialization in DTOs, keep validation in `src/schema/app`, and keep transport types in `src/schema/api`.
-
-- Frontend files must not import from `src/api/*` or `src/util/api/*`.
-- API/service/DTO code must not import from `src/frontend/*`.
-
-## API Contracts, App Schemas, And DTOs
-
-Keep shared contracts and backend serialization separate:
-
-- `src/schema/api` is the public API contract layer. Put API response/request TypeScript interfaces and transport-facing types here.
-- `src/schema/app` is the Zod validation layer. Put app-facing schemas, form/query/body validation schemas, and inferred app types here. Frontend code may import from this layer to validate URL query params, forms, and request payloads before calling API endpoints.
-- `src/api/model/dto` is backend-only serialization/mapping code. Use it to map Prisma/domain/service objects into `src/schema/api` response shapes, normalize dates/enums/labels, and hide internal fields.
-- `src/lib/api` is the only place for frontend-facing API client/fetch helpers. Keep client request wrappers, typed fetch helpers, and frontend response parsing helpers here.
-- `src/util/api` is backend/API-route utility code only. Keep query parsing, normalization, pagination parsing, and request-parameter helpers here.
-
-Do not import `src/api/model/dto` from frontend code or route-level page modules. Do not make DTO files the shared Zod schema source. If an API router needs request validation, reuse the relevant Zod schema from `src/schema/app`; if it needs response serialization, call a mapper in `src/api/model/dto`.
-
-## API
-
-The API uses Elysia mounted through the Next.js App Router:
-
-- Next route entry: `src/app/api/[[...route]]/route.ts`
-- Elysia app: `src/api/index.ts`
-- Router composition: `src/api/router/index.ts`
-
-Current API routes include:
-
-- `/api/draws`
-- `/api/analytics`
-- `/api/predictions`
-- `/api/watchlist`
-- `/api/backtests`
-- `/api/compare`
-- `/api/calendar`
-
-Keep route definitions in `src/api/router`, business logic in `src/api/service`, and DTOs in `src/api/model/dto`.
-
-## Database
-
-Database stack:
-
-- Prisma ORM `^7.8.0`
-- PostgreSQL provider with `@prisma/adapter-pg`
-- Prisma config file: `prisma.config.ts`
-- Schema: `prisma/schema.prisma`
-- Generated client output: `src/generated/prisma`
-- Prisma Client generator runtime: `bun`
-
-All generated model IDs should use UUID v7:
-
-```prisma
-id String @id @default(uuid(7)) @map("_id") @db.Uuid
-```
-
-Do not put `url = env("DATABASE_URL")` back into `schema.prisma`; this project uses `prisma.config.ts` for the datasource URL.
-
-### Prisma Migration Safety
-
-- AI/code agents must not create, edit, delete, or hand-write files under `prisma/migrations`.
-- When a Prisma schema change is needed, edit only `prisma/schema.prisma`.
-- After changing `prisma/schema.prisma`, tell the user to run the appropriate Prisma command themselves, such as `bun run db:migrate`, `bun run db:push`, or `bun run db:generate`.
-- Do not run migration/apply commands unless the user explicitly asks in the current turn.
-- If migration drift appears, report it and explain the recovery options instead of modifying migration history.
-
-## UI System
-
-Use the local UI layers intentionally:
-
-- Use `src/frontend/primitives` for project-owned basic UI wrappers.
-- Use `src/frontend/components` for composed product UI.
-- Use Animate UI for animated UI components when appropriate.
-- Use D3 under `src/frontend/chart-primitives` for chart foundations.
-- Use lucide-react icons for UI controls when an icon exists.
-
-Shared class helper:
-
-```ts
-import { cn } from "@/lib/app/cn";
-```
-
-## Frontend Implementation Rules
-
-Frontend work must preserve the project design system and module boundaries:
-
-- Read `design.md` before changing any user-facing UI.
-- Keep the UI square. Use `rounded-none` for surfaces, controls, badges, chart frames, menus, and placeholders. Do not introduce rounded radius tokens or rounded utility classes.
-- Treat `src/frontend/primitives` as the single source of truth for low-level UI. Do not create duplicate primitive implementations in nested folders or page files.
-- Build route-level composition in `src/frontend/pages`; keep reusable product UI in `src/frontend/components`; keep route entry points in `src/app` thin.
-- Use semantic tokens from `src/frontend/styles/globals.css` for colors, shadows, borders, typography, and backgrounds. Avoid hardcoded Tailwind color utilities such as `text-sky-*`, `text-purple-*`, `bg-blue-*`, or raw hex colors in components.
-- Use normal letter spacing. Do not add negative tracking.
-- Keep Thai and English copy valid UTF-8. Do not commit mojibake or replacement characters.
-- Use `lucide-react` icons for common UI controls when an icon exists.
-- Make mobile behavior explicit for user-facing navigation, filters, tables, and toolbars. Prefer accessible controls with labels, `aria-expanded`, `aria-controls`, and keyboard-safe focus styles.
-- For chart surfaces, use `src/frontend/chart-primitives` as reusable foundations. Do not hand-roll chart layout inside route pages when a chart primitive can own the structure.
-- Keep placeholders lightweight until real feature behavior is requested. Do not add prediction algorithms, admin flows, or data mutation behavior as part of UI cleanup.
-
-For route-level page modules under `src/frontend/pages`, keep page-local files split by responsibility:
-
-- `index.tsx` or `detail.tsx`: route composition, local UI state, and event wiring only.
-- `*.content.ts`: static UI copy, labels, options, links, and non-backend page config.
-- `*.data.ts`: page-local frontend data loaders, fallback read models, and thin API client wiring through `src/lib/api`.
-- `*.mappers.ts`: page-local view-model shaping, chart/table row mapping, and request payload helpers.
-- `*.components.tsx`: page-local extracted subcomponents that are not shared broadly enough for `src/frontend/components`.
-
-Do not hardcode backend-owned data, fallback API responses, or large UI copy/config objects directly inside route page files when they can live in these companion files instead.
-
-## Animate UI And shadcn
-
-Animate UI is consumed through the shadcn registry workflow.
-
-Project config:
-
-- `components.json`
-- Registry namespace: `@animate-ui`
-- Registry URL: `https://animate-ui.com/r/{name}.json`
-- Project-local MCP config for compatible clients: `.mcp.json`
-- Codex MCP example: `docs/codex-mcp.example.toml`
-- Animate UI notes: `docs/animate-ui.md`
-
-Common commands:
-
-```bash
-bunx --bun shadcn@latest add @animate-ui/primitives-texts-sliding-number
-bunx --bun shadcn@latest add button
-```
-
-Prefer installing registry components instead of hand-copying large component source manually.
-
-## MCP Notes
-
-For shadcn/Animate UI MCP access:
-
-- `components.json` must exist and include the `@animate-ui` registry.
-- Dependencies must be installed for local workflows.
-- Codex does not automatically read project `.mcp.json` in all environments.
-- For Codex, add the shadcn MCP server manually to `~/.codex/config.toml`, then restart Codex.
-
-Recommended Codex config:
-
-```toml
-[mcp_servers.shadcn]
-command = "bunx"
-args = ["--bun", "shadcn@latest", "mcp"]
-```
-
-Official shadcn docs use:
-
-```toml
-[mcp_servers.shadcn]
-command = "npx"
-args = ["shadcn@latest", "mcp"]
-```
-
-## Implementation Rules
-
-- Keep feature logic out of page files where practical.
-- Do not add admin/content-management features yet.
-- Do not implement prediction algorithms unless explicitly requested.
-- Keep scaffold placeholders lightweight until the user asks for actual UI/feature work.
-- Preserve existing user changes; do not revert unrelated work.
-- Use TypeScript types and Zod schemas at module boundaries.
-- Keep API-facing interfaces in `src/schema/api`.
-- Keep app-facing validation schemas in `src/schema/app`.
-- Keep backend response mapping in `src/api/model/dto`, returning types from `src/schema/api`.
-
-## State Management
-
-Choose the smallest state tool that matches the state ownership:
-
-- Server/API data -> TanStack Query when client-side cache, refetching, optimistic updates, or mutation state are actually needed. Prefer server/service read models first for simple server-rendered data.
-- Global UI state -> Zustand for cross-route or cross-component UI state that cannot live in URL state or a local parent component.
-- Form state -> React Hook Form for non-trivial forms with validation, dirty state, reset behavior, or nested fields.
-- Shareable filter state -> URL query params for filters/search/ranges that should be bookmarkable, reload-safe, and shareable, such as `lotteryType`, `prizeType`, `windowSize`, `startDate`, `endDate`, `year`, `month`, and `q`.
-- Local tiny state -> `useState` for component-local UI state such as menu open/close, dialog visibility, temporary input, and tab state that does not need to survive reloads.
-
-Default project bias: keep read-heavy dashboard data in API/service read models, keep filters in URL query params, and avoid introducing a global client store until a real cross-route workflow requires it.
-
-## Verification
-
-When Bun is available, prefer:
-
-```bash
-bun run check
-bun run typecheck
-bun run lint
-```
-
-For Prisma schema changes:
-
-```bash
-bun run db:generate
-```
-
-If verification cannot be run because the environment lacks Bun, say so clearly in the final response.
+Data ops runbook: `docs/production-data-ops.md`.

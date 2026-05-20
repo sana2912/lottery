@@ -1,14 +1,19 @@
 import { toApiCalendarReadModel } from "@/api/model/dto/calendar.dto";
+import {
+  getAnalysisPrizeSourceTypes,
+  isAnalysisPrizeType,
+  isGroupedAnalysisPrizeType
+} from "@/api/service/analysis-snapshot/analysis-context";
 import type { AnalysisCalendarHeatmapReadModel } from "@/api/service/analysis-snapshot/calendar-heatmap-read-model";
 import { getAnalysisSnapshotCalendarReadModel } from "@/api/service/analysis-snapshot/snapshot-reader";
 import {
   buildOverallPositionDigitStats,
   buildPositionHeatmapRows,
-  type PositionHeatmapCell,
-  type PositionHeatmapRow,
   sortPositionHeatmapCells
 } from "@/api/service/analytics/position-heatmap";
+import { mapHeatmapRowsToPositionInsights } from "@/api/service/calendar/calendar-insights";
 import { getPrisma } from "@/api/service/prisma";
+import type { LotteryPrizeWhereInput } from "@/generated/prisma/models/LotteryPrize";
 import type { CalendarHeatmapQuery } from "@/schema/app/calendar.schema";
 
 const MONTH_LABELS = [
@@ -31,15 +36,6 @@ type CalendarInsightDraw = {
   drawDate: Date;
   prizes: Array<{ number: string; type: string }>;
 };
-
-type PositionNumberStat = {
-  appearanceCount: number;
-  digit: string;
-  missingRounds: number;
-};
-
-type HeatmapCell = PositionHeatmapCell;
-type HeatmapRow = PositionHeatmapRow;
 
 const DEFAULT_ANALYSIS_WINDOW_PRESET = "50";
 export async function getCalendarReadModel(query: CalendarHeatmapQuery = {}) {
@@ -75,17 +71,21 @@ export async function getCalendarReadModel(query: CalendarHeatmapQuery = {}) {
       getAnalysisSnapshotCalendarReadModel(query, computedAt)
     )
   ]);
-  const heatmapDraws = cachedHeatmap
+  const useSnapshot = Boolean(cachedHeatmap);
+
+  if (!useSnapshot && isSnapshotEligibleCalendarQuery(query)) {
+    console.warn(
+      `calendar.snapshot miss for prizeType=${query.prizeType ?? "FIRST"} scope=${query.scope ?? "MONTH"} month=${query.month ?? computedAt.getUTCMonth() + 1} windowPreset=${getCalendarWindowPreset(query)}; using on-demand fallback.`
+    );
+  }
+
+  const heatmapDraws = useSnapshot
     ? []
     : await timeAsync("calendar.heatmap draws query", () =>
         prisma.lotteryDraw.findMany({
           include: {
             prizes: {
-              where: query.prizeType
-                ? {
-                    type: query.prizeType
-                  }
-                : undefined
+              where: getPrizeWhere(query.prizeType)
             }
           },
           orderBy: {
@@ -144,69 +144,69 @@ function buildMonthlyInsights(draws: CalendarInsightDraw[], query: CalendarHeatm
   const selectedScope = query.scope ?? "MONTH";
   const selectedMonth =
     selectedScope === "MONTH" ? (query.month ?? new Date().getUTCMonth() + 1) : undefined;
-  const selectedPrizeType = query.prizeType ?? "FIRST";
   const selectedWindowPreset = getCalendarWindowPreset(query);
   const selectedWindowSize = getCalendarWindowLimit(query) ?? draws.length;
-  const matchingDraws = draws
-    .filter((draw) => draw.prizes.length > 0)
-    .filter(
-      (draw) => selectedScope === "ALL_TIME" || draw.drawDate.getUTCMonth() + 1 === selectedMonth
-    )
-    .slice(0, selectedWindowSize)
-    .reverse();
+  const selectedPrizeTypes = getCalendarPrizeTypes(query.prizeType);
 
-  if (matchingDraws.length === 0) {
-    return [];
-  }
+  return selectedPrizeTypes.flatMap((selectedPrizeType) => {
+    const sourcePrizeTypes = getCalendarSourcePrizeTypes(selectedPrizeType);
+    const sourcePrizeTypeSet = new Set<string>(sourcePrizeTypes);
+    const matchingDraws = draws
+      .filter((draw) => draw.prizes.some((prize) => sourcePrizeTypeSet.has(prize.type)))
+      .filter(
+        (draw) => selectedScope === "ALL_TIME" || draw.drawDate.getUTCMonth() + 1 === selectedMonth
+      )
+      .slice(0, selectedWindowSize)
+      .reverse();
 
-  const heatmapRows = buildPositionHeatmapRows(
-    matchingDraws.map((draw) => ({
-      drawDate: draw.drawDate,
-      numbers: draw.prizes.map((prize) => prize.number)
-    })),
-    getPrizeNumberLength(selectedPrizeType)
-  );
-  const overallDigitStats = buildOverallPositionDigitStats(heatmapRows);
-  const rankedDigits = [...overallDigitStats.values()].sort(sortPositionHeatmapCells);
-  const hotNumbers = rankedDigits.slice(0, 2).map((cell) => cell.digit);
-  const coldNumbers = [...rankedDigits]
-    .reverse()
-    .slice(0, 2)
-    .map((cell) => cell.digit);
-
-  return [
-    {
-      coldNumbers,
-      heatmapRows,
-      hotNumbers,
-      id: `monthly-insight-${selectedScope}-${selectedMonth ?? "all"}-${selectedPrizeType}-${selectedWindowPreset}`,
-      label:
-        selectedScope === "MONTH" && selectedMonth ? MONTH_LABELS[selectedMonth] : "All months",
-      month: selectedMonth,
-      patternNotes: [
-        "Heatmap scores combine frequency and recency for each digit position.",
-        `Each row represents positions for ${selectedPrizeType}.`
-      ],
-      positionInsights: heatmapRows.map((row) => ({
-        coldNumbers: row.coldDigits
-          .map((digit) => toPositionNumberStat(getCellForDigit(row, digit)))
-          .flatMap((cell) => (cell ? [cell] : [])),
-        hotNumbers: row.hotDigits
-          .map((digit) => toPositionNumberStat(getCellForDigit(row, digit)))
-          .flatMap((cell) => (cell ? [cell] : [])),
-        position: row.position
-      })),
-      prizeType: selectedPrizeType,
-      sampleSize: matchingDraws.length,
-      scope: selectedScope,
-      summary:
-        selectedScope === "MONTH" && selectedMonth
-          ? `${MONTH_LABELS[selectedMonth]} heatmap uses ${matchingDraws.length} matching draws for ${selectedPrizeType}.`
-          : `All-month heatmap uses ${matchingDraws.length} matching draws for ${selectedPrizeType}.`,
-      windowPreset: selectedWindowPreset,
-      windowSize: selectedWindowSize
+    if (matchingDraws.length === 0) {
+      return [];
     }
-  ];
+
+    const heatmapRows = buildPositionHeatmapRows(
+      matchingDraws.map((draw) => ({
+        drawDate: draw.drawDate,
+        numbers: draw.prizes
+          .filter((prize) => sourcePrizeTypeSet.has(prize.type))
+          .map((prize) => prize.number)
+      })),
+      getPrizeNumberLength(selectedPrizeType)
+    );
+    const overallDigitStats = buildOverallPositionDigitStats(heatmapRows);
+    const rankedDigits = [...overallDigitStats.values()].sort(sortPositionHeatmapCells);
+    const hotNumbers = rankedDigits.slice(0, 2).map((cell) => cell.digit);
+    const coldNumbers = [...rankedDigits]
+      .reverse()
+      .slice(0, 2)
+      .map((cell) => cell.digit);
+
+    return [
+      {
+        coldNumbers,
+        heatmapRows,
+        hotNumbers,
+        id: `monthly-insight-${selectedScope}-${selectedMonth ?? "all"}-${selectedPrizeType}-${selectedWindowPreset}`,
+        label:
+          selectedScope === "MONTH" && selectedMonth ? MONTH_LABELS[selectedMonth] : "All months",
+        month: selectedMonth,
+        patternNotes: [
+          "Cell colors rank digits within each position for the selected prize and window only.",
+          "Event rate, lift, and score still use the 10% digit baseline; colors are not win probabilities.",
+          `Each row represents positions for ${selectedPrizeType}.`
+        ],
+        positionInsights: mapHeatmapRowsToPositionInsights(heatmapRows),
+        prizeType: selectedPrizeType,
+        sampleSize: matchingDraws.length,
+        scope: selectedScope,
+        summary:
+          selectedScope === "MONTH" && selectedMonth
+            ? `${MONTH_LABELS[selectedMonth]} heatmap uses ${matchingDraws.length} matching draws for ${selectedPrizeType}.`
+            : `All-month heatmap uses ${matchingDraws.length} matching draws for ${selectedPrizeType}.`,
+        windowPreset: selectedWindowPreset,
+        windowSize: selectedWindowSize
+      }
+    ];
+  });
 }
 
 function buildMonthlyInsightFromSnapshot(
@@ -236,18 +236,11 @@ function buildMonthlyInsightFromSnapshot(
     label: selectedScope === "MONTH" ? MONTH_LABELS[selectedMonth] : "All months",
     month: selectedScope === "MONTH" ? selectedMonth : undefined,
     patternNotes: [
-      "Heatmap scores combine frequency and recency for each digit position.",
+      "Cell colors rank digits within each position for the selected prize and window only.",
+      "Event rate, lift, and score still use the 10% digit baseline; colors are not win probabilities.",
       "This insight is served from a precomputed analysis snapshot."
     ],
-    positionInsights: heatmapRows.map((row) => ({
-      coldNumbers: row.coldDigits
-        .map((digit) => toPositionNumberStat(getCellForDigit(row, digit)))
-        .flatMap((cell) => (cell ? [cell] : [])),
-      hotNumbers: row.hotDigits
-        .map((digit) => toPositionNumberStat(getCellForDigit(row, digit)))
-        .flatMap((cell) => (cell ? [cell] : [])),
-      position: row.position
-    })),
+    positionInsights: mapHeatmapRowsToPositionInsights(heatmapRows),
     prizeType: selectedPrizeType,
     sampleSize: snapshot.sampleSize,
     scope: selectedScope,
@@ -294,20 +287,37 @@ function getPrizeNumberLength(prizeType: NonNullable<CalendarHeatmapQuery["prize
   }
 }
 
-function getCellForDigit(row: HeatmapRow, digit: string) {
-  return row.cells.find((cell) => cell.digit === digit);
-}
-
-function toPositionNumberStat(cell: HeatmapCell | undefined): PositionNumberStat | null {
-  if (!cell) {
-    return null;
+function getPrizeWhere(
+  prizeType: CalendarHeatmapQuery["prizeType"]
+): LotteryPrizeWhereInput | undefined {
+  if (!prizeType || !isAnalysisPrizeType(prizeType)) {
+    return undefined;
   }
 
-  return {
-    appearanceCount: cell.appearanceCount,
-    digit: cell.digit,
-    missingRounds: cell.missingRounds
-  };
+  const sourcePrizeTypes = getAnalysisPrizeSourceTypes(prizeType);
+  const sourcePrizeType = sourcePrizeTypes[0];
+
+  if (!sourcePrizeType) {
+    return undefined;
+  }
+
+  return sourcePrizeTypes.length > 1
+    ? { type: { in: [...sourcePrizeTypes] } }
+    : { type: sourcePrizeType };
+}
+
+function getCalendarPrizeTypes(prizeType: CalendarHeatmapQuery["prizeType"]) {
+  return [prizeType ?? "FIRST"];
+}
+
+function getCalendarSourcePrizeTypes(prizeType: NonNullable<CalendarHeatmapQuery["prizeType"]>) {
+  return isGroupedAnalysisPrizeType(prizeType)
+    ? [...getAnalysisPrizeSourceTypes(prizeType)]
+    : [prizeType];
+}
+
+function isSnapshotEligibleCalendarQuery(query: CalendarHeatmapQuery) {
+  return Boolean(query);
 }
 
 function getNextDrawDate(reference: Date, latestPastDrawDate?: Date) {

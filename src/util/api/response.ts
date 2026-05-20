@@ -5,6 +5,6 @@ export function notImplemented({ set }: Context) {
 
   return {
     error: "Not implemented",
-    message: "This endpoint is reserved for the MVP API scaffold."
+    message: "This endpoint is not implemented."
   };
 }

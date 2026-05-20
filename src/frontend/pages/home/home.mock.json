@@ -10,13 +10,13 @@
     "cta": { "label": "Open Dashboard", "href": "/dashboard" }
   },
   "hero": {
-    "eyebrow": "Mock-first user dashboard",
+    "eyebrow": "Lottery intelligence dashboard",
     "title": "Lottery intelligence with clear feature routes, consistent read models, and API-ready UI contracts",
-    "description": "This home page pulls copy, feature summaries, metrics, and product preview content from JSON so the team can revise the mock product surface quickly while keeping the UI aligned with the production MVP shape.",
+    "description": "This home page pulls copy, feature summaries, metrics, and product preview content from JSON so the team can revise the marketing surface quickly while keeping the UI aligned with the production dashboard.",
     "primaryAction": { "label": "Start with Dashboard", "href": "/dashboard" },
     "secondaryAction": { "label": "Review Results", "href": "/results" },
     "preview": {
-      "status": "Latest mock snapshot",
+      "status": "Latest analysis snapshot",
       "readyLabel": "Ready to review",
       "latestDrawLabel": "Latest draw",
       "latestDraw": "16 April 2026",
@@ -32,7 +32,7 @@
   },
   "metrics": [
     {
-      "label": "MVP feature pages",
+      "label": "Product feature pages",
       "value": "10",
       "hint": "One route per primary product surface."
     },
@@ -145,7 +145,7 @@
     {
       "step": "02",
       "title": "User-facing routes first",
-      "description": "The MVP avoids admin screens and import tooling so the product surface can stabilize before internal workflows are added."
+      "description": "Admin screens and bulk import tooling are kept out of the user product surface so research workflows stay focused on draws, analytics, and predictions."
     },
     {
       "step": "03",
@@ -156,7 +156,7 @@
   "trustPanel": {
     "label": "Responsible prediction",
     "title": "Candidate numbers need reasons, not implied guarantees",
-    "description": "Every score in the MVP should be explained as a historical signal derived from frequency, recency, position support, and backtest context, with a clear limitation statement alongside it.",
+    "description": "Every score in the dashboard should be explained as a historical signal derived from frequency, recency, position support, and backtest context, with a clear limitation statement alongside it.",
     "confirmation": "Mock-first, API-ready, user-facing only"
   }
 }

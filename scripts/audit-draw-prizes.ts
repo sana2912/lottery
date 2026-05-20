@@ -1,4 +1,5 @@
 import { getPrisma } from "@/api/service/prisma";
+import { parseCliValues, printOrWriteJsonReport } from "./audit-utils";
 
 const PRIZE_TYPE_ORDER = [
   "FIRST",
@@ -26,6 +27,7 @@ type CliOptions = {
   limit?: number;
   onlyMissingProfile: boolean;
   order: "asc" | "desc";
+  out?: string;
   startDate?: string;
   status?: SourceStatus;
 };
@@ -76,7 +78,7 @@ async function main() {
       .filter((row) => !options.onlyMissingProfile || row.missingFromObservedProfile.length > 0)
       .slice(0, options.limit);
 
-    printAudit(rows, observedProfile, options.format);
+    await printAudit(rows, observedProfile, options);
   } finally {
     await prisma.$disconnect();
   }
@@ -90,17 +92,15 @@ void main().catch((error: unknown) => {
 });
 
 function parseArgs(args: readonly string[]): CliOptions {
-  const values = Object.fromEntries(
-    args.map((argument) => {
-      const [key, value = "true"] = argument.replace(/^--/, "").split("=", 2);
-
-      return [key, value];
-    })
-  );
+  const values = parseCliValues(args);
   const format = parseFormat(values.format);
   const order = values.order === "desc" ? "desc" : "asc";
   const status = parseSourceStatus(values.status);
   const limit = values.limit ? Number(values.limit) : undefined;
+
+  if (values.out && format !== "json") {
+    throw new Error("--out is supported only with --format=json.");
+  }
 
   if (limit !== undefined && (!Number.isInteger(limit) || limit < 1)) {
     throw new Error("Invalid --limit. Expected a positive integer.");
@@ -112,6 +112,7 @@ function parseArgs(args: readonly string[]): CliOptions {
     limit,
     onlyMissingProfile: values.onlyMissingProfile === "true",
     order,
+    out: values.out,
     startDate: values.startDate,
     status
   };
@@ -204,27 +205,25 @@ function getMissingPrizeTypes(
   });
 }
 
-function printAudit(
+async function printAudit(
   rows: readonly DrawAuditRow[],
   observedProfile: Map<PrizeType, number>,
-  format: OutputFormat
+  options: CliOptions
 ) {
-  if (format === "json") {
-    console.info(
-      JSON.stringify(
-        {
-          observedProfile: Object.fromEntries(observedProfile),
-          rows,
-          summary: getSummary(rows)
-        },
-        null,
-        2
-      )
-    );
+  if (options.format === "json") {
+    await printOrWriteJsonReport({
+      out: options.out,
+      value: {
+        generatedAt: new Date().toISOString(),
+        observedProfile: Object.fromEntries(observedProfile),
+        rows,
+        summary: getSummary(rows)
+      }
+    });
     return;
   }
 
-  if (format === "csv") {
+  if (options.format === "csv") {
     printCsv(rows);
     return;
   }

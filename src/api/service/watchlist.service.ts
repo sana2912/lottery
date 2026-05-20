@@ -3,7 +3,6 @@ import { analyticsService } from "@/api/service/analytics.service";
 import { getPrisma } from "@/api/service/prisma";
 import type {
   ApiDeleteWatchlistItemResponse,
-  ApiWatchlistPrizeType,
   ApiWatchlistStatSummary
 } from "@/schema/api/watchlist";
 import type { CreateWatchlistItem, UpdateWatchlistItem } from "@/schema/app/watchlist.schema";
@@ -100,20 +99,10 @@ async function getWatchlistStatsByNumber(numbersByLength: Map<number, Set<string
   const twoDigitNumbers = [...(numbersByLength.get(2) ?? [])];
   const threeDigitNumbers = [...(numbersByLength.get(3) ?? [])];
   const sixDigitNumbers = [...(numbersByLength.get(6) ?? [])];
-  const sixDigitPrizeTypes = [
-    "FIRST",
-    "PRIZE2",
-    "PRIZE3",
-    "PRIZE4",
-    "PRIZE5"
-  ] as const satisfies readonly ApiWatchlistPrizeType[];
-
   await Promise.all([
     enrichStatsForPrizeType(statsByNumber, twoDigitNumbers, "TWO_DIGIT", 2),
     enrichStatsForPrizeType(statsByNumber, threeDigitNumbers, "THREE_DIGIT", 3),
-    ...sixDigitPrizeTypes.map((prizeType) =>
-      enrichStatsForPrizeType(statsByNumber, sixDigitNumbers, prizeType, 6)
-    )
+    enrichStatsForPrizeType(statsByNumber, sixDigitNumbers, "SIX_DIGIT_ALL", 6)
   ]);
 
   return statsByNumber;
@@ -145,17 +134,14 @@ async function enrichStatsForPrizeType(
 
     const current = statsByNumber.get(stat.number);
 
-    if (
-      !current ||
-      stat.hitCount > current.hitCount ||
-      (stat.hitCount === current.hitCount && stat.frequencyPercent > current.frequencyPercent)
-    ) {
+    if (!current || stat.frequencyPercent > current.frequencyPercent) {
       statsByNumber.set(stat.number, {
         frequencyPercent: stat.frequencyPercent,
         hitCount: stat.hitCount,
         lastSeenDrawDate: stat.lastSeenDrawDate,
         missingDrawCount: stat.missingDrawCount,
-        prizeType
+        prizeType,
+        samplePrizeCount: stat.samplePrizeCount
       });
     }
   }

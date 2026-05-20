@@ -10,7 +10,8 @@ export const analyticsPrizeOptions = [
   { label: "รางวัลที่ 2", numberLength: 6, value: "PRIZE2" },
   { label: "รางวัลที่ 3", numberLength: 6, value: "PRIZE3" },
   { label: "รางวัลที่ 4", numberLength: 6, value: "PRIZE4" },
-  { label: "รางวัลที่ 5", numberLength: 6, value: "PRIZE5" }
+  { label: "รางวัลที่ 5", numberLength: 6, value: "PRIZE5" },
+  { label: "รวมรางวัล 6 หลักทั้งหมด", numberLength: 6, value: "SIX_DIGIT_ALL" }
 ] as const;
 
 export const analyticsWindowOptions = [
@@ -212,6 +213,7 @@ function getPrizeNumberLength(prizeType: FilterContext["prizeType"]): AnalyticsN
     case "PRIZE3":
     case "PRIZE4":
     case "PRIZE5":
+    case "SIX_DIGIT_ALL":
       return 6;
     default:
       return 2;
@@ -219,21 +221,31 @@ function getPrizeNumberLength(prizeType: FilterContext["prizeType"]): AnalyticsN
 }
 
 function getSignalCards(stats: readonly NumberStat[]) {
-  const hot = [...stats].sort((left, right) => right.hitCount - left.hitCount)[0];
-  const cold = [...stats].sort((left, right) => left.hitCount - right.hitCount)[0];
+  const hot = [...stats].sort(
+    (left, right) =>
+      right.frequencyPercent - left.frequencyPercent ||
+      right.trendScore - left.trendScore ||
+      right.hitCount - left.hitCount
+  )[0];
+  const cold = [...stats].sort(
+    (left, right) =>
+      left.frequencyPercent - right.frequencyPercent ||
+      left.missingDrawCount - right.missingDrawCount ||
+      left.hitCount - right.hitCount
+  )[0];
   const overdue = [...stats].sort(
     (left, right) => right.missingDrawCount - left.missingDrawCount
   )[0];
 
   return [
     {
-      hint: hot ? `${hot.hitCount} ครั้งในช่วงที่เลือก` : "ไม่มีข้อมูล",
+      hint: hot ? `${hot.frequencyPercent}% จากแถวรางวัล (${hot.hitCount} แถว)` : "ไม่มีข้อมูล",
       label: "Hot",
       tone: "hot" as const,
       value: hot?.number ?? "-"
     },
     {
-      hint: cold ? `${cold.hitCount} ครั้งในช่วงที่เลือก` : "ไม่มีข้อมูล",
+      hint: cold ? `${cold.frequencyPercent}% จากแถวรางวัล (${cold.hitCount} แถว)` : "ไม่มีข้อมูล",
       label: "Cold",
       tone: "cold" as const,
       value: cold?.number ?? "-"

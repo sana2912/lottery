@@ -18,7 +18,7 @@ Run these commands in order against `.env.development`:
 ```bash
 bun run db:migrate
 bun run db:generate
-bun run db:seed lottory-histoty
+bun run db:seed
 bun run db:compute-analysis
 bun run db:audit
 bun run dev
@@ -37,10 +37,12 @@ Expected outcome:
 If you rerun the historical import or add new CSV data, refresh the derived layers after import:
 
 ```bash
-bun run db:seed lottory-histoty
+bun run db:seed
 bun run db:compute-analysis
 bun run db:audit
 ```
+
+`db:seed` defaults to the committed CSV history directory `lottory-histoty`. Pass a path only when importing a different JSON, CSV, or CSV directory.
 
 If you need to refresh one analysis context only:
 
@@ -74,6 +76,8 @@ Use it after every seed/import or stats recompute step. If counts are unexpected
 ## Production Sequence
 
 Production should use platform-managed environment variables, especially `DATABASE_URL`. Do not commit `.env.production` to the repository.
+
+GHCR Docker deploy checklist: [`deploy-ghcr.md`](deploy-ghcr.md).
 
 Recommended sequence:
 
@@ -109,6 +113,36 @@ If you need to use a secure env file outside version control, use `scripts/run-w
 ```bash
 bun run scripts/run-with-env.ts <secure-env-file> -- bun scripts/compute-analysis.ts
 bun run scripts/run-with-env.ts <secure-env-file> -- bun scripts/db-audit.ts
+```
+
+## Deep calculation audits (optional)
+
+Run after changing analytics formulas, heatmap logic, or `analysis-engine-v4`:
+
+```bash
+bun run db:audit:calc
+```
+
+This writes JSON (and markdown summaries) under `reports/audit/`:
+
+| Command | What it checks |
+| --- | --- |
+| `db:audit:draw-prizes` | Per-draw prize row counts vs observed profile (sparse early years) |
+| `db:audit:analysis` | Metric denominators, heatmap matrix, snapshot coverage |
+| `db:audit:scope` | **Full compute matrix**: every prize × window (50/100/500/ALL) × scope (ALL_TIME + months 1–12), live sample vs `analysis_snapshot_runs`, window cap semantics |
+
+Use `db:audit` for day-to-day health checks; use `db:audit:calc` when validating compute → snapshot correctness.
+
+Window preset meaning (all analytics consumers):
+
+- **50 / 100 / 500** — last N **draws** (not months) with matching prize in scope; under-filled when history has fewer than N eligible draws.
+- **ALL** — every eligible draw in scope; `windowSize` stored as `null`, analytics uses actual `sampleDrawCount`.
+- **MONTH** — filters `drawDate` by UTC calendar month before applying the draw cap.
+
+Optional static code scan (no database):
+
+```bash
+bun scripts/audit-grep-classification.ts --out=reports/audit/grep-classification.json
 ```
 
 ## Failure Handling

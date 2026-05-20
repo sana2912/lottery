@@ -19,6 +19,7 @@ describe("analysis context", () => {
     expect(getAnalysisPrizeNumberLength("THREE_BACK")).toBe(3);
     expect(getAnalysisPrizeNumberLength("FIRST")).toBe(6);
     expect(getAnalysisPrizeNumberLength("PRIZE5")).toBe(6);
+    expect(getAnalysisPrizeNumberLength("SIX_DIGIT_ALL")).toBe(6);
     expect(() => createAnalysisContext({ prizeType: "FIRST_PRIZE", windowPreset: "50" })).toThrow(
       "Invalid analysis prizeType"
     );
@@ -83,7 +84,7 @@ describe("analysis context", () => {
         lotteryType: "THAI_GOVERNMENT",
         page: 1,
         pageSize: 20,
-        prizeType: "OTHER",
+        prizeType: "OTHER" as never,
         windowSize: 100
       })
     ).toBeNull();
@@ -113,7 +114,7 @@ describe("analysis context", () => {
       getAnalysisContextForCalendarQuery(
         {
           month: 4,
-          prizeType: "FIRST",
+          prizeType: "PRIZE5",
           windowSize: 50
         },
         new Date("2026-05-12T00:00:00.000Z")
@@ -121,7 +122,7 @@ describe("analysis context", () => {
     ).toMatchObject({
       month: 4,
       numberLength: 6,
-      prizeType: "FIRST",
+      prizeType: "PRIZE5",
       scope: "MONTH",
       windowPreset: "50"
     });

@@ -37,7 +37,7 @@ export type SeedReport = {
   updatedDraws: number;
 };
 
-export const DEFAULT_SEED_PATH = "prisma/seed/draws.json";
+export const DEFAULT_SEED_PATH = "lottory-histoty";
 
 export async function loadDrawSeedFile(inputPath: string) {
   const resolvedPath = resolve(process.cwd(), inputPath);

@@ -1,12 +1,22 @@
 import type { FilterContext } from "@/schema/app/query.schema";
 
-export const ANALYSIS_ENGINE_VERSION = "analysis-engine-v1";
+export const ANALYSIS_ENGINE_VERSION = "analysis-engine-v4";
 
 export const ANALYSIS_PRIZE_TYPES = [
   "TWO_DIGIT",
   "THREE_DIGIT",
   "THREE_FRONT",
   "THREE_BACK",
+  "FIRST",
+  "NEAR_FIRST",
+  "PRIZE2",
+  "PRIZE3",
+  "PRIZE4",
+  "PRIZE5",
+  "SIX_DIGIT_ALL"
+] as const;
+
+export const SIX_DIGIT_SOURCE_PRIZE_TYPES = [
   "FIRST",
   "NEAR_FIRST",
   "PRIZE2",
@@ -20,6 +30,7 @@ export const ANALYSIS_SCOPES = ["ALL_TIME", "MONTH"] as const;
 export const ANALYSIS_MONTHS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as const;
 
 export type AnalysisPrizeType = (typeof ANALYSIS_PRIZE_TYPES)[number];
+export type AnalysisSourcePrizeType = Exclude<AnalysisPrizeType, "SIX_DIGIT_ALL">;
 export type AnalysisWindowPreset = (typeof ANALYSIS_WINDOW_PRESETS)[number];
 export type AnalysisScope = (typeof ANALYSIS_SCOPES)[number];
 export type AnalysisMonth = (typeof ANALYSIS_MONTHS)[number];
@@ -88,8 +99,19 @@ export function getAnalysisPrizeNumberLength(prizeType: AnalysisPrizeType): 2 | 
     case "PRIZE3":
     case "PRIZE4":
     case "PRIZE5":
+    case "SIX_DIGIT_ALL":
       return 6;
   }
+}
+
+export function getAnalysisPrizeSourceTypes(
+  prizeType: AnalysisPrizeType
+): readonly AnalysisSourcePrizeType[] {
+  return prizeType === "SIX_DIGIT_ALL" ? SIX_DIGIT_SOURCE_PRIZE_TYPES : [prizeType];
+}
+
+export function isGroupedAnalysisPrizeType(prizeType: string | undefined) {
+  return prizeType === "SIX_DIGIT_ALL";
 }
 
 export function isAnalysisPrizeType(value: string): value is AnalysisPrizeType {

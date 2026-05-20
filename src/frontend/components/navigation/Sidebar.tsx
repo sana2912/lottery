@@ -32,7 +32,7 @@ export function Sidebar({ items, pathname }: SidebarProps) {
           ในหน้าจอที่พร้อมใช้งาน
         </h1>
         <p className="mt-3 text-sm leading-6 text-[var(--color-text-inverse-muted)]">
-          shell แบบ mock-driven สำหรับยืนยัน shape ของข้อมูลก่อนต่อเข้ากับ API จริง
+          ข้อมูลจากฐานงวดจริง วิเคราะห์ตามประเภทรางวัลและช่วงงวดที่เลือก
         </p>
       </div>
 

@@ -9,22 +9,35 @@ import {
   getPrizeWindow
 } from "@/api/service/analytics/analytics-engine";
 import { getPrisma } from "@/api/service/prisma";
+import type { ApiAnalyticsReadModel } from "@/schema/api/analytics";
 
-export async function getAnalyticsReadModel(query: AnalyticsQuery) {
+export async function getAnalyticsReadModel(query: AnalyticsQuery): Promise<ApiAnalyticsReadModel> {
   const analysisSnapshot = await timeAsync("analytics.analysis snapshot lookup", () =>
     getAnalysisSnapshotAnalyticsReadModel(query)
   );
 
   if (analysisSnapshot) {
-    return analysisSnapshot;
+    return {
+      ...analysisSnapshot,
+      source: "snapshot"
+    };
   }
 
   const analysisContext = getAnalysisContextForFilterQuery(query);
 
   if (analysisContext) {
-    return timeAsync("analytics.analysis on-demand fallback", () =>
+    console.warn(
+      `analytics.snapshot miss for ${analysisContext.engineVersion}/${analysisContext.lotteryType}/${analysisContext.prizeType}/${analysisContext.scope}/${analysisContext.month ?? "ALL_MONTHS"}/${analysisContext.windowPreset}; using on-demand fallback.`
+    );
+
+    const readModel = await timeAsync("analytics.analysis on-demand fallback", () =>
       buildOnDemandAnalysisReadModel(analysisContext)
     );
+
+    return {
+      ...readModel,
+      source: "on-demand"
+    };
   }
 
   const prisma = getPrisma();
@@ -32,9 +45,10 @@ export async function getAnalyticsReadModel(query: AnalyticsQuery) {
     getPrizeWindow(prisma, query)
   );
 
-  return timeSync("analytics.buildAnalyticsReadModelFromPrizes", () =>
-    buildAnalyticsReadModelFromPrizes(prizes, query, new Date())
-  );
+  return timeSync("analytics.buildAnalyticsReadModelFromPrizes", () => ({
+    ...buildAnalyticsReadModelFromPrizes(prizes, query, new Date()),
+    source: "prize-window" as const
+  }));
 }
 
 export async function getDigitStats(query: AnalyticsQuery) {

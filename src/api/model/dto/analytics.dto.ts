@@ -9,6 +9,7 @@ import type {
 type AnalyticsSummaryDtoInput = {
   drawCount: number;
   generatedAt: Date | string;
+  prizeCount?: number;
 };
 
 type DigitStatDtoInput = Omit<ApiDigitStat, "computedAt" | "lastSeenDrawDate"> & {
@@ -40,7 +41,8 @@ export function toApiAnalyticsSummary(summary: AnalyticsSummaryDtoInput): ApiAna
   return {
     drawCount: summary.drawCount,
     generatedAt:
-      summary.generatedAt instanceof Date ? summary.generatedAt.toISOString() : summary.generatedAt
+      summary.generatedAt instanceof Date ? summary.generatedAt.toISOString() : summary.generatedAt,
+    prizeCount: summary.prizeCount
   };
 }
 
@@ -49,15 +51,18 @@ export function toApiDigitStat(stat: DigitStatDtoInput): ApiDigitStat {
     computedAt: normalizeDateString(stat.computedAt),
     digit: stat.digit,
     drawCount: stat.drawCount,
+    expectedFrequencyPercent: stat.expectedFrequencyPercent,
     frequencyPercent: stat.frequencyPercent,
     hitCount: stat.hitCount,
     lastSeenDrawDate: stat.lastSeenDrawDate
       ? normalizeDateString(stat.lastSeenDrawDate)
       : undefined,
     lotteryType: stat.lotteryType,
+    lift: stat.lift,
     missingDrawCount: stat.missingDrawCount,
     position: stat.position,
     prizeType: stat.prizeType,
+    sampleEventCount: stat.sampleEventCount,
     trendDirection: stat.trendDirection,
     windowSize: stat.windowSize
   };
@@ -68,6 +73,8 @@ export function toApiNumberStat(stat: NumberStatDtoInput): ApiNumberStat {
     computedAt: normalizeDateString(stat.computedAt),
     drawCount: stat.drawCount,
     frequencyPercent: stat.frequencyPercent,
+    frequencyPerDrawPercent: stat.frequencyPerDrawPercent,
+    frequencyPerPrizeRowPercent: stat.frequencyPerPrizeRowPercent,
     hitCount: stat.hitCount,
     lastSeenDrawDate: stat.lastSeenDrawDate
       ? normalizeDateString(stat.lastSeenDrawDate)
@@ -80,6 +87,7 @@ export function toApiNumberStat(stat: NumberStatDtoInput): ApiNumberStat {
     numberLength: stat.numberLength,
     patternFlags: [...stat.patternFlags],
     prizeType: stat.prizeType,
+    samplePrizeCount: stat.samplePrizeCount,
     trendScore: stat.trendScore,
     windowSize: stat.windowSize
   };

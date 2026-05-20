@@ -2,7 +2,8 @@ import { z } from "zod";
 
 export const analyticsSummarySchema = z.object({
   drawCount: z.number(),
-  generatedAt: z.string()
+  generatedAt: z.string(),
+  prizeCount: z.number().optional()
 });
 
 export const trendDirectionSchema = z.enum(["up", "down", "flat"]);
@@ -40,8 +41,11 @@ export const digitStatSchema = z.object({
   drawCount: z.number(),
   hitCount: z.number(),
   frequencyPercent: z.number(),
+  expectedFrequencyPercent: z.number().optional(),
   lastSeenDrawDate: z.string().optional(),
+  lift: z.number().optional(),
   missingDrawCount: z.number(),
+  sampleEventCount: z.number().optional(),
   trendDirection: trendDirectionSchema,
   computedAt: z.string()
 });
@@ -55,12 +59,15 @@ export const numberStatSchema = z.object({
   drawCount: z.number(),
   hitCount: z.number(),
   frequencyPercent: z.number(),
+  frequencyPerDrawPercent: z.number().optional(),
+  frequencyPerPrizeRowPercent: z.number().optional(),
   lastSeenDrawDate: z.string().optional(),
   missingDrawCount: z.number(),
   averageGap: z.number().optional(),
   maxGap: z.number().optional(),
   trendScore: z.number(),
   patternFlags: z.array(patternFlagSchema),
+  samplePrizeCount: z.number().optional(),
   computedAt: z.string()
 });
 
@@ -74,9 +81,17 @@ export const patternSummarySchema = z.object({
   insight: z.string()
 });
 
+export const analyticsDataSourceSchema = z.enum([
+  "mock",
+  "api",
+  "snapshot",
+  "on-demand",
+  "prize-window"
+]);
+
 export const analyticsReadModelSchema = z.object({
   generatedAt: z.string(),
-  source: z.enum(["mock", "api"]),
+  source: analyticsDataSourceSchema,
   summary: analyticsSummarySchema,
   digitStats: z.array(digitStatSchema),
   numberStats: z.array(numberStatSchema),

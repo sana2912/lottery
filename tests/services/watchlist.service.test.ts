@@ -45,8 +45,8 @@ describe("watchlist.service", () => {
         return [numberStat("09", "TWO_DIGIT", 2, 4, 12.5)];
       }
 
-      if (query.prizeType === "PRIZE4") {
-        return [numberStat("123456", "PRIZE4", 6, 2, 4)];
+      if (query.prizeType === "SIX_DIGIT_ALL") {
+        return [numberStat("123456", "SIX_DIGIT_ALL", 6, 2, 4, 50)];
       }
 
       return [];
@@ -73,39 +73,7 @@ describe("watchlist.service", () => {
         numberLength: 6,
         page: 1,
         pageSize: 5000,
-        prizeType: "FIRST",
-        windowSize: 120
-      },
-      {
-        lotteryType: "THAI_GOVERNMENT",
-        numberLength: 6,
-        page: 1,
-        pageSize: 5000,
-        prizeType: "PRIZE2",
-        windowSize: 120
-      },
-      {
-        lotteryType: "THAI_GOVERNMENT",
-        numberLength: 6,
-        page: 1,
-        pageSize: 5000,
-        prizeType: "PRIZE3",
-        windowSize: 120
-      },
-      {
-        lotteryType: "THAI_GOVERNMENT",
-        numberLength: 6,
-        page: 1,
-        pageSize: 5000,
-        prizeType: "PRIZE4",
-        windowSize: 120
-      },
-      {
-        lotteryType: "THAI_GOVERNMENT",
-        numberLength: 6,
-        page: 1,
-        pageSize: 5000,
-        prizeType: "PRIZE5",
+        prizeType: "SIX_DIGIT_ALL",
         windowSize: 120
       }
     ]);
@@ -122,7 +90,8 @@ describe("watchlist.service", () => {
       hitCount: 2,
       lastSeenDrawDate: "2026-04-16T00:00:00.000Z",
       missingDrawCount: 3,
-      prizeType: "PRIZE4"
+      prizeType: "SIX_DIGIT_ALL",
+      samplePrizeCount: 50
     });
   });
 
@@ -208,10 +177,19 @@ function watchItem(
 
 function numberStat(
   number: string,
-  prizeType: "FIRST" | "THREE_DIGIT" | "TWO_DIGIT" | "PRIZE2" | "PRIZE3" | "PRIZE4" | "PRIZE5",
+  prizeType:
+    | "FIRST"
+    | "SIX_DIGIT_ALL"
+    | "THREE_DIGIT"
+    | "TWO_DIGIT"
+    | "PRIZE2"
+    | "PRIZE3"
+    | "PRIZE4"
+    | "PRIZE5",
   numberLength: 2 | 3 | 6,
   hitCount: number,
-  frequencyPercent: number
+  frequencyPercent: number,
+  samplePrizeCount?: number
 ) {
   return {
     computedAt: "2026-04-29T00:00:00.000Z",
@@ -225,6 +203,7 @@ function numberStat(
     numberLength,
     patternFlags: [],
     prizeType,
+    samplePrizeCount,
     trendScore: 50,
     windowSize: 120
   };

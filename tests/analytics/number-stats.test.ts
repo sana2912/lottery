@@ -134,6 +134,38 @@ describe("calculateNumberStats", () => {
     ).toEqual([]);
   });
 
+  test("normalizes exact number frequency by prize-row sample for multi-prize types", () => {
+    const multiPrizeRows = [
+      prize("2026-04-01", "123456", "PRIZE5"),
+      prize("2026-04-01", "000001", "PRIZE5"),
+      prize("2026-04-01", "000002", "PRIZE5"),
+      prize("2026-04-01", "000003", "PRIZE5"),
+      prize("2026-04-01", "000004", "PRIZE5"),
+      prize("2026-04-16", "123456", "PRIZE5"),
+      prize("2026-04-16", "000005", "PRIZE5"),
+      prize("2026-04-16", "000006", "PRIZE5"),
+      prize("2026-04-16", "000007", "PRIZE5"),
+      prize("2026-04-16", "000008", "PRIZE5")
+    ];
+    const stats = calculateNumberStats(
+      multiPrizeRows,
+      {
+        computedAt,
+        drawCount: 2,
+        windowSize: 2
+      },
+      6
+    );
+
+    expect(stats.find((stat) => stat.number === "123456")).toMatchObject({
+      frequencyPercent: 20,
+      frequencyPerDrawPercent: 100,
+      frequencyPerPrizeRowPercent: 20,
+      hitCount: 2,
+      samplePrizeCount: 10
+    });
+  });
+
   test("assigns pattern flags for odd even high low double sequence and mirror", () => {
     const stats = calculateNumberStats(prizes, {
       computedAt,

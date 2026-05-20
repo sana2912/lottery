@@ -138,7 +138,7 @@ model AnalysisSnapshotRun {
   id                 String                    @id @default(uuid(7)) @map("_id") @db.Uuid
   contextKey         String                    @unique
   lotteryType        LotteryType
-  prizeType          LotteryPrizeType
+  prizeType          String
   numberLength       Int
   scope              String
   month              Int?
@@ -171,7 +171,7 @@ model AnalysisDigitStat {
   runId            String              @db.Uuid
   run              AnalysisSnapshotRun @relation(fields: [runId], references: [id], onDelete: Cascade)
   lotteryType      LotteryType
-  prizeType        LotteryPrizeType
+  prizeType        String
   windowPreset     String
   digit            String
   position         Int?
@@ -195,7 +195,7 @@ model AnalysisNumberStat {
   runId            String              @db.Uuid
   run              AnalysisSnapshotRun @relation(fields: [runId], references: [id], onDelete: Cascade)
   lotteryType      LotteryType
-  prizeType        LotteryPrizeType
+  prizeType        String
   windowPreset     String
   number           String
   numberLength     Int
@@ -223,7 +223,7 @@ model AnalysisPatternSummary {
   runId            String              @db.Uuid
   run              AnalysisSnapshotRun @relation(fields: [runId], references: [id], onDelete: Cascade)
   lotteryType      LotteryType
-  prizeType        LotteryPrizeType
+  prizeType        String
   windowPreset     String
   pattern          String
   hitCount         Int
@@ -244,7 +244,7 @@ model AnalysisCalendarHeatmap {
   runId           String              @db.Uuid
   run             AnalysisSnapshotRun @relation(fields: [runId], references: [id], onDelete: Cascade)
   lotteryType     LotteryType
-  prizeType       LotteryPrizeType
+  prizeType       String
   scope           String
   month           Int?
   windowPreset    String

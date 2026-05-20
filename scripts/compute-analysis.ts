@@ -3,17 +3,16 @@ import {
   ANALYSIS_PRIZE_TYPES,
   ANALYSIS_SCOPES,
   ANALYSIS_WINDOW_PRESETS,
-  type AnalysisContext,
   type AnalysisMonth,
   type AnalysisPrizeType,
   type AnalysisScope,
   type AnalysisWindowPreset,
-  createAnalysisContext,
   isAnalysisPrizeType,
   isAnalysisScope,
   isAnalysisWindowPreset
 } from "@/api/service/analysis-snapshot/analysis-context";
 import { recomputeAnalysisSnapshot } from "@/api/service/analysis-snapshot/compute-analysis-snapshot";
+import { listAnalysisContexts } from "@/api/service/analysis-snapshot/context-plan";
 
 type ComputeAnalysisOptions = {
   month?: AnalysisMonth;
@@ -117,33 +116,11 @@ function parseArgs(args: readonly string[]): ComputeAnalysisOptions {
   };
 }
 
-function buildComputePlan(options: ComputeAnalysisOptions): AnalysisContext[] {
-  const prizeTypes = options.prizeType ? [options.prizeType] : [...ANALYSIS_PRIZE_TYPES];
-  const windowPresets = options.windowPreset
-    ? [options.windowPreset]
-    : [...ANALYSIS_WINDOW_PRESETS];
-  const scopes = options.scope ? [options.scope] : [...ANALYSIS_SCOPES];
-
-  return prizeTypes.flatMap((prizeType) =>
-    windowPresets.flatMap((windowPreset) =>
-      scopes.flatMap((scope) =>
-        getMonthsForScope(scope, options.month).map((month) =>
-          createAnalysisContext({
-            month,
-            prizeType,
-            scope,
-            windowPreset
-          })
-        )
-      )
-    )
-  );
-}
-
-function getMonthsForScope(scope: AnalysisScope, selectedMonth?: AnalysisMonth) {
-  if (scope === "ALL_TIME") {
-    return [undefined];
-  }
-
-  return selectedMonth ? [selectedMonth] : [...ANALYSIS_MONTHS];
+function buildComputePlan(options: ComputeAnalysisOptions) {
+  return listAnalysisContexts({
+    month: options.month,
+    prizeType: options.prizeType,
+    scope: options.scope,
+    windowPreset: options.windowPreset
+  });
 }

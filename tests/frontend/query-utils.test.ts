@@ -89,6 +89,16 @@ describe("frontend query/mappers", () => {
     expect(buildAnalyticsHref(parsed)).toContain("/analytics?");
   });
 
+  test("parseAnalyticsSearchParams accepts grouped six-digit analysis prize", () => {
+    const parsed = parseAnalyticsSearchParams({
+      prizeType: "SIX_DIGIT_ALL",
+      windowPreset: "50"
+    });
+
+    expect(parsed.numberLength).toBe(6);
+    expect(parsed.prizeType).toBe("SIX_DIGIT_ALL");
+  });
+
   test("parseResultsSearchParams accepts URLSearchParams", () => {
     const parsed = parseResultsSearchParams(
       new URLSearchParams({

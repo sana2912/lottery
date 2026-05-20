@@ -5,7 +5,7 @@ import "@/frontend/styles/globals.css";
 
 export const metadata: Metadata = {
   title: "Lottery Intelligence Dashboard",
-  description: "User-facing lottery statistics and prediction dashboard scaffold."
+  description: "User-facing lottery statistics and prediction research dashboard."
 };
 
 export default function RootLayout({

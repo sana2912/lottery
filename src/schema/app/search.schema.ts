@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { analysisPrizeTypeSchema, lotteryPrizeTypeSchema } from "@/schema/app/query.schema";
 
 export const searchDrawHitSchema = z.object({
   drawDate: z.string(),
@@ -13,7 +14,7 @@ export const searchPrizeHitSchema = z.object({
   drawNo: z.string(),
   id: z.string(),
   number: z.string(),
-  prizeType: z.enum(["FIRST", "THREE_DIGIT", "TWO_DIGIT", "PRIZE2", "PRIZE3", "PRIZE4", "PRIZE5"])
+  prizeType: lotteryPrizeTypeSchema.exclude(["OTHER"])
 });
 
 export const searchStatHitSchema = z.object({
@@ -22,7 +23,8 @@ export const searchStatHitSchema = z.object({
   lastSeenDrawDate: z.string().optional(),
   missingDrawCount: z.number().int().nonnegative(),
   number: z.string(),
-  prizeType: z.enum(["FIRST", "THREE_DIGIT", "TWO_DIGIT", "PRIZE2", "PRIZE3", "PRIZE4", "PRIZE5"]),
+  prizeType: analysisPrizeTypeSchema,
+  samplePrizeCount: z.number().int().nonnegative().optional(),
   trendScore: z.number(),
   windowSize: z.number().int().positive()
 });

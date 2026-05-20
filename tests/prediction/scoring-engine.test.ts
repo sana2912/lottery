@@ -48,10 +48,10 @@ describe("scoreNumber", () => {
         "Contains a palindrome / mirror shape.",
         "Last seen at 2026-04-16T00:00:00.000Z."
       ],
-      score: 61.05,
+      score: 59.69,
       scoreBreakdown: {
-        hot: 50,
-        overdue: 100,
+        hot: 100,
+        overdue: 18.21,
         pair: 41,
         pattern: 13,
         position: 80

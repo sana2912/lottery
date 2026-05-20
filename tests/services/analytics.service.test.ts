@@ -89,6 +89,8 @@ describe("analytics.service", () => {
     });
 
     expect(queryCalls.some((sql) => sql.includes('FROM "analysis_snapshot_runs"'))).toBe(true);
+    expect(queryCalls.some((sql) => sql.includes("engineVersion"))).toBe(true);
+    expect(model.source).toBe("snapshot");
     expect(analyticsReadModelSchema.parse(model)).toEqual(model);
     expect(model.summary.drawCount).toBe(50);
     expect(model.numberStats[0]?.number).toBe("09");
@@ -202,6 +204,58 @@ describe("analytics.service", () => {
     expect(model.digitStats).toEqual([]);
     expect(model.numberStats).toEqual([]);
     expect(model.patternSummaries).toEqual([]);
+  });
+
+  test("supports grouped six-digit analysis without treating it as a raw prize type", async () => {
+    let prizeArgsSeen: unknown;
+
+    (globalThis as { prisma?: unknown }).prisma = {
+      lotteryDraw: {
+        findMany: async () => [
+          {
+            drawDate: new Date("2026-04-16T00:00:00.000Z"),
+            id: "draw-2",
+            lotteryType: "THAI_GOVERNMENT"
+          },
+          {
+            drawDate: new Date("2026-04-01T00:00:00.000Z"),
+            id: "draw-1",
+            lotteryType: "THAI_GOVERNMENT"
+          }
+        ]
+      },
+      lotteryPrize: {
+        findMany: async (args: unknown) => {
+          prizeArgsSeen = args;
+          return [
+            prize("draw-2", "2026-04-16T00:00:00.000Z", "123456", "FIRST"),
+            prize("draw-2", "2026-04-16T00:00:00.000Z", "654321", "PRIZE2"),
+            prize("draw-1", "2026-04-01T00:00:00.000Z", "222222", "PRIZE5")
+          ];
+        }
+      }
+    };
+
+    const model = await getAnalyticsReadModel({
+      endDate: "2026-04-30",
+      lotteryType: "THAI_GOVERNMENT",
+      numberLength: 6,
+      page: 1,
+      pageSize: 20,
+      prizeType: "SIX_DIGIT_ALL",
+      startDate: "2026-04-01",
+      windowSize: 20
+    });
+
+    expect(prizeArgsSeen).toMatchObject({
+      where: {
+        type: {
+          in: ["FIRST", "NEAR_FIRST", "PRIZE2", "PRIZE3", "PRIZE4", "PRIZE5"]
+        }
+      }
+    });
+    expect(model.numberStats.every((stat) => stat.prizeType === "SIX_DIGIT_ALL")).toBe(true);
+    expect(model.digitStats.every((stat) => stat.prizeType === "SIX_DIGIT_ALL")).toBe(true);
   });
 
   test("limits analytics by distinct draws instead of raw prize row count", async () => {

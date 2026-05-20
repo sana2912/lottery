@@ -155,10 +155,12 @@ function buildDigitOptionsForPosition(
         frequencyPercent: 0,
         hitCount: 0,
         lastSeenDrawDate: undefined,
+        lift: 0,
         lotteryType: digitStats[0]?.lotteryType ?? "THAI_GOVERNMENT",
         missingDrawCount: drawCount,
         position: positionIndex,
         prizeType: digitStats[0]?.prizeType ?? "TWO_DIGIT",
+        sampleEventCount: drawCount,
         trendDirection: "flat",
         windowSize: digitStats[0]?.windowSize ?? 0
       } satisfies ApiDigitStat);
@@ -263,7 +265,7 @@ function toPositionBreakdown(
   positionIndex: number
 ): ApiPredictionPositionBreakdown {
   const hot = getHotScore(stat.frequencyPercent);
-  const overdue = clamp(stat.missingDrawCount * 8);
+  const overdue = getOverdueScore(stat);
   const position = trendDirectionScore(stat.trendDirection);
 
   return {
@@ -346,6 +348,19 @@ function trendDirectionScore(trendDirection: ApiDigitStat["trendDirection"]) {
 
 function getHotScore(frequencyPercent: number) {
   return clamp(50 + (frequencyPercent - 10) * 6);
+}
+
+function getOverdueScore(stat: ApiDigitStat) {
+  if (stat.missingDrawCount <= 0) {
+    return 0;
+  }
+
+  const rowsPerDraw =
+    stat.drawCount > 0 ? (stat.sampleEventCount ?? stat.drawCount) / stat.drawCount : 1;
+  const expectedPresenceRate = 1 - 0.9 ** Math.max(1, rowsPerDraw);
+  const missingProbability = (1 - expectedPresenceRate) ** stat.missingDrawCount;
+
+  return clamp((1 - missingProbability) * 100);
 }
 
 function toTone(
