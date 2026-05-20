@@ -32,7 +32,7 @@ export function selectEligibleDraws(
         return false;
       }
 
-      if (draw.drawDate.getUTCFullYear() !== context.year) {
+      if (context.year !== undefined && draw.drawDate.getUTCFullYear() !== context.year) {
         return false;
       }
     }

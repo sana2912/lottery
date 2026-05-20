@@ -89,14 +89,13 @@ describe("page rendering", () => {
           pageData: {
             filters: {
               month: 4,
-              year: 2026,
               prizeType: "FIRST",
               scope: "MONTH"
             },
             model: calendarModel(),
             state: "ready"
           },
-          searchParams: { month: "4", year: "2026", prizeType: "FIRST", scope: "MONTH" }
+          searchParams: { month: "4", prizeType: "FIRST", scope: "MONTH" }
         })
       );
 

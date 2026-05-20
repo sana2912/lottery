@@ -1,8 +1,5 @@
 import { getAnalysisContextKey } from "@/api/service/analysis-snapshot/analysis-context";
-import {
-  discoverAnalysisDrawYears,
-  listAnalysisContexts
-} from "@/api/service/analysis-snapshot/context-plan";
+import { listAnalysisContexts } from "@/api/service/analysis-snapshot/context-plan";
 import { resolveAnalysisSample } from "@/api/service/analysis-snapshot/sample-resolver";
 import { getPrisma } from "@/api/service/prisma";
 import { parseCliValues, printOrWriteJsonReport, writeTextReport } from "./audit-utils";
@@ -50,7 +47,6 @@ async function main() {
     ]);
 
     let dbSpotChecks = options.spotCheckDb ? await runBaselineDbSpotChecks() : undefined;
-    const years = await discoverAnalysisDrawYears();
     let report = buildComputeScopeAuditReport({
       dbSpotChecks,
       draws: draws.map((draw) => ({
@@ -62,8 +58,7 @@ async function main() {
           type: prize.type
         }))
       })),
-      snapshots,
-      years
+      snapshots
     });
 
     if (options.spotCheckDb) {
@@ -73,7 +68,6 @@ async function main() {
         dbSpotChecks = await mergeDbSpotChecks(dbSpotChecks, failureContexts);
         report = buildComputeScopeAuditReport({
           dbSpotChecks,
-          years,
           draws: draws.map((draw) => ({
             drawDate: draw.drawDate,
             drawNo: draw.drawNo,
@@ -190,15 +184,13 @@ async function mergeDbSpotChecks(
 }
 
 async function runBaselineDbSpotChecks() {
-  const years = await discoverAnalysisDrawYears();
-  const latestYear = years.at(-1) ?? new Date().getUTCFullYear();
   const spotContexts = [
     ...listAnalysisContexts({ scope: "ALL_TIME" }).filter(
       (context, index, all) =>
         all.findIndex((item) => item.prizeType === context.prizeType) === index
     ),
-    ...listAnalysisContexts({ scope: "MONTH", month: 1, years: [latestYear] }),
-    ...listAnalysisContexts({ scope: "MONTH", month: 12, years: [latestYear] })
+    ...listAnalysisContexts({ scope: "MONTH", month: 1 }),
+    ...listAnalysisContexts({ scope: "MONTH", month: 12 })
   ];
   const results = new Map<string, { drawCount: number; prizeCount: number }>();
 

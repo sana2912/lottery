@@ -1,3 +1,4 @@
+import { normalizeProductAnalysisQuery } from "@/lib/app/analysis-product-scope";
 import {
   type CalendarHeatmapQuery,
   type CalendarReadModel,
@@ -12,7 +13,6 @@ export function getDaysUntilNextDraw(calendar: CalendarReadModel, now = new Date
 
 export type CalendarPageFilters = {
   month?: number;
-  year?: number;
   prizeType: NonNullable<CalendarHeatmapQuery["prizeType"]>;
   scope: NonNullable<CalendarHeatmapQuery["scope"]>;
 };
@@ -52,21 +52,27 @@ export function parseCalendarPageFilters(
   searchParams?: Record<string, string | string[] | undefined> | URLSearchParams
 ): CalendarPageFilters {
   const parsed = calendarHeatmapQuerySchema.parse(toSearchParamRecord(searchParams));
-  const scope = parsed.scope ?? "MONTH";
-  const now = new Date();
+  const prizeType: CalendarPageFilters["prizeType"] = parsed.prizeType ?? "FIRST";
+  const scope: CalendarPageFilters["scope"] = parsed.scope ?? "MONTH";
+  const normalized = normalizeProductAnalysisQuery({
+    lotteryType: "THAI_GOVERNMENT",
+    page: 1,
+    pageSize: 20,
+    month: parsed.month,
+    prizeType,
+    scope
+  });
 
   return {
-    month: scope === "MONTH" ? (parsed.month ?? now.getUTCMonth() + 1) : undefined,
-    year: scope === "MONTH" ? (parsed.year ?? now.getUTCFullYear()) : undefined,
-    prizeType: parsed.prizeType ?? "FIRST",
-    scope
+    month: normalized.month,
+    prizeType: normalized.prizeType,
+    scope: normalized.scope
   };
 }
 
 export function toCalendarApiQuery(filters: CalendarPageFilters) {
   return {
     month: filters.month,
-    year: filters.year,
     prizeType: filters.prizeType,
     scope: filters.scope,
     windowPreset: "ALL" as const
@@ -86,19 +92,6 @@ export function getCalendarPrizeTypeOptions() {
 
 export function getCalendarScopeOptions() {
   return [...CALENDAR_SCOPE_OPTIONS];
-}
-
-export function getCalendarYearOptions(now = new Date()) {
-  const currentYear = now.getUTCFullYear();
-
-  return Array.from({ length: 30 }, (_, index) => {
-    const year = currentYear - index;
-
-    return {
-      label: String(year),
-      value: year
-    };
-  });
 }
 
 function toSearchParamRecord(

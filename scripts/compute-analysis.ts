@@ -14,14 +14,11 @@ import {
   listAllTimeAnalysisContexts,
   listAnalysisContexts
 } from "@/api/service/analysis-snapshot/context-plan";
-import { resolveComputeYears } from "./lib/compute-analysis-plan";
 
 type ComputeAnalysisOptions = {
   month?: AnalysisMonth;
   prizeType?: AnalysisPrizeType;
   scope?: AnalysisScope;
-  year?: number;
-  years?: number[];
 };
 
 async function main() {
@@ -30,16 +27,10 @@ async function main() {
 
   assertFullComputePlan(contexts, options);
 
-  const expected =
-    options.years !== undefined ? getExpectedAnalysisContextCount(options.years) : undefined;
+  const expected = getExpectedAnalysisContextCount();
 
   console.info(
-    [
-      `Compute analysis: recomputing ${contexts.length} context${contexts.length === 1 ? "" : "s"}.`,
-      expected !== undefined ? `Expected for this year set: ${expected}.` : ""
-    ]
-      .filter(Boolean)
-      .join(" ")
+    `Compute analysis: recomputing ${contexts.length} context${contexts.length === 1 ? "" : "s"}. Expected full matrix: ${expected}.`
   );
 
   for (const [index, context] of contexts.entries()) {
@@ -48,7 +39,7 @@ async function main() {
       `prizeType=${context.prizeType}`,
       `scope=${context.scope}`,
       `month=${context.month ?? "ALL"}`,
-      `year=${context.year ?? "ALL"}`,
+      `years=ALL_YEARS`,
       `window=${context.windowPreset}`
     ].join(" ");
     const startedAt = Date.now();
@@ -89,10 +80,6 @@ async function parseArgs(args: readonly string[]): Promise<ComputeAnalysisOption
   const prizeType = values.prizeType;
   const scope = values.scope;
   const month = values.month ? Number(values.month) : undefined;
-  const year = values.year ? Number(values.year) : undefined;
-  const years = values.years
-    ? values.years.split(",").map((value) => Number(value.trim()))
-    : undefined;
   let parsedPrizeType: AnalysisPrizeType | undefined;
   let parsedScope: AnalysisScope | undefined;
 
@@ -116,18 +103,14 @@ async function parseArgs(args: readonly string[]): Promise<ComputeAnalysisOption
     throw new Error("Invalid --month. Supported values: 1..12");
   }
 
-  const resolvedYears = await resolveComputeYears({
-    scope: parsedScope,
-    year,
-    years
-  });
+  if (parsedScope === "MONTH" && month === undefined) {
+    throw new Error("MONTH scope requires --month=1..12");
+  }
 
   return {
     month: month as AnalysisMonth | undefined,
     prizeType: parsedPrizeType,
-    scope: parsedScope,
-    year,
-    years: resolvedYears
+    scope: parsedScope
   };
 }
 
@@ -135,9 +118,7 @@ function buildComputePlan(options: ComputeAnalysisOptions) {
   return listAnalysisContexts({
     month: options.month,
     prizeType: options.prizeType,
-    scope: options.scope,
-    year: options.year,
-    years: options.years
+    scope: options.scope
   });
 }
 
@@ -146,18 +127,13 @@ function assertFullComputePlan(
   options: ComputeAnalysisOptions
 ) {
   const isFilteredRun =
-    options.scope !== undefined ||
-    options.prizeType !== undefined ||
-    options.month !== undefined ||
-    options.year !== undefined ||
-    options.years !== undefined;
+    options.scope !== undefined || options.prizeType !== undefined || options.month !== undefined;
 
   if (!isFilteredRun && contexts.length <= listAllTimeAnalysisContexts().length) {
     throw new Error(
       [
         `Full db:compute-analysis resolved only ${contexts.length} contexts (ALL_TIME only).`,
-        "MONTH×year matrix was skipped because draw years were not attached to the plan.",
-        "Re-run after fixing resolveComputeYears, or pass --years=... explicitly."
+        "MONTH matrix was skipped — expected 143 contexts (11 ALL_TIME + 132 MONTH)."
       ].join(" ")
     );
   }

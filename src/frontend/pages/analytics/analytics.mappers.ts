@@ -1,3 +1,4 @@
+import { productAnalysisScopeLabel } from "@/lib/app/analysis-product-scope";
 import type { AnalyticsReadModel, DigitStat, NumberStat } from "@/schema/app/analytics.schema";
 import type { FilterContext } from "@/schema/app/query.schema";
 
@@ -160,8 +161,7 @@ export function buildAnalyticsScopeHrefQuery(
   return {
     month: scope === "MONTH" ? now.getUTCMonth() + 1 : undefined,
     page: 1,
-    scope,
-    year: scope === "MONTH" ? now.getUTCFullYear() : undefined
+    scope
   };
 }
 
@@ -179,14 +179,9 @@ function getScopeDrawLabel(query: FilterContext, drawCount: number) {
 }
 
 function getScopeLabel(query: FilterContext) {
-  if (query.scope === "MONTH" && query.month) {
-    const monthLabel =
-      analyticsMonthOptions.find((option) => option.value === query.month)?.label ?? "Month";
+  const scope = query.scope === "ALL_TIME" ? "ALL_TIME" : "MONTH";
 
-    return query.year ? `${monthLabel} ${query.year}` : monthLabel;
-  }
-
-  return "All months";
+  return productAnalysisScopeLabel(scope, query.month);
 }
 
 function getNumberLength(query: FilterContext): AnalyticsNumberLength {

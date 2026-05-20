@@ -11,6 +11,7 @@ import {
 } from "@/api/service/analysis-snapshot/analysis-context";
 import type { AnalysisCalendarHeatmapReadModel } from "@/api/service/analysis-snapshot/calendar-heatmap-read-model";
 import { getPrisma } from "@/api/service/prisma";
+import { normalizeProductAnalysisQuery } from "@/lib/app/analysis-product-scope";
 import type { ApiAnalyticsReadModel } from "@/schema/api/analytics";
 import type { ApiPatternsReadModel } from "@/schema/api/patterns";
 import { analyticsReadModelSchema } from "@/schema/app/analytics.schema";
@@ -102,43 +103,37 @@ export async function getAnalysisSnapshotCalendarReadModel(query: CalendarHeatma
     : null;
 }
 
-export function getAnalysisContextForFilterQuery(
-  query: FilterContext,
-  now = new Date()
-): AnalysisContext | null {
-  if (!query.prizeType || !isAnalysisPrizeType(query.prizeType)) {
-    return null;
-  }
-
-  if (query.startDate || query.endDate || query.q) {
-    return null;
-  }
-
+export function getAnalysisContextForFilterQuery(query: FilterContext): AnalysisContext | null {
   if (query.windowPreset && !isAnalysisWindowPreset(query.windowPreset)) {
     return null;
   }
 
-  const expectedNumberLength = getAnalysisPrizeNumberLength(query.prizeType);
+  const normalized = normalizeProductAnalysisQuery(query);
 
-  if (query.numberLength !== undefined && query.numberLength !== expectedNumberLength) {
+  if (!normalized.prizeType || !isAnalysisPrizeType(normalized.prizeType)) {
     return null;
   }
 
-  const scope = query.scope ?? (query.month ? "MONTH" : "ALL_TIME");
-
-  if (scope === "MONTH" && !query.month) {
+  if (normalized.startDate || normalized.endDate || normalized.q) {
     return null;
   }
 
-  const year = scope === "MONTH" ? (query.year ?? now.getUTCFullYear()) : undefined;
+  const expectedNumberLength = getAnalysisPrizeNumberLength(normalized.prizeType);
+
+  if (normalized.numberLength !== undefined && normalized.numberLength !== expectedNumberLength) {
+    return null;
+  }
+
+  if (normalized.scope === "MONTH" && !normalized.month) {
+    return null;
+  }
 
   return createAnalysisContext({
-    lotteryType: query.lotteryType,
-    month: query.month as AnalysisMonth | undefined,
-    prizeType: query.prizeType,
-    scope,
-    windowPreset: ANALYSIS_WINDOW_PRESET,
-    year
+    lotteryType: normalized.lotteryType,
+    month: normalized.month as AnalysisMonth | undefined,
+    prizeType: normalized.prizeType,
+    scope: normalized.scope,
+    windowPreset: ANALYSIS_WINDOW_PRESET
   });
 }
 
@@ -157,13 +152,14 @@ export function getAnalysisContextForCalendarQuery(
     return null;
   }
 
+  const month =
+    scope === "MONTH" ? ((query.month ?? now.getUTCMonth() + 1) as AnalysisMonth) : undefined;
+
   return createAnalysisContext({
-    month:
-      scope === "MONTH" ? ((query.month ?? now.getUTCMonth() + 1) as AnalysisMonth) : undefined,
+    month,
     prizeType,
     scope,
-    windowPreset: ANALYSIS_WINDOW_PRESET,
-    year: scope === "MONTH" ? (query.year ?? now.getUTCFullYear()) : undefined
+    windowPreset: ANALYSIS_WINDOW_PRESET
   });
 }
 

@@ -28,10 +28,15 @@ describe("analysis context", () => {
     );
   });
 
-  test("builds distinct keys for all-time and monthly scopes with year", () => {
+  test("builds distinct keys for all-time and month-across-years", () => {
     const allTime = createAnalysisContext({
       prizeType: "TWO_DIGIT",
       scope: "ALL_TIME"
+    });
+    const mayAllYears = createAnalysisContext({
+      month: 5,
+      prizeType: "TWO_DIGIT",
+      scope: "MONTH"
     });
     const may2026 = createAnalysisContext({
       month: 5,
@@ -40,24 +45,25 @@ describe("analysis context", () => {
       year: 2026
     });
 
-    expect(getAnalysisContextKey(allTime)).not.toEqual(getAnalysisContextKey(may2026));
+    expect(getAnalysisContextKey(allTime)).not.toEqual(getAnalysisContextKey(mayAllYears));
+    expect(getAnalysisContextKey(mayAllYears)).toContain("MONTH|5|ALL_YEARS|ALL");
     expect(getAnalysisContextKey(may2026)).toContain("MONTH|5|2026|ALL");
   });
 
-  test("requires month and year for monthly scope", () => {
+  test("requires month for monthly scope; year is optional", () => {
     expect(() =>
       createAnalysisContext({
         prizeType: "TWO_DIGIT",
         scope: "MONTH"
       })
     ).toThrow("MONTH scope requires month");
-    expect(() =>
+    expect(
       createAnalysisContext({
         month: 12,
         prizeType: "TWO_DIGIT",
         scope: "MONTH"
-      })
-    ).toThrow("MONTH scope requires year");
+      }).year
+    ).toBeUndefined();
     expect(
       createAnalysisContext({
         month: 12,
@@ -75,6 +81,7 @@ describe("analysis context", () => {
         page: 1,
         pageSize: 20,
         prizeType: "TWO_DIGIT",
+        scope: "MONTH",
         year: 2026
       })
     ).toMatchObject({
@@ -83,7 +90,7 @@ describe("analysis context", () => {
       prizeType: "TWO_DIGIT",
       scope: "MONTH",
       windowPreset: ANALYSIS_WINDOW_PRESET,
-      year: 2026
+      year: undefined
     });
     expect(
       getAnalysisContextForFilterQuery({
@@ -140,7 +147,7 @@ describe("analysis context", () => {
       prizeType: "PRIZE5",
       scope: "MONTH",
       windowPreset: ANALYSIS_WINDOW_PRESET,
-      year: 2026
+      year: undefined
     });
     expect(
       getAnalysisContextForCalendarQuery(

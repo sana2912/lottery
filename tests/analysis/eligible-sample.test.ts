@@ -35,7 +35,19 @@ describe("eligible sample replay", () => {
     expect(replayEligibleSampleFromDraws(baseDraws, context).drawCount).toBe(3);
   });
 
-  test("MONTH+year scope excludes other months and years", () => {
+  test("MONTH scope across years includes same month in every year", () => {
+    const context = createAnalysisContext({
+      month: 2,
+      prizeType: "FIRST",
+      scope: "MONTH"
+    });
+    const eligible = selectEligibleDraws(baseDraws, context);
+
+    expect(eligible).toHaveLength(1);
+    expect(eligible[0]?.drawNo).toBe("d2");
+  });
+
+  test("MONTH with explicit year excludes other years", () => {
     const context = createAnalysisContext({
       month: 2,
       prizeType: "FIRST",

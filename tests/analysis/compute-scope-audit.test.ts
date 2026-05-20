@@ -39,7 +39,19 @@ describe("compute scope audit", () => {
     expect(eligible.at(-1)?.drawNo).toBe("d3");
   });
 
-  test("MONTH+year scope excludes other months and years", () => {
+  test("MONTH scope across years includes same month in every year", () => {
+    const context = createAnalysisContext({
+      month: 2,
+      prizeType: "FIRST",
+      scope: "MONTH"
+    });
+    const eligible = selectEligibleDraws(baseDraws, context);
+
+    expect(eligible).toHaveLength(1);
+    expect(eligible[0]?.drawNo).toBe("d2");
+  });
+
+  test("MONTH with explicit year excludes other years", () => {
     const context = createAnalysisContext({
       month: 2,
       prizeType: "FIRST",
@@ -61,7 +73,7 @@ describe("compute scope audit", () => {
       computedAt: new Date(),
       contextKey: "k",
       endDrawDate: null,
-      engineVersion: "analysis-engine-v7",
+      engineVersion: "analysis-engine-v8",
       invalidPrizeCount: 0,
       month: null,
       prizeType: "FIRST",
@@ -80,8 +92,7 @@ describe("compute scope audit", () => {
   test("reports zero eligible contexts in sparse month cells", () => {
     const report = buildComputeScopeAuditReport({
       draws: baseDraws,
-      snapshots: [],
-      years: [2024]
+      snapshots: []
     });
     const row = report.contextRows.find(
       (item) =>

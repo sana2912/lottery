@@ -85,8 +85,8 @@ describe("calendar.service", () => {
     const response = await calendarService.getCalendarReadModel({
       month: 4,
       prizeType: "FIRST",
-      windowPreset: "ALL",
-      year: 2026
+      scope: "MONTH",
+      windowPreset: "ALL"
     });
 
     expect(calendarReadModelSchema.parse(response)).toEqual(response);

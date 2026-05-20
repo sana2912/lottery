@@ -243,7 +243,7 @@ function SixDigitAnalytics({
         </p>
         <Button asChild className="mt-4 rounded-none" size="sm" variant="outline">
           <Link
-            href={`/patterns?prizeType=${view.context.prizeType}&scope=${view.context.scope}${query.month ? `&month=${query.month}` : ""}${query.year ? `&year=${query.year}` : ""}`}
+            href={`/patterns?prizeType=${view.context.prizeType}&scope=${view.context.scope}${query.month ? `&month=${query.month}` : ""}`}
           >
             Explore deeper shape patterns
           </Link>

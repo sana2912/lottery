@@ -1,6 +1,6 @@
 import type { FilterContext } from "@/schema/app/query.schema";
 
-export const ANALYSIS_ENGINE_VERSION = "analysis-engine-v7";
+export const ANALYSIS_ENGINE_VERSION = "analysis-engine-v8";
 
 export const ANALYSIS_PRIZE_TYPES = [
   "TWO_DIGIT",
@@ -40,7 +40,7 @@ export type AnalysisContext = {
   engineVersion: string;
   lotteryType: FilterContext["lotteryType"];
   month?: AnalysisMonth;
-  /** Required with MONTH scope — limits draws to this calendar year. */
+  /** Optional: single calendar year filter. Product/compute omit for month-across-all-years. */
   year?: number;
   numberLength: 2 | 3 | 6;
   prizeType: AnalysisPrizeType;
@@ -60,7 +60,8 @@ export function createAnalysisContext(input: AnalysisContextInput): AnalysisCont
   const scope = parseAnalysisScope(input.scope ?? "ALL_TIME");
   const windowPreset = parseAnalysisWindowPreset(input.windowPreset);
   const month = scope === "MONTH" ? parseAnalysisMonth(input.month) : undefined;
-  const year = scope === "MONTH" ? parseAnalysisYear(input.year) : undefined;
+  const year =
+    scope === "MONTH" && input.year !== undefined ? parseAnalysisYear(input.year) : undefined;
 
   return {
     engineVersion: input.engineVersion ?? ANALYSIS_ENGINE_VERSION,
@@ -82,7 +83,11 @@ export function getAnalysisContextKey(context: AnalysisContext) {
     context.numberLength,
     context.scope,
     context.month ?? "ALL_MONTHS",
-    context.scope === "MONTH" ? String(context.year) : "ALL_YEARS",
+    context.scope === "MONTH"
+      ? context.year !== undefined
+        ? String(context.year)
+        : "ALL_YEARS"
+      : "ALL_YEARS",
     context.windowPreset
   ].join("|");
 }
@@ -166,11 +171,7 @@ function parseAnalysisMonth(value: number | undefined): AnalysisMonth {
   throw new Error("MONTH scope requires month 1..12.");
 }
 
-function parseAnalysisYear(value: number | undefined) {
-  if (value === undefined) {
-    throw new Error("MONTH scope requires year.");
-  }
-
+function parseAnalysisYear(value: number) {
   if (!Number.isInteger(value) || value < 1900 || value > 3000) {
     throw new Error("MONTH scope year must be between 1900 and 3000.");
   }

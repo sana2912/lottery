@@ -1,3 +1,7 @@
+import {
+  normalizeProductAnalysisQuery,
+  productAnalysisScopeLabel
+} from "@/lib/app/analysis-product-scope";
 import { getMiniDna, hasNumberShapeFlag, type NumberShapeFlag } from "@/lib/app/number-shape";
 import {
   buildPatternDistributionCountsFromHits,
@@ -69,7 +73,6 @@ export type PatternPageQuery = {
   pattern?: string;
   prizeType: PatternPrizeValue;
   scope: NonNullable<FilterContext["scope"]>;
-  year?: number;
 };
 
 export type PatternReadModel = {
@@ -183,23 +186,26 @@ export function parsePatternSearchParams(
   const prizeType = getSingleValue(record.prizeType);
   const scope = getSingleValue(record.scope);
   const month = Number(getSingleValue(record.month));
-  const year = Number(getSingleValue(record.year));
   const pattern = getSingleValue(record.pattern);
   const parsedScope = scope === "MONTH" ? "MONTH" : "ALL_TIME";
-  const now = new Date();
+  const normalized = normalizeProductAnalysisQuery({
+    lotteryType: "THAI_GOVERNMENT",
+    month: parsedScope === "MONTH" && isValidMonth(month) ? month : undefined,
+    page: 1,
+    pageSize: 20,
+    scope: parsedScope
+  });
 
   return {
-    month: parsedScope === "MONTH" && isValidMonth(month) ? month : undefined,
+    month: normalized.month,
     pattern: pattern || undefined,
     prizeType: isPatternPrizeValue(prizeType) ? prizeType : "TWO_DIGIT",
-    scope: parsedScope,
-    year:
-      parsedScope === "MONTH" ? (Number.isFinite(year) ? year : now.getUTCFullYear()) : undefined
+    scope: normalized.scope
   };
 }
 
 export function toPatternsAnalyticsQuery(query: PatternPageQuery): FilterContext {
-  return {
+  return normalizeProductAnalysisQuery({
     lotteryType: "THAI_GOVERNMENT",
     month: query.month,
     numberLength: getPrizeNumberLength(query.prizeType),
@@ -207,9 +213,8 @@ export function toPatternsAnalyticsQuery(query: PatternPageQuery): FilterContext
     pageSize: 100,
     prizeType: query.prizeType,
     scope: query.scope,
-    windowPreset: "ALL",
-    year: query.year
-  };
+    windowPreset: "ALL"
+  });
 }
 
 export function buildPatternsHref(
@@ -229,10 +234,6 @@ export function buildPatternsHref(
 
   if (next.scope === "MONTH" && next.month) {
     searchParams.set("month", String(next.month));
-  }
-
-  if (next.scope === "MONTH" && next.year) {
-    searchParams.set("year", String(next.year));
   }
 
   if (next.pattern) {
@@ -551,14 +552,9 @@ function getSampleLabel(query: PatternPageQuery, drawCount: number) {
 }
 
 function getScopeLabel(query: PatternPageQuery) {
-  if (query.scope === "MONTH" && query.month) {
-    const monthLabel =
-      patternMonthOptions.find((option) => option.value === query.month)?.label ?? "Month";
+  const scope = query.scope === "ALL_TIME" ? "ALL_TIME" : "MONTH";
 
-    return query.year ? `${monthLabel} ${query.year}` : monthLabel;
-  }
-
-  return "All months";
+  return productAnalysisScopeLabel(scope, query.month);
 }
 
 function getNumberLengthLabel(prizeType: PatternPrizeValue) {

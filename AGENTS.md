@@ -14,7 +14,7 @@ Operating guide for AI/code agents in this repository.
 | `bun run db:compute-analysis` | After analytics engine or snapshot payload changes |
 | `bun run db:audit` | After seed, import, or compute |
 | `bun run db:audit:calc` | Deep audits: draw-prizes + normalization + compute scope matrix |
-| `bun run db:audit:scope` | Compute/snapshot scope: v7 matrix (`11 + 11×12×years`) |
+| `bun run db:audit:scope` | Compute/snapshot scope: v8 matrix (`11 + 11×12` = 143 contexts) |
 
 Agents may edit code, read files, and explain failures from user-provided output. Do not bypass Husky pre-commit unless the user asks.
 

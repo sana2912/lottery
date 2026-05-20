@@ -89,8 +89,7 @@ export const calendarContent = {
     title: "Digit heatmap by position"
   },
   filters: {
-    description:
-      "Choose calendar month and year, then window size (max draws in that period) and prize type.",
+    description: "All months in history, or one calendar month across every year, plus prize type.",
     eyebrow: "Heatmap controls",
     title: "Choose the sample",
     month: {

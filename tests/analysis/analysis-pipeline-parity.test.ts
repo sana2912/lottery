@@ -20,8 +20,7 @@ describe("analysis pipeline parity", () => {
     const context = createAnalysisContext({
       month: 4,
       prizeType: "TWO_DIGIT",
-      scope: "MONTH",
-      year: 2026
+      scope: "MONTH"
     });
     const draws = toEligibleDraws(drawRows(), prizeRows());
 
@@ -51,8 +50,7 @@ describe("analysis pipeline parity", () => {
     const context = createAnalysisContext({
       month: 4,
       prizeType: "TWO_DIGIT",
-      scope: "MONTH",
-      year: 2026
+      scope: "MONTH"
     });
     const computedAt = new Date("2026-04-29T00:00:00.000Z");
 
@@ -86,8 +84,7 @@ describe("analysis pipeline parity", () => {
     const context = createAnalysisContext({
       month: 4,
       prizeType: "TWO_DIGIT",
-      scope: "MONTH",
-      year: 2026
+      scope: "MONTH"
     });
 
     (globalThis as { prisma?: unknown }).prisma = {
@@ -178,6 +175,11 @@ function toEligibleDraws(
 function drawRows() {
   return [
     {
+      drawDate: new Date("2024-04-01T00:00:00.000Z"),
+      id: "00000000-0000-7000-8000-000000000003",
+      lotteryType: "THAI_GOVERNMENT"
+    },
+    {
       drawDate: new Date("2026-04-01T00:00:00.000Z"),
       id: "00000000-0000-7000-8000-000000000001",
       lotteryType: "THAI_GOVERNMENT"
@@ -192,6 +194,7 @@ function drawRows() {
 
 function prizeRows() {
   return [
+    prizeRow("00000000-0000-7000-8000-000000000003", "2024-04-01T00:00:00.000Z", "88", 1),
     prizeRow("00000000-0000-7000-8000-000000000001", "2026-04-01T00:00:00.000Z", "09", 1),
     prizeRow("00000000-0000-7000-8000-000000000001", "2026-04-01T00:00:00.000Z", "123", 2),
     prizeRow("00000000-0000-7000-8000-000000000002", "2026-04-16T00:00:00.000Z", "11", 1),

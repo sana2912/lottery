@@ -688,20 +688,17 @@ describe("frontend logic helpers", () => {
       })
     ).toEqual({
       month: 5,
-      year: 2026,
       prizeType: "FIRST",
       scope: "MONTH"
     });
     expect(
       toCalendarApiQuery({
         month: 5,
-        year: 2026,
         prizeType: "FIRST",
         scope: "MONTH"
       })
     ).toEqual({
       month: 5,
-      year: 2026,
       prizeType: "FIRST",
       scope: "MONTH",
       windowPreset: "ALL"

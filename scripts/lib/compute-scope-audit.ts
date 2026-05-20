@@ -89,10 +89,9 @@ export const EXPECTED_PRIZE_ROWS_PER_DRAW: Record<string, number | null> = {
 export function buildComputeScopeAuditReport(input: {
   draws: readonly ScopeAuditDraw[];
   snapshots: readonly ScopeAuditSnapshot[];
-  years: readonly number[];
   dbSpotChecks?: ReadonlyMap<string, { drawCount: number; prizeCount: number }>;
 }) {
-  const contexts = listAnalysisContexts({ years: input.years });
+  const contexts = listAnalysisContexts();
   const snapshotByKey = new Map(input.snapshots.map((snapshot) => [snapshot.contextKey, snapshot]));
   const contextRows = contexts.map((context) =>
     auditContext(
@@ -150,11 +149,15 @@ export function auditContext(
       issues.push("Sample contains drawDate outside configured UTC month.");
     }
 
-    const yearLeak = eligibleDraws.some((draw) => draw.drawDate.getUTCFullYear() !== context.year);
+    if (context.year !== undefined) {
+      const yearLeak = eligibleDraws.some(
+        (draw) => draw.drawDate.getUTCFullYear() !== context.year
+      );
 
-    if (yearLeak) {
-      status = "year_scope_leak";
-      issues.push("Sample contains drawDate outside configured UTC year.");
+      if (yearLeak) {
+        status = "year_scope_leak";
+        issues.push("Sample contains drawDate outside configured UTC year.");
+      }
     }
   }
 

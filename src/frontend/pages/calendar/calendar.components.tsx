@@ -7,8 +7,7 @@ import {
   type CalendarPageFilters,
   getCalendarMonthOptions,
   getCalendarPrizeTypeOptions,
-  getCalendarScopeOptions,
-  getCalendarYearOptions
+  getCalendarScopeOptions
 } from "@/frontend/pages/calendar/calendar.mappers";
 import {
   Label,
@@ -30,21 +29,18 @@ export function CalendarHeatmapFilters({ filters }: CalendarHeatmapFiltersProps)
   const monthOptions = getCalendarMonthOptions();
   const prizeTypeOptions = getCalendarPrizeTypeOptions();
   const scopeOptions = getCalendarScopeOptions();
-  const yearOptions = getCalendarYearOptions();
 
   function updateQuery(nextPartialFilters: Partial<CalendarPageFilters>) {
     const nextSearchParams = new URLSearchParams(searchParams.toString());
-    const now = new Date();
     const nextFilters = { ...filters, ...nextPartialFilters };
 
     if (nextFilters.scope === "MONTH" && nextFilters.month) {
       nextSearchParams.set("month", String(nextFilters.month));
-      nextSearchParams.set("year", String(nextFilters.year ?? now.getUTCFullYear()));
     } else {
       nextSearchParams.delete("month");
-      nextSearchParams.delete("year");
     }
 
+    nextSearchParams.delete("year");
     nextSearchParams.set("prizeType", nextFilters.prizeType);
     nextSearchParams.set("scope", nextFilters.scope);
     nextSearchParams.delete("windowPreset");
@@ -56,7 +52,7 @@ export function CalendarHeatmapFilters({ filters }: CalendarHeatmapFiltersProps)
   }
 
   return (
-    <div className="grid gap-3 lg:grid-cols-4">
+    <div className="grid gap-3 lg:grid-cols-3">
       <Field label="Scope">
         <Select
           onValueChange={(value) => {
@@ -64,8 +60,7 @@ export function CalendarHeatmapFilters({ filters }: CalendarHeatmapFiltersProps)
 
             updateQuery({
               month: value === "MONTH" ? (filters.month ?? now.getUTCMonth() + 1) : undefined,
-              scope: value as CalendarPageFilters["scope"],
-              year: value === "MONTH" ? (filters.year ?? now.getUTCFullYear()) : undefined
+              scope: value as CalendarPageFilters["scope"]
             });
           }}
           value={filters.scope}
@@ -98,29 +93,6 @@ export function CalendarHeatmapFilters({ filters }: CalendarHeatmapFiltersProps)
           </SelectTrigger>
           <SelectContent>
             {monthOptions.map((option) => (
-              <SelectItem key={option.value} value={String(option.value)}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </Field>
-
-      <Field label={calendarContent.filters.year.label}>
-        <Select
-          disabled={filters.scope !== "MONTH"}
-          onValueChange={(value) =>
-            updateQuery({
-              year: Number(value)
-            })
-          }
-          value={String(filters.year ?? new Date().getUTCFullYear())}
-        >
-          <SelectTrigger className="h-11 w-full rounded-none border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 py-3 shadow-[var(--shadow-micro)]">
-            <SelectValue placeholder={calendarContent.filters.year.placeholder} />
-          </SelectTrigger>
-          <SelectContent>
-            {yearOptions.map((option) => (
               <SelectItem key={option.value} value={String(option.value)}>
                 {option.label}
               </SelectItem>

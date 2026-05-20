@@ -33,14 +33,12 @@ describe("analysis snapshot engine", () => {
       createAnalysisContext({
         month: 4,
         prizeType: "TWO_DIGIT",
-        scope: "MONTH",
-        year: 2026
+        scope: "MONTH"
       })
     );
 
     expect(queryCalls[0]).toContain('prize."type" IN');
-    expect(queryCalls[0]).toContain("EXTRACT(MONTH");
-    expect(queryCalls[0]).toContain("EXTRACT(YEAR");
+    expect(queryCalls[0]).toContain("AND (?)");
     expect(queryCalls[1]).toContain('prize."drawId" IN');
     expect(sample.drawCount).toBe(2);
     expect(sample.prizeCount).toBe(3);
@@ -101,8 +99,7 @@ describe("analysis snapshot engine", () => {
       createAnalysisContext({
         month: 4,
         prizeType: "TWO_DIGIT",
-        scope: "MONTH",
-        year: 2026
+        scope: "MONTH"
       }),
       calendarPrizes,
       {
@@ -157,8 +154,7 @@ describe("analysis snapshot engine", () => {
       createAnalysisContext({
         month: 4,
         prizeType: "TWO_DIGIT",
-        scope: "MONTH",
-        year: 2026
+        scope: "MONTH"
       })
     );
 

@@ -78,7 +78,7 @@ SIX_DIGIT_ALL =
 ```text
 scope = ALL_TIME
 prizeType = SIX_DIGIT_ALL
-engineVersion = analysis-engine-v7
+engineVersion = analysis-engine-v8
 ```
 
 แปลว่า:
@@ -160,10 +160,10 @@ position 6 -> digit 0
 
 | ช่อง | ความหมาย |
 | --- | --- |
-| `scope = ALL_TIME` | ทุกงวดที่มีรางวัลตรง `prizeType` จนถึง now |
-| `scope = MONTH` | งวดที่ `EXTRACT(MONTH)` และ `EXTRACT(YEAR)` ตรง `month` + `year` (บังคับ year) |
+| `scope = ALL_TIME` | ทุกงวดที่มีรางวัลตรง `prizeType` จนถึง now (ทุกเดือน ทุกปี) |
+| `scope = MONTH` | งวดที่ `EXTRACT(MONTH FROM drawDate) = month` ทุกปี (ไม่มี year ใน product/compute) |
 | `windowPreset` | ค่าเดียว: `ALL` (= full eligible sample ใน scope) |
-| `engineVersion` | `analysis-engine-v7` — snapshot เก่า (v4–v6) ไม่ใช้ |
+| `engineVersion` | `analysis-engine-v8` — snapshot v7 (MONTH×year) และเก่ากว่าไม่ใช้ |
 
 วิธีทำ:
 
@@ -183,11 +183,11 @@ resolveAnalysisSample
   -> summarizePatterns
 ```
 
-Precompute matrix (v7):
+Precompute matrix (v8):
 
 ```text
-contexts = 11 ALL_TIME + (11 prize types × 12 months × N years)
-N = years from discoverAnalysisDrawYears()
+contexts = 11 ALL_TIME + (11 prize types × 12 months) = 143
+MONTH contextKey uses ALL_YEARS (no per-year cells)
 ```
 
 `windowSize` ในแถว `analysis_snapshot_runs` = `sampleDrawCount` (ไม่ใช่ cap)  
@@ -1148,11 +1148,10 @@ prize rows = ทุกเลขรางวัลที่ตรง prizeType �
 **MONTH scope** (ทุก consumer รวม `/calendar`):
 
 ```text
-EXTRACT(MONTH FROM drawDate) = month
-EXTRACT(YEAR FROM drawDate) = year   # บังคับ year ใน analysis context
+EXTRACT(MONTH FROM drawDate) = month   # ทุกปีในเดือนนั้น (ไม่มี year ใน product/compute)
 ```
 
-ตัวอย่าง May 2026 + PRIZE5 = ทุกงวดใน พ.ค. 2026 ที่มี PRIZE5 → ตัวหาร = draws × prizes/draw จริง (~100–200 ต่องวด)
+ตัวอย่าง May + PRIZE5 = ทุกงวดใน พ.ค. ทุกปีที่มี PRIZE5 → ตัวหาร = draws × prizes/draw จริง (~100–200 ต่องวด)
 
 ### matrix ขนาด
 
@@ -1230,9 +1229,9 @@ Runtime: `snapshot-reader` hit → return; miss → `on-demand-read-model` (samp
 เงื่อนไข snapshot hit:
 
 ```text
-prizeType + scope (+ month/year เมื่อ MONTH) ตรง analysis context
+prizeType + scope (+ month เมื่อ MONTH) ตรง analysis context
 ไม่มี startDate/endDate/q นอก context
-engineVersion = analysis-engine-v7
+engineVersion = analysis-engine-v8
 ```
 
 catalog: `src/api/service/analysis-snapshot/analysis-context.ts`
@@ -1270,7 +1269,7 @@ script incremental:
 ```bash
 bun run db:compute-analysis
 bun run db:compute-analysis -- --prizeType=TWO_DIGIT --scope=ALL_TIME
-bun run db:compute-analysis -- --prizeType=FIRST --scope=MONTH --month=5 --year=2026
+bun run db:compute-analysis -- --prizeType=FIRST --scope=MONTH --month=5
 ```
 
 ## 15. Dashboard

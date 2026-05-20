@@ -49,7 +49,7 @@ export async function getCalendarReadModel(query: CalendarHeatmapQuery = {}) {
 
   if (context && !cachedHeatmap) {
     console.warn(
-      `calendar.snapshot miss for prizeType=${query.prizeType ?? "FIRST"} scope=${query.scope ?? "MONTH"} month=${query.month ?? computedAt.getUTCMonth() + 1} year=${query.year ?? computedAt.getUTCFullYear()}; using on-demand fallback.`
+      `calendar.snapshot miss for prizeType=${query.prizeType ?? "FIRST"} scope=${query.scope ?? "MONTH"} month=${query.month ?? computedAt.getUTCMonth() + 1}; using on-demand fallback.`
     );
   }
 
