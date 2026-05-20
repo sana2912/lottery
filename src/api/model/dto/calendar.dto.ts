@@ -38,7 +38,12 @@ type MonthlyInsightDtoInput = Omit<
     cells: ReadonlyArray<{
       appearanceCount: number;
       digit: string;
+      eventCount?: number;
+      eventRatePercent?: number;
+      expectedPresenceRatePercent?: number;
+      lift?: number;
       missingRounds: number;
+      presenceRatePercent?: number;
       score: number;
       tone: "hot" | "warm" | "neutral" | "cool" | "cold";
     }>;

@@ -31,6 +31,7 @@ export function calculateDigitStats(
   const dateWindow = buildDigitDateWindowContext(events);
   const sampleSizeByGroup = buildDigitSampleSizes(events);
   const computedAt = context.computedAt.toISOString();
+  const expectedFrequencyPercent = 10;
 
   for (const event of events) {
     pushToGroup(groups, getDigitGroupKey(event), event);
@@ -40,17 +41,18 @@ export function calculateDigitStats(
     .map((group) => {
       const latestEvent = getLatestEvent(group);
       const hitCount = group.length;
+      const sampleEventCount = getDigitSampleSize(group, sampleSizeByGroup);
+      const frequencyPercent = getFrequencyPercent(hitCount, sampleEventCount);
 
       return {
         computedAt,
         digit: group[0]?.digit ?? "",
         drawCount: context.drawCount,
-        frequencyPercent: getFrequencyPercent(
-          hitCount,
-          getDigitSampleSize(group, sampleSizeByGroup)
-        ),
+        expectedFrequencyPercent,
+        frequencyPercent,
         hitCount,
         lastSeenDrawDate: latestEvent?.drawDate.toISOString(),
+        lift: getLift(frequencyPercent, expectedFrequencyPercent),
         lotteryType: group[0]?.lotteryType ?? "",
         missingDrawCount: getMissingDrawCountFromDate(
           latestEvent?.drawDate,
@@ -58,6 +60,7 @@ export function calculateDigitStats(
         ),
         position: group[0]?.position,
         prizeType: group[0]?.prizeType ?? "",
+        sampleEventCount,
         trendDirection: getTrendDirection(group, dateWindow),
         windowSize: context.windowSize
       };
@@ -76,6 +79,7 @@ export function calculateNumberStats(
 
   const groups = new Map<string, PrizeLike[]>();
   const allPrizeDrawTimes = buildPrizeDrawTimes(prizes);
+  const sampleSizeByGroup = buildPrizeSampleSizes(filteredPrizes);
   const computedAt = context.computedAt.toISOString();
 
   for (const prize of filteredPrizes) {
@@ -90,7 +94,10 @@ export function calculateNumberStats(
       const latestDate = latestPrize ? normalizeDate(latestPrize.draw.drawDate) : undefined;
       const hitCount = group.length;
       const gaps = getGaps(group);
-      const frequencyPercent = getFrequencyPercent(hitCount, context.drawCount);
+      const samplePrizeCount = getPrizeSampleSize(group, sampleSizeByGroup);
+      const frequencyPerDrawPercent = getFrequencyPercent(hitCount, context.drawCount);
+      const frequencyPerPrizeRowPercent = getFrequencyPercent(hitCount, samplePrizeCount);
+      const frequencyPercent = frequencyPerPrizeRowPercent;
       const missingDrawCount = getMissingDrawCountFromDate(latestDate, allPrizeDrawTimes);
 
       return {
@@ -98,6 +105,8 @@ export function calculateNumberStats(
         computedAt,
         drawCount: context.drawCount,
         frequencyPercent,
+        frequencyPerDrawPercent,
+        frequencyPerPrizeRowPercent,
         hitCount,
         lastSeenDrawDate: latestDate?.toISOString(),
         lotteryType: firstPrize?.draw.lotteryType ?? "",
@@ -107,6 +116,7 @@ export function calculateNumberStats(
         numberLength: firstPrize?.number.length ?? 0,
         patternFlags: getPatternFlags(firstPrize?.number ?? ""),
         prizeType: firstPrize?.type ?? "",
+        samplePrizeCount,
         trendScore: getTrendScoreFromFrequency(
           frequencyPercent,
           missingDrawCount,
@@ -251,6 +261,31 @@ function buildPrizeDrawTimes(prizes: readonly PrizeLike[]) {
   return [...new Set(prizes.map((prize) => normalizeDate(prize.draw.drawDate).getTime()))].sort(
     (left, right) => left - right
   );
+}
+
+function buildPrizeSampleSizes(prizes: readonly PrizeLike[]) {
+  const sampleSizeByGroup = new Map<string, number>();
+
+  for (const prize of prizes) {
+    const key = getPrizeSampleKey(prize);
+
+    sampleSizeByGroup.set(key, (sampleSizeByGroup.get(key) ?? 0) + 1);
+  }
+
+  return sampleSizeByGroup;
+}
+
+function getPrizeSampleSize(
+  group: readonly PrizeLike[],
+  sampleSizeByGroup: ReadonlyMap<string, number>
+) {
+  const firstPrize = group[0];
+
+  if (!firstPrize) {
+    return 0;
+  }
+
+  return sampleSizeByGroup.get(getPrizeSampleKey(firstPrize)) ?? group.length;
 }
 
 function getLatestEvent(events: readonly DigitEvent[]): DigitEvent | undefined {
@@ -403,12 +438,20 @@ function getPositionSampleKey(event: DigitEvent) {
   return [event.lotteryType, event.prizeType, event.position].join("|");
 }
 
+function getPrizeSampleKey(prize: PrizeLike) {
+  return [prize.draw.lotteryType, prize.type, prize.number.length].join("|");
+}
+
 function getRate(hitCount: number, sampleSize: number) {
   return sampleSize > 0 ? hitCount / sampleSize : 0;
 }
 
 function clamp(value: number) {
   return Math.min(100, Math.max(0, round(value)));
+}
+
+function getLift(observedPercent: number, expectedPercent: number) {
+  return expectedPercent > 0 ? round(observedPercent / expectedPercent) : 0;
 }
 
 function normalizeDate(value: Date | string): Date {

@@ -147,8 +147,8 @@ async function enrichStatsForPrizeType(
 
     if (
       !current ||
-      stat.hitCount > current.hitCount ||
-      (stat.hitCount === current.hitCount && stat.frequencyPercent > current.frequencyPercent)
+      stat.frequencyPercent > current.frequencyPercent ||
+      (stat.frequencyPercent === current.frequencyPercent && stat.hitCount > current.hitCount)
     ) {
       statsByNumber.set(stat.number, {
         frequencyPercent: stat.frequencyPercent,

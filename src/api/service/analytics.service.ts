@@ -22,6 +22,10 @@ export async function getAnalyticsReadModel(query: AnalyticsQuery) {
   const analysisContext = getAnalysisContextForFilterQuery(query);
 
   if (analysisContext) {
+    console.warn(
+      `analytics.snapshot miss for ${analysisContext.engineVersion}/${analysisContext.lotteryType}/${analysisContext.prizeType}/${analysisContext.scope}/${analysisContext.month ?? "ALL_MONTHS"}/${analysisContext.windowPreset}; using on-demand fallback.`
+    );
+
     return timeAsync("analytics.analysis on-demand fallback", () =>
       buildOnDemandAnalysisReadModel(analysisContext)
     );

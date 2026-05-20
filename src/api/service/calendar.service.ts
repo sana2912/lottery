@@ -1,7 +1,8 @@
 import { toApiCalendarReadModel } from "@/api/model/dto/calendar.dto";
 import {
   getAnalysisPrizeSourceTypes,
-  isAnalysisPrizeType
+  isAnalysisPrizeType,
+  isGroupedAnalysisPrizeType
 } from "@/api/service/analysis-snapshot/analysis-context";
 import type { AnalysisCalendarHeatmapReadModel } from "@/api/service/analysis-snapshot/calendar-heatmap-read-model";
 import { getAnalysisSnapshotCalendarReadModel } from "@/api/service/analysis-snapshot/snapshot-reader";
@@ -81,6 +82,13 @@ export async function getCalendarReadModel(query: CalendarHeatmapQuery = {}) {
     )
   ]);
   const useSnapshot = Boolean(cachedHeatmap);
+
+  if (!useSnapshot && isSnapshotEligibleCalendarQuery(query)) {
+    console.warn(
+      `calendar.snapshot miss for prizeType=${query.prizeType ?? "FIRST"} scope=${query.scope ?? "MONTH"} month=${query.month ?? computedAt.getUTCMonth() + 1} windowPreset=${getCalendarWindowPreset(query)}; using on-demand fallback.`
+    );
+  }
+
   const heatmapDraws = useSnapshot
     ? []
     : await timeAsync("calendar.heatmap draws query", () =>
@@ -151,8 +159,10 @@ function buildMonthlyInsights(draws: CalendarInsightDraw[], query: CalendarHeatm
   const selectedPrizeTypes = getCalendarPrizeTypes(query.prizeType);
 
   return selectedPrizeTypes.flatMap((selectedPrizeType) => {
+    const sourcePrizeTypes = getCalendarSourcePrizeTypes(selectedPrizeType);
+    const sourcePrizeTypeSet = new Set<string>(sourcePrizeTypes);
     const matchingDraws = draws
-      .filter((draw) => draw.prizes.some((prize) => prize.type === selectedPrizeType))
+      .filter((draw) => draw.prizes.some((prize) => sourcePrizeTypeSet.has(prize.type)))
       .filter(
         (draw) => selectedScope === "ALL_TIME" || draw.drawDate.getUTCMonth() + 1 === selectedMonth
       )
@@ -167,7 +177,7 @@ function buildMonthlyInsights(draws: CalendarInsightDraw[], query: CalendarHeatm
       matchingDraws.map((draw) => ({
         drawDate: draw.drawDate,
         numbers: draw.prizes
-          .filter((prize) => prize.type === selectedPrizeType)
+          .filter((prize) => sourcePrizeTypeSet.has(prize.type))
           .map((prize) => prize.number)
       })),
       getPrizeNumberLength(selectedPrizeType)
@@ -190,7 +200,7 @@ function buildMonthlyInsights(draws: CalendarInsightDraw[], query: CalendarHeatm
           selectedScope === "MONTH" && selectedMonth ? MONTH_LABELS[selectedMonth] : "All months",
         month: selectedMonth,
         patternNotes: [
-          "Heatmap scores combine frequency and recency for each digit position.",
+          "Heatmap scores compare each digit-position event rate against its statistical baseline.",
           `Each row represents positions for ${selectedPrizeType}.`
         ],
         positionInsights: heatmapRows.map((row) => ({
@@ -243,7 +253,7 @@ function buildMonthlyInsightFromSnapshot(
     label: selectedScope === "MONTH" ? MONTH_LABELS[selectedMonth] : "All months",
     month: selectedScope === "MONTH" ? selectedMonth : undefined,
     patternNotes: [
-      "Heatmap scores combine frequency and recency for each digit position.",
+      "Heatmap scores compare each digit-position event rate against its statistical baseline.",
       "This insight is served from a precomputed analysis snapshot."
     ],
     positionInsights: heatmapRows.map((row) => ({
@@ -322,6 +332,16 @@ function getPrizeWhere(
 
 function getCalendarPrizeTypes(prizeType: CalendarHeatmapQuery["prizeType"]) {
   return [prizeType ?? "FIRST"];
+}
+
+function getCalendarSourcePrizeTypes(prizeType: NonNullable<CalendarHeatmapQuery["prizeType"]>) {
+  return isGroupedAnalysisPrizeType(prizeType)
+    ? [...getAnalysisPrizeSourceTypes(prizeType)]
+    : [prizeType];
+}
+
+function isSnapshotEligibleCalendarQuery(query: CalendarHeatmapQuery) {
+  return Boolean(query);
 }
 
 function getCellForDigit(row: HeatmapRow, digit: string) {

@@ -43,12 +43,40 @@ export function scoreNumber({
 
 function getScoreBreakdown(stat: ApiNumberStat): ApiPredictionScoreBreakdown {
   return {
-    hot: clamp(stat.frequencyPercent * 4),
-    overdue: clamp(stat.missingDrawCount * 8),
+    hot: getExactNumberHotScore(stat),
+    overdue: getExactNumberOverdueScore(stat),
     pair: getShapeNaturalnessScore(stat.number),
     pattern: getShapePatternScore(stat.number),
     position: clamp(stat.trendScore)
   };
+}
+
+function getExactNumberHotScore(stat: ApiNumberStat) {
+  const frequencyPercent = stat.frequencyPerPrizeRowPercent ?? stat.frequencyPercent;
+
+  if (stat.numberLength >= 6) {
+    return clamp(frequencyPercent * 25);
+  }
+
+  if (stat.numberLength === 3) {
+    return clamp(frequencyPercent * 50);
+  }
+
+  return clamp(frequencyPercent * 12.5);
+}
+
+function getExactNumberOverdueScore(stat: ApiNumberStat) {
+  if (stat.missingDrawCount <= 0) {
+    return 0;
+  }
+
+  const samplePrizeCount = stat.samplePrizeCount ?? stat.drawCount;
+  const rowsPerDraw = stat.drawCount > 0 ? samplePrizeCount / stat.drawCount : 1;
+  const universeSize = 10 ** stat.numberLength;
+  const expectedPresenceRate = Math.min(1, rowsPerDraw / universeSize);
+  const missingProbability = (1 - expectedPresenceRate) ** stat.missingDrawCount;
+
+  return clamp((1 - missingProbability) * 100);
 }
 
 function getWeightedScore(

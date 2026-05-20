@@ -87,6 +87,8 @@ function createEmptyNumberStat({
     computedAt: computedAt.toISOString(),
     drawCount: sampleStat?.drawCount ?? 0,
     frequencyPercent: 0,
+    frequencyPerDrawPercent: 0,
+    frequencyPerPrizeRowPercent: 0,
     hitCount: 0,
     lotteryType: input.lotteryType,
     maxGap: undefined,
@@ -95,6 +97,7 @@ function createEmptyNumberStat({
     numberLength,
     patternFlags: getPatternFlags(number),
     prizeType: input.prizeType ?? "TWO_DIGIT",
+    samplePrizeCount: sampleStat?.samplePrizeCount ?? sampleStat?.drawCount ?? 0,
     trendScore: 0,
     windowSize: input.windowSize
   };

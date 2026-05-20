@@ -125,6 +125,7 @@ export function buildAnalyticsReadModelFromPrizes(
   computedAt: Date
 ): ApiAnalyticsReadModel {
   const drawCount = getDrawCount(prizes);
+  const prizeCount = getValidPrizeCount(prizes, query.numberLength);
   const context = {
     computedAt,
     drawCount,
@@ -141,7 +142,8 @@ export function buildAnalyticsReadModelFromPrizes(
     source: "api",
     summary: {
       drawCount,
-      generatedAt: computedAt
+      generatedAt: computedAt,
+      prizeCount
     }
   });
 }
@@ -225,4 +227,13 @@ function buildYearMonthRange(
 
 function getDrawCount(prizes: Awaited<ReturnType<typeof getPrizeWindow>>) {
   return new Set(prizes.map((prize) => prize.drawId)).size;
+}
+
+function getValidPrizeCount(
+  prizes: Awaited<ReturnType<typeof getPrizeWindow>>,
+  numberLength?: number
+) {
+  return numberLength
+    ? prizes.filter((prize) => prize.number.length === numberLength).length
+    : prizes.length;
 }
