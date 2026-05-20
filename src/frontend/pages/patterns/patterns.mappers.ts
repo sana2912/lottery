@@ -22,12 +22,6 @@ export const patternPrizeOptions = [
   { label: "รวมรางวัล 6 หลักทั้งหมด", value: "SIX_DIGIT_ALL" }
 ] as const;
 
-export const patternWindowOptions = [
-  { label: "50 draws", value: "50" },
-  { label: "100 draws", value: "100" },
-  { label: "500 draws", value: "500" },
-  { label: "All draws", value: "ALL" }
-] as const;
 export const patternScopeOptions = [
   { label: "All months", value: "ALL_TIME" },
   { label: "Specific month", value: "MONTH" }
@@ -48,8 +42,6 @@ export const patternMonthOptions = [
 ].map((label, index) => ({ label, value: index + 1 }));
 
 type PatternPrizeValue = (typeof patternPrizeOptions)[number]["value"];
-type PatternWindowValue = (typeof patternWindowOptions)[number]["value"];
-
 export type PatternTone = "cold" | "hot" | "neutral" | "overdue" | "success" | "warning";
 
 export type PatternOverviewCard = {
@@ -77,8 +69,7 @@ export type PatternPageQuery = {
   pattern?: string;
   prizeType: PatternPrizeValue;
   scope: NonNullable<FilterContext["scope"]>;
-  windowPreset: PatternWindowValue;
-  windowSize: PatternWindowValue;
+  year?: number;
 };
 
 export type PatternReadModel = {
@@ -96,9 +87,7 @@ export type PatternReadModel = {
   scope: NonNullable<FilterContext["scope"]>;
   scopeLabel: string;
   totalHits: number;
-  windowLabel: string;
-  windowPreset: PatternWindowValue;
-  windowSize: PatternWindowValue;
+  sampleLabel: string;
 };
 
 type PatternDefinition = {
@@ -192,19 +181,20 @@ export function parsePatternSearchParams(
 ): PatternPageQuery {
   const record = toSearchParamRecord(searchParams);
   const prizeType = getSingleValue(record.prizeType);
-  const windowPreset = getSingleValue(record.windowPreset) ?? getSingleValue(record.windowSize);
   const scope = getSingleValue(record.scope);
   const month = Number(getSingleValue(record.month));
+  const year = Number(getSingleValue(record.year));
   const pattern = getSingleValue(record.pattern);
   const parsedScope = scope === "MONTH" ? "MONTH" : "ALL_TIME";
+  const now = new Date();
 
   return {
     month: parsedScope === "MONTH" && isValidMonth(month) ? month : undefined,
     pattern: pattern || undefined,
     prizeType: isPatternPrizeValue(prizeType) ? prizeType : "TWO_DIGIT",
     scope: parsedScope,
-    windowPreset: isPatternWindowValue(windowPreset) ? windowPreset : "50",
-    windowSize: isPatternWindowValue(windowPreset) ? windowPreset : "50"
+    year:
+      parsedScope === "MONTH" ? (Number.isFinite(year) ? year : now.getUTCFullYear()) : undefined
   };
 }
 
@@ -217,8 +207,8 @@ export function toPatternsAnalyticsQuery(query: PatternPageQuery): FilterContext
     pageSize: 100,
     prizeType: query.prizeType,
     scope: query.scope,
-    windowPreset: query.windowPreset,
-    windowSize: query.windowPreset === "ALL" ? 2000 : Number(query.windowPreset)
+    windowPreset: "ALL",
+    year: query.year
   };
 }
 
@@ -241,8 +231,8 @@ export function buildPatternsHref(
     searchParams.set("month", String(next.month));
   }
 
-  if (next.windowPreset !== "50") {
-    searchParams.set("windowPreset", next.windowPreset);
+  if (next.scope === "MONTH" && next.year) {
+    searchParams.set("year", String(next.year));
   }
 
   if (next.pattern) {
@@ -262,7 +252,7 @@ export function buildPatternReadModel(
   const definitions = getDefinitionsForStats(query);
   const totalHits = getTotalHits(stats);
   const overviewCards = definitions.map((definition) =>
-    toOverviewCard(definition, stats, totalHits, query.windowPreset)
+    toOverviewCard(definition, stats, totalHits, query)
   );
   const activePattern = overviewCards.some((card) => card.id === query.pattern)
     ? query.pattern
@@ -284,9 +274,7 @@ export function buildPatternReadModel(
     scope: query.scope,
     scopeLabel: getScopeLabel(query),
     totalHits,
-    windowLabel: getWindowLabel(query.windowPreset),
-    windowPreset: query.windowPreset,
-    windowSize: query.windowSize
+    sampleLabel: getSampleLabel(query, analytics.summary.drawCount)
   };
 }
 
@@ -308,14 +296,7 @@ export function buildPatternReadModelFromSnapshot(
       id: definition.id,
       label: definition.label,
       percent,
-      summary: getHumanSummary(
-        definition.label,
-        value,
-        totalHits,
-        percent,
-        query.windowPreset,
-        examples
-      ),
+      summary: getHumanSummary(definition.label, value, totalHits, percent, query, examples),
       tone: definition.tone,
       total: totalHits,
       value
@@ -340,9 +321,7 @@ export function buildPatternReadModelFromSnapshot(
     scope: query.scope,
     scopeLabel: getScopeLabel(query),
     totalHits,
-    windowLabel: getWindowLabel(query.windowPreset),
-    windowPreset: query.windowPreset,
-    windowSize: query.windowSize
+    sampleLabel: getSampleLabel(query, snapshot.summary.drawCount)
   };
 }
 
@@ -364,9 +343,7 @@ export function buildEmptyPatternReadModel(query: PatternPageQuery): PatternRead
     scope: query.scope,
     scopeLabel: getScopeLabel(query),
     totalHits: 0,
-    windowLabel: getWindowLabel(query.windowPreset),
-    windowPreset: query.windowPreset,
-    windowSize: query.windowSize
+    sampleLabel: getSampleLabel(query, 0)
   };
 }
 
@@ -389,7 +366,7 @@ function toOverviewCard(
   definition: PatternDefinition,
   stats: readonly NumberStat[],
   totalHits: number,
-  windowPreset: PatternWindowValue
+  query: PatternPageQuery
 ): PatternOverviewCard {
   const matches = stats.filter((stat) => definition.matches(stat.number));
   const value = getTotalHits(matches);
@@ -401,7 +378,7 @@ function toOverviewCard(
     id: definition.id,
     label: definition.label,
     percent,
-    summary: getHumanSummary(definition.label, value, totalHits, percent, windowPreset, examples),
+    summary: getHumanSummary(definition.label, value, totalHits, percent, query, examples),
     tone: definition.tone,
     total: totalHits,
     value
@@ -534,13 +511,13 @@ function getHumanSummary(
   value: number,
   total: number,
   percent: number,
-  windowPreset: PatternWindowValue,
+  query: PatternPageQuery,
   examples: readonly string[]
 ) {
-  const windowLabel = windowPreset === "ALL" ? "all historical draws" : `${windowPreset} draws`;
+  const sampleLabel = getSampleLabel(query, total);
   const exampleCopy = examples.length > 0 ? ` Examples: ${examples.join(", ")}` : "";
 
-  return `Found ${label.toLowerCase()} ${value} of ${total} records in ${windowLabel} (${percent}%).${exampleCopy}`;
+  return `Found ${label.toLowerCase()} ${value} of ${total} records in ${sampleLabel} (${percent}%).${exampleCopy}`;
 }
 function getTotalHits(stats: readonly NumberStat[]) {
   return stats.reduce((total, stat) => total + stat.hitCount, 0);
@@ -569,13 +546,16 @@ function getPrizeLabel(prizeType: PatternPrizeValue) {
   return patternPrizeOptions.find((option) => option.value === prizeType)?.label ?? "TWO_DIGIT";
 }
 
-function getWindowLabel(windowSize: PatternWindowValue) {
-  return patternWindowOptions.find((option) => option.value === windowSize)?.label ?? "50 draws";
+function getSampleLabel(query: PatternPageQuery, drawCount: number) {
+  return `${drawCount} draws · ${getScopeLabel(query)}`;
 }
 
 function getScopeLabel(query: PatternPageQuery) {
   if (query.scope === "MONTH" && query.month) {
-    return patternMonthOptions.find((option) => option.value === query.month)?.label ?? "Month";
+    const monthLabel =
+      patternMonthOptions.find((option) => option.value === query.month)?.label ?? "Month";
+
+    return query.year ? `${monthLabel} ${query.year}` : monthLabel;
   }
 
   return "All months";
@@ -588,10 +568,6 @@ function getNumberLengthLabel(prizeType: PatternPrizeValue) {
 
 function isPatternPrizeValue(value: string | undefined): value is PatternPrizeValue {
   return patternPrizeOptions.some((option) => option.value === value);
-}
-
-function isPatternWindowValue(value: string | undefined): value is PatternWindowValue {
-  return patternWindowOptions.some((option) => option.value === value);
 }
 
 function isValidMonth(value: number) {

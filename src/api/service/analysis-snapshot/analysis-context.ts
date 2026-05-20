@@ -1,6 +1,6 @@
 import type { FilterContext } from "@/schema/app/query.schema";
 
-export const ANALYSIS_ENGINE_VERSION = "analysis-engine-v4";
+export const ANALYSIS_ENGINE_VERSION = "analysis-engine-v7";
 
 export const ANALYSIS_PRIZE_TYPES = [
   "TWO_DIGIT",
@@ -25,13 +25,14 @@ export const SIX_DIGIT_SOURCE_PRIZE_TYPES = [
   "PRIZE5"
 ] as const;
 
-export const ANALYSIS_WINDOW_PRESETS = ["50", "100", "500", "ALL"] as const;
+/** Single analysis window: full eligible sample in scope (no draw cap). */
+export const ANALYSIS_WINDOW_PRESET = "ALL" as const;
 export const ANALYSIS_SCOPES = ["ALL_TIME", "MONTH"] as const;
 export const ANALYSIS_MONTHS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as const;
 
 export type AnalysisPrizeType = (typeof ANALYSIS_PRIZE_TYPES)[number];
 export type AnalysisSourcePrizeType = Exclude<AnalysisPrizeType, "SIX_DIGIT_ALL">;
-export type AnalysisWindowPreset = (typeof ANALYSIS_WINDOW_PRESETS)[number];
+export type AnalysisWindowPreset = typeof ANALYSIS_WINDOW_PRESET;
 export type AnalysisScope = (typeof ANALYSIS_SCOPES)[number];
 export type AnalysisMonth = (typeof ANALYSIS_MONTHS)[number];
 
@@ -39,6 +40,8 @@ export type AnalysisContext = {
   engineVersion: string;
   lotteryType: FilterContext["lotteryType"];
   month?: AnalysisMonth;
+  /** Required with MONTH scope — limits draws to this calendar year. */
+  year?: number;
   numberLength: 2 | 3 | 6;
   prizeType: AnalysisPrizeType;
   scope: AnalysisScope;
@@ -46,10 +49,10 @@ export type AnalysisContext = {
 };
 
 export type AnalysisContextInput = Partial<
-  Pick<AnalysisContext, "engineVersion" | "lotteryType" | "month" | "scope">
+  Pick<AnalysisContext, "engineVersion" | "lotteryType" | "month" | "scope" | "year">
 > & {
   prizeType: string;
-  windowPreset: string;
+  windowPreset?: string;
 };
 
 export function createAnalysisContext(input: AnalysisContextInput): AnalysisContext {
@@ -57,11 +60,13 @@ export function createAnalysisContext(input: AnalysisContextInput): AnalysisCont
   const scope = parseAnalysisScope(input.scope ?? "ALL_TIME");
   const windowPreset = parseAnalysisWindowPreset(input.windowPreset);
   const month = scope === "MONTH" ? parseAnalysisMonth(input.month) : undefined;
+  const year = scope === "MONTH" ? parseAnalysisYear(input.year) : undefined;
 
   return {
     engineVersion: input.engineVersion ?? ANALYSIS_ENGINE_VERSION,
     lotteryType: input.lotteryType ?? "THAI_GOVERNMENT",
     month,
+    year,
     numberLength: getAnalysisPrizeNumberLength(prizeType),
     prizeType,
     scope,
@@ -77,12 +82,9 @@ export function getAnalysisContextKey(context: AnalysisContext) {
     context.numberLength,
     context.scope,
     context.month ?? "ALL_MONTHS",
+    context.scope === "MONTH" ? String(context.year) : "ALL_YEARS",
     context.windowPreset
   ].join("|");
-}
-
-export function getAnalysisWindowLimit(windowPreset: AnalysisWindowPreset) {
-  return windowPreset === "ALL" ? undefined : Number(windowPreset);
 }
 
 export function getAnalysisPrizeNumberLength(prizeType: AnalysisPrizeType): 2 | 3 | 6 {
@@ -119,7 +121,7 @@ export function isAnalysisPrizeType(value: string): value is AnalysisPrizeType {
 }
 
 export function isAnalysisWindowPreset(value: string): value is AnalysisWindowPreset {
-  return ANALYSIS_WINDOW_PRESETS.includes(value as AnalysisWindowPreset);
+  return value === ANALYSIS_WINDOW_PRESET;
 }
 
 export function isAnalysisScope(value: string): value is AnalysisScope {
@@ -136,13 +138,13 @@ function parseAnalysisPrizeType(value: string): AnalysisPrizeType {
   );
 }
 
-function parseAnalysisWindowPreset(value: string): AnalysisWindowPreset {
-  if (isAnalysisWindowPreset(value)) {
-    return value;
+function parseAnalysisWindowPreset(value: string | undefined): AnalysisWindowPreset {
+  if (value === undefined || value === ANALYSIS_WINDOW_PRESET) {
+    return ANALYSIS_WINDOW_PRESET;
   }
 
   throw new Error(
-    `Invalid analysis windowPreset "${value}". Supported values: ${ANALYSIS_WINDOW_PRESETS.join(", ")}`
+    `Invalid analysis windowPreset "${value}". Only "${ANALYSIS_WINDOW_PRESET}" is supported (no draw cap).`
   );
 }
 
@@ -162,4 +164,16 @@ function parseAnalysisMonth(value: number | undefined): AnalysisMonth {
   }
 
   throw new Error("MONTH scope requires month 1..12.");
+}
+
+function parseAnalysisYear(value: number | undefined) {
+  if (value === undefined) {
+    throw new Error("MONTH scope requires year.");
+  }
+
+  if (!Number.isInteger(value) || value < 1900 || value > 3000) {
+    throw new Error("MONTH scope year must be between 1900 and 3000.");
+  }
+
+  return value;
 }

@@ -129,15 +129,16 @@ This writes JSON (and markdown summaries) under `reports/audit/`:
 | --- | --- |
 | `db:audit:draw-prizes` | Per-draw prize row counts vs observed profile (sparse early years) |
 | `db:audit:analysis` | Metric denominators, heatmap matrix, snapshot coverage |
-| `db:audit:scope` | **Full compute matrix**: every prize × window (50/100/500/ALL) × scope (ALL_TIME + months 1–12), live sample vs `analysis_snapshot_runs`, window cap semantics |
+| `db:audit:scope` | **Full v7 compute matrix**: 11 ALL_TIME + 11×12×years MONTH contexts; live sample vs `analysis_snapshot_runs`; in-memory replay vs `resolveAnalysisSample` |
 
 Use `db:audit` for day-to-day health checks; use `db:audit:calc` when validating compute → snapshot correctness.
 
-Window preset meaning (all analytics consumers):
+Analysis sample (v7):
 
-- **50 / 100 / 500** — last N **draws** (not months) with matching prize in scope; under-filled when history has fewer than N eligible draws.
-- **ALL** — every eligible draw in scope; `windowSize` stored as `null`, analytics uses actual `sampleDrawCount`.
-- **MONTH** — filters `drawDate` by UTC calendar month before applying the draw cap.
+- **ALL_TIME** — every eligible draw with matching prize types up to now (no draw cap).
+- **MONTH** — `EXTRACT(MONTH)` + `EXTRACT(YEAR)` on `drawDate`; year is required in context.
+- **`windowPreset`** — always `ALL`; `windowSize` in snapshot rows equals `sampleDrawCount`.
+- **Prediction/backtest `windowSize`** — training draw count only; not the analysis sample.
 
 Optional static code scan (no database):
 

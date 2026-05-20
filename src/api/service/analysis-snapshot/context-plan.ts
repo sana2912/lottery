@@ -2,55 +2,20 @@ import {
   ANALYSIS_MONTHS,
   ANALYSIS_PRIZE_TYPES,
   ANALYSIS_SCOPES,
-  ANALYSIS_WINDOW_PRESETS,
   type AnalysisContext,
   type AnalysisMonth,
   type AnalysisPrizeType,
   type AnalysisScope,
-  type AnalysisWindowPreset,
   createAnalysisContext
 } from "@/api/service/analysis-snapshot/analysis-context";
+import { getPrisma } from "@/api/service/prisma";
 
 export type AnalysisContextPlanInput = {
   month?: AnalysisMonth;
   prizeType?: AnalysisPrizeType;
   scope?: AnalysisScope;
-  windowPreset?: AnalysisWindowPreset;
-};
-
-/** Human-readable semantics for each window preset (audit + docs). */
-export const ANALYSIS_WINDOW_SEMANTICS: Record<
-  AnalysisWindowPreset,
-  {
-    drawCap: number | null;
-    label: string;
-    weightNote: string;
-  }
-> = {
-  "50": {
-    drawCap: 50,
-    label: "Last 50 eligible draws",
-    weightNote:
-      "Uses the 50 most recent draws (by drawDate) that contain the prize filter in scope. Not calendar-weighted."
-  },
-  "100": {
-    drawCap: 100,
-    label: "Last 100 eligible draws",
-    weightNote:
-      "Same as 50, with cap 100. Under-filled when fewer than 100 eligible draws exist in scope."
-  },
-  "500": {
-    drawCap: 500,
-    label: "Last 500 eligible draws",
-    weightNote:
-      "Same as 50, with cap 500. Early database years may never reach 500 eligible draws per month."
-  },
-  ALL: {
-    drawCap: null,
-    label: "All eligible draws in scope",
-    weightNote:
-      "No draw cap. Analytics windowSize equals sampleDrawCount. Heavier weight on entire history in scope."
-  }
+  year?: number;
+  years?: readonly number[];
 };
 
 export const ANALYSIS_SCOPE_SEMANTICS: Record<
@@ -59,45 +24,83 @@ export const ANALYSIS_SCOPE_SEMANTICS: Record<
 > = {
   ALL_TIME: {
     label: "All calendar months",
-    filterNote: "Any drawDate up to now with matching source prize types."
+    filterNote: "Any drawDate up to now with matching source prize types (no draw cap)."
   },
   MONTH: {
-    label: "Single UTC calendar month",
+    label: "Single UTC calendar month and year",
     filterNote:
-      "EXTRACT(MONTH FROM drawDate) equals context month (1–12). Independent of window preset cap."
+      "EXTRACT(MONTH) and EXTRACT(YEAR) from drawDate match context month and year. Full eligible draws in that month (no cap)."
   }
 };
 
-/** Full compute/snapshot matrix: 11 prizes × 4 windows × (1 ALL_TIME + 12 MONTH) = 572 contexts. */
-export function listAnalysisContexts(input: AnalysisContextPlanInput = {}): AnalysisContext[] {
+/** All-time contexts: 11 prize types × 1 window (ALL). */
+export function listAllTimeAnalysisContexts(
+  input: Pick<AnalysisContextPlanInput, "prizeType"> = {}
+): AnalysisContext[] {
   const prizeTypes = input.prizeType ? [input.prizeType] : [...ANALYSIS_PRIZE_TYPES];
-  const windowPresets = input.windowPreset ? [input.windowPreset] : [...ANALYSIS_WINDOW_PRESETS];
-  const scopes = input.scope ? [input.scope] : [...ANALYSIS_SCOPES];
+
+  return prizeTypes.map((prizeType) =>
+    createAnalysisContext({
+      prizeType,
+      scope: "ALL_TIME"
+    })
+  );
+}
+
+/** Month+year contexts: 11 prizes × months × years. */
+export function listMonthYearAnalysisContexts(
+  years: readonly number[],
+  input: Pick<AnalysisContextPlanInput, "month" | "prizeType"> = {}
+): AnalysisContext[] {
+  const prizeTypes = input.prizeType ? [input.prizeType] : [...ANALYSIS_PRIZE_TYPES];
+  const months = input.month ? [input.month] : [...ANALYSIS_MONTHS];
 
   return prizeTypes.flatMap((prizeType) =>
-    windowPresets.flatMap((windowPreset) =>
-      scopes.flatMap((scope) =>
-        getMonthsForScope(scope, input.month).map((month) =>
-          createAnalysisContext({
-            month,
-            prizeType,
-            scope,
-            windowPreset
-          })
-        )
+    months.flatMap((month) =>
+      years.map((year) =>
+        createAnalysisContext({
+          month,
+          prizeType,
+          scope: "MONTH",
+          year
+        })
       )
     )
   );
 }
 
-export function getExpectedAnalysisContextCount() {
-  return listAnalysisContexts().length;
-}
+/** Full compute plan: ALL_TIME + MONTH×year for each year in `years` (or discovered). */
+export function listAnalysisContexts(input: AnalysisContextPlanInput = {}): AnalysisContext[] {
+  const scopes = input.scope ? [input.scope] : [...ANALYSIS_SCOPES];
+  const years = input.years ?? (input.year !== undefined ? [input.year] : []);
+  const contexts: AnalysisContext[] = [];
 
-function getMonthsForScope(scope: AnalysisScope, selectedMonth?: AnalysisMonth) {
-  if (scope === "ALL_TIME") {
-    return [undefined];
+  if (scopes.includes("ALL_TIME")) {
+    contexts.push(...listAllTimeAnalysisContexts({ prizeType: input.prizeType }));
   }
 
-  return selectedMonth ? [selectedMonth] : [...ANALYSIS_MONTHS];
+  if (scopes.includes("MONTH") && years.length > 0) {
+    contexts.push(
+      ...listMonthYearAnalysisContexts(years, { month: input.month, prizeType: input.prizeType })
+    );
+  }
+
+  return contexts;
+}
+
+export function getExpectedAnalysisContextCount(years: readonly number[]) {
+  const monthContexts = ANALYSIS_PRIZE_TYPES.length * ANALYSIS_MONTHS.length * years.length;
+  return ANALYSIS_PRIZE_TYPES.length + monthContexts;
+}
+
+export async function discoverAnalysisDrawYears(): Promise<number[]> {
+  const prisma = getPrisma();
+  const rows = await prisma.$queryRaw<Array<{ year: number }>>`
+    SELECT DISTINCT EXTRACT(YEAR FROM "drawDate")::int AS "year"
+    FROM "lottery_draws"
+    WHERE "lotteryType" = 'THAI_GOVERNMENT'::"LotteryType"
+    ORDER BY "year" ASC
+  `;
+
+  return rows.map((row) => row.year);
 }

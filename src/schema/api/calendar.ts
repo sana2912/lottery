@@ -9,6 +9,8 @@ export interface ApiCalendarDraw {
 
 export interface ApiMonthlyInsight {
   coldNumbers: string[];
+  dataCompleteness?: "complete" | "partial";
+  drawCount?: number;
   id: string;
   heatmapRows: Array<{
     cells: Array<{
@@ -18,8 +20,11 @@ export interface ApiMonthlyInsight {
       eventRatePercent?: number;
       expectedRatePercent?: number;
       expectedPresenceRatePercent?: number;
+      hitCount?: number;
+      hitRatePercent?: number;
       lift?: number;
       missingRounds: number;
+      opportunityCount?: number;
       presenceRatePercent?: number;
       sampleEventCount?: number;
       score: number;
@@ -31,7 +36,11 @@ export interface ApiMonthlyInsight {
   }>;
   hotNumbers: string[];
   month?: number;
+  year?: number;
   label: string;
+  opportunityCountPerPosition?: number;
+  prizesPerDrawActual?: number;
+  prizesPerDrawExpected?: number | null;
   sampleSize: number;
   summary: string;
   prizeType?:
@@ -46,7 +55,7 @@ export interface ApiMonthlyInsight {
     | "PRIZE4"
     | "PRIZE5";
   scope?: "ALL_TIME" | "MONTH";
-  windowPreset?: "50" | "100" | "500" | "ALL";
+  windowPreset?: "ALL";
   windowSize?: number;
   positionInsights: Array<{
     coldNumbers: Array<{

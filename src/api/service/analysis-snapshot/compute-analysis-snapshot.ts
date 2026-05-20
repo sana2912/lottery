@@ -1,8 +1,7 @@
 import { randomBytes } from "node:crypto";
 import {
   type AnalysisContext,
-  getAnalysisContextKey,
-  getAnalysisWindowLimit
+  getAnalysisContextKey
 } from "@/api/service/analysis-snapshot/analysis-context";
 import { buildAnalysisCalendarHeatmapReadModel } from "@/api/service/analysis-snapshot/calendar-heatmap-read-model";
 import { buildAnalysisPatternReadModel } from "@/api/service/analysis-snapshot/pattern-read-model";
@@ -32,21 +31,13 @@ export async function recomputeAnalysisSnapshot(
   const computedAt = new Date();
   const contextKey = getAnalysisContextKey(context);
   const sample = await resolveAnalysisSample(context);
-  const windowSize = getAnalysisWindowLimit(context.windowPreset) ?? sample.drawCount;
-  const analyticsReadModel = buildAnalyticsReadModelFromPrizes(
-    sample.prizes,
-    {
-      lotteryType: context.lotteryType,
-      numberLength: context.numberLength,
-      page: 1,
-      pageSize: 100,
-      prizeType: context.prizeType,
-      windowSize
-    },
-    computedAt
-  );
+  const analyticsReadModel = buildAnalyticsReadModelFromPrizes(sample.prizes, context, computedAt);
   const patternReadModel = buildAnalysisPatternReadModel(analyticsReadModel);
-  const calendarReadModel = buildAnalysisCalendarHeatmapReadModel(context, sample.prizes);
+  const calendarReadModel = buildAnalysisCalendarHeatmapReadModel(context, sample.prizes, {
+    drawCount: sample.drawCount,
+    invalidPrizeCount: sample.invalidPrizeCount,
+    prizeCount: sample.prizeCount
+  });
   const runId = createUuidV7();
 
   await prisma.$transaction(
@@ -88,7 +79,7 @@ export async function recomputeAnalysisSnapshot(
           ${context.scope},
           ${context.month ?? null},
           ${context.windowPreset},
-          ${getAnalysisWindowLimit(context.windowPreset) ?? null},
+          ${sample.drawCount},
           ${sample.drawCount},
           ${sample.prizeCount},
           ${sample.invalidPrizeCount},

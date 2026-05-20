@@ -19,8 +19,9 @@ export async function compareNumbers(input: CompareRequest) {
     pageSize: 100,
     prizeType: input.prizeType,
     q: input.q,
+    scope: "ALL_TIME",
     startDate: input.startDate,
-    windowSize: input.windowSize
+    windowPreset: "ALL"
   });
   const statsByNumber = new Map(numberStats.map((stat) => [stat.number, stat]));
   const computedAt = new Date();

@@ -12,10 +12,9 @@ export function getDaysUntilNextDraw(calendar: CalendarReadModel, now = new Date
 
 export type CalendarPageFilters = {
   month?: number;
+  year?: number;
   prizeType: NonNullable<CalendarHeatmapQuery["prizeType"]>;
   scope: NonNullable<CalendarHeatmapQuery["scope"]>;
-  windowPreset: NonNullable<CalendarHeatmapQuery["windowPreset"]>;
-  windowSize: number;
 };
 
 const CALENDAR_PRIZE_TYPE_OPTIONS = [
@@ -33,12 +32,6 @@ const CALENDAR_PRIZE_TYPE_OPTIONS = [
 const CALENDAR_SCOPE_OPTIONS = [
   { label: "All months", value: "ALL_TIME" },
   { label: "Specific month", value: "MONTH" }
-] as const;
-const CALENDAR_WINDOW_PRESET_OPTIONS = [
-  { label: "50 draws", value: "50" },
-  { label: "100 draws", value: "100" },
-  { label: "500 draws", value: "500" },
-  { label: "All draws", value: "ALL" }
 ] as const;
 const CALENDAR_MONTH_OPTIONS = [
   "January",
@@ -60,24 +53,23 @@ export function parseCalendarPageFilters(
 ): CalendarPageFilters {
   const parsed = calendarHeatmapQuerySchema.parse(toSearchParamRecord(searchParams));
   const scope = parsed.scope ?? "MONTH";
-  const windowPreset = parsed.windowPreset ?? toWindowPreset(parsed.windowSize) ?? "50";
+  const now = new Date();
 
   return {
-    month: scope === "MONTH" ? (parsed.month ?? new Date().getUTCMonth() + 1) : undefined,
+    month: scope === "MONTH" ? (parsed.month ?? now.getUTCMonth() + 1) : undefined,
+    year: scope === "MONTH" ? (parsed.year ?? now.getUTCFullYear()) : undefined,
     prizeType: parsed.prizeType ?? "FIRST",
-    scope,
-    windowPreset,
-    windowSize: windowPreset === "ALL" ? 500 : Number(windowPreset)
+    scope
   };
 }
 
 export function toCalendarApiQuery(filters: CalendarPageFilters) {
   return {
     month: filters.month,
+    year: filters.year,
     prizeType: filters.prizeType,
     scope: filters.scope,
-    windowPreset: filters.windowPreset,
-    windowSize: filters.windowSize
+    windowPreset: "ALL" as const
   };
 }
 
@@ -96,8 +88,17 @@ export function getCalendarScopeOptions() {
   return [...CALENDAR_SCOPE_OPTIONS];
 }
 
-export function getCalendarWindowPresetOptions() {
-  return [...CALENDAR_WINDOW_PRESET_OPTIONS];
+export function getCalendarYearOptions(now = new Date()) {
+  const currentYear = now.getUTCFullYear();
+
+  return Array.from({ length: 30 }, (_, index) => {
+    const year = currentYear - index;
+
+    return {
+      label: String(year),
+      value: year
+    };
+  });
 }
 
 function toSearchParamRecord(
@@ -112,12 +113,4 @@ function toSearchParamRecord(
   }
 
   return searchParams;
-}
-
-function toWindowPreset(windowSize: number | undefined) {
-  if (windowSize === 50 || windowSize === 100 || windowSize === 500) {
-    return String(windowSize) as "50" | "100" | "500";
-  }
-
-  return undefined;
 }

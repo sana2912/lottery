@@ -9,7 +9,6 @@ import {
   analyticsMonthOptions,
   analyticsPrizeOptions,
   analyticsScopeOptions,
-  analyticsWindowOptions,
   buildAnalyticsHrefQuery,
   buildAnalyticsScopeHrefQuery,
   buildAnalyticsViewModel
@@ -116,27 +115,6 @@ export async function AnalyticsPage({
                 </div>
               ) : null}
             </div>
-
-            <div className="sm:col-span-2 xl:col-span-2">
-              <p className="text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                {analyticsContent.filters.windowLabel}
-              </p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {analyticsWindowOptions.map((option) => (
-                  <Button
-                    asChild
-                    className="rounded-none"
-                    key={option.value}
-                    size="sm"
-                    variant={query.windowPreset === option.value ? "secondary" : "outline"}
-                  >
-                    <Link href={buildAnalyticsHref(query, { page: 1, windowPreset: option.value })}>
-                      {option.label}
-                    </Link>
-                  </Button>
-                ))}
-              </div>
-            </div>
           </>
         }
       />
@@ -161,10 +139,7 @@ export async function AnalyticsPage({
               label={analyticsContent.metrics.prizeType}
               value={view.context.prizeLabel}
             />
-            <MetricCard
-              label={analyticsContent.metrics.windowSize}
-              value={view.context.windowLabel}
-            />
+            <MetricCard label="Sample" value={view.context.scopeDrawLabel} />
             <MetricCard label="Scope" value={view.context.scopeLabel} />
             <MetricCard
               label={analyticsContent.metrics.sampleSize}
@@ -268,7 +243,7 @@ function SixDigitAnalytics({
         </p>
         <Button asChild className="mt-4 rounded-none" size="sm" variant="outline">
           <Link
-            href={`/patterns?prizeType=${view.context.prizeType}&windowPreset=${view.context.windowPreset}&scope=${view.context.scope}${query.month ? `&month=${query.month}` : ""}`}
+            href={`/patterns?prizeType=${view.context.prizeType}&scope=${view.context.scope}${query.month ? `&month=${query.month}` : ""}${query.year ? `&year=${query.year}` : ""}`}
           >
             Explore deeper shape patterns
           </Link>

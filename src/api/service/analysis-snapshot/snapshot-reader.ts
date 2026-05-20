@@ -1,8 +1,8 @@
 import {
   ANALYSIS_ENGINE_VERSION,
+  ANALYSIS_WINDOW_PRESET,
   type AnalysisContext,
   type AnalysisMonth,
-  type AnalysisWindowPreset,
   createAnalysisContext,
   getAnalysisContextKey,
   getAnalysisPrizeNumberLength,
@@ -74,6 +74,7 @@ export async function getAnalysisSnapshotPatternReadModel(
       numberLength: context.numberLength,
       prizeType: context.prizeType,
       scope: context.scope,
+      year: context.year,
       windowPreset: context.windowPreset,
       windowSize: snapshot.windowSize ?? snapshot.sampleDrawCount
     },
@@ -101,18 +102,19 @@ export async function getAnalysisSnapshotCalendarReadModel(query: CalendarHeatma
     : null;
 }
 
-export function getAnalysisContextForFilterQuery(query: FilterContext): AnalysisContext | null {
+export function getAnalysisContextForFilterQuery(
+  query: FilterContext,
+  now = new Date()
+): AnalysisContext | null {
   if (!query.prizeType || !isAnalysisPrizeType(query.prizeType)) {
     return null;
   }
 
-  if (query.startDate || query.endDate || query.year || query.q) {
+  if (query.startDate || query.endDate || query.q) {
     return null;
   }
 
-  const windowPreset = query.windowPreset ?? toAnalysisWindowPreset(query.windowSize);
-
-  if (!windowPreset) {
+  if (query.windowPreset && !isAnalysisWindowPreset(query.windowPreset)) {
     return null;
   }
 
@@ -128,12 +130,15 @@ export function getAnalysisContextForFilterQuery(query: FilterContext): Analysis
     return null;
   }
 
+  const year = scope === "MONTH" ? (query.year ?? now.getUTCFullYear()) : undefined;
+
   return createAnalysisContext({
     lotteryType: query.lotteryType,
     month: query.month as AnalysisMonth | undefined,
     prizeType: query.prizeType,
     scope,
-    windowPreset
+    windowPreset: ANALYSIS_WINDOW_PRESET,
+    year
   });
 }
 
@@ -142,10 +147,13 @@ export function getAnalysisContextForCalendarQuery(
   now: Date
 ): AnalysisContext | null {
   const prizeType = query.prizeType ?? "FIRST";
-  const windowPreset = query.windowPreset ?? toAnalysisWindowPreset(query.windowSize ?? 50);
   const scope = query.scope ?? "MONTH";
 
-  if (!isAnalysisPrizeType(prizeType) || !windowPreset) {
+  if (!isAnalysisPrizeType(prizeType)) {
+    return null;
+  }
+
+  if (query.windowPreset && !isAnalysisWindowPreset(query.windowPreset)) {
     return null;
   }
 
@@ -154,7 +162,8 @@ export function getAnalysisContextForCalendarQuery(
       scope === "MONTH" ? ((query.month ?? now.getUTCMonth() + 1) as AnalysisMonth) : undefined,
     prizeType,
     scope,
-    windowPreset
+    windowPreset: ANALYSIS_WINDOW_PRESET,
+    year: scope === "MONTH" ? (query.year ?? now.getUTCFullYear()) : undefined
   });
 }
 
@@ -229,12 +238,6 @@ async function getAnalysisSnapshot(context: AnalysisContext): Promise<AnalysisSn
   } catch {
     return null;
   }
-}
-
-function toAnalysisWindowPreset(windowSize: number): AnalysisWindowPreset | undefined {
-  const value = String(windowSize);
-
-  return isAnalysisWindowPreset(value) ? value : undefined;
 }
 
 function isAnalysisCalendarHeatmapReadModel(

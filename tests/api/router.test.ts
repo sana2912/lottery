@@ -178,30 +178,17 @@ describe("api router", () => {
     ]);
 
     expect(readModelQuery).toEqual({
-      endDate: undefined,
       lotteryType: "THAI_GOVERNMENT",
-      month: undefined,
       numberLength: 2,
       page: 1,
       pageSize: 20,
-      prizeType: undefined,
-      q: undefined,
-      startDate: "2026-04-01",
-      windowSize: 50,
-      year: undefined
+      startDate: "2026-04-01"
     });
     expect(digitQuery).toEqual({
-      endDate: undefined,
       lotteryType: "THAI_GOVERNMENT",
-      month: undefined,
       numberLength: 2,
       page: 1,
-      pageSize: 20,
-      prizeType: undefined,
-      q: undefined,
-      startDate: undefined,
-      windowSize: 50,
-      year: undefined
+      pageSize: 20
     });
     expect(numberQuery).toEqual(digitQuery);
     expect(analyticsReadModelSchema.parse(await full.json())).toBeTruthy();
@@ -470,12 +457,13 @@ describe("api router", () => {
       return calendarReadModelSchema.parse(calendarReadModel());
     };
 
-    const response = await request("/api/calendar?month=4&windowSize=24&prizeType=FIRST");
+    const response = await request("/api/calendar?month=4&year=2026&prizeType=FIRST&scope=MONTH");
 
     expect(receivedQuery).toEqual({
       month: 4,
       prizeType: "FIRST",
-      windowSize: 24
+      scope: "MONTH",
+      year: 2026
     });
     expect(calendarReadModelSchema.parse(await response.json())).toBeTruthy();
   });

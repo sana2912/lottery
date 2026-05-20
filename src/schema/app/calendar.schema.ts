@@ -22,11 +22,13 @@ export const calendarHeatmapToneSchema = z.enum(["hot", "warm", "neutral", "cool
 
 export const calendarHeatmapQuerySchema = z.object({
   month: z.coerce.number().int().min(1).max(12).optional(),
+  year: z.coerce.number().int().min(1900).max(3000).optional(),
   prizeType: optionalCalendarPrizeTypeSchema,
   scope: analysisScopeSchema.optional(),
-  windowPreset: analysisWindowPresetSchema.optional(),
-  windowSize: z.coerce.number().int().min(1).max(500).optional()
+  windowPreset: analysisWindowPresetSchema.optional()
 });
+
+export const calendarDataCompletenessSchema = z.enum(["complete", "partial"]);
 
 export const calendarHeatmapCellSchema = z.object({
   appearanceCount: z.number(),
@@ -35,8 +37,11 @@ export const calendarHeatmapCellSchema = z.object({
   eventRatePercent: z.number().optional(),
   expectedRatePercent: z.number().optional(),
   expectedPresenceRatePercent: z.number().optional(),
+  hitCount: z.number().optional(),
+  hitRatePercent: z.number().optional(),
   lift: z.number().optional(),
   missingRounds: z.number(),
+  opportunityCount: z.number().optional(),
   presenceRatePercent: z.number().optional(),
   sampleEventCount: z.number().optional(),
   score: z.number(),
@@ -61,11 +66,17 @@ export const calendarDrawSchema = z.object({
 
 export const monthlyInsightSchema = z.object({
   coldNumbers: z.array(z.string()),
+  dataCompleteness: calendarDataCompletenessSchema.optional(),
+  drawCount: z.number().int().nonnegative().optional(),
   id: z.string(),
   heatmapRows: z.array(calendarHeatmapRowSchema),
   hotNumbers: z.array(z.string()),
   month: z.number().optional(),
+  year: z.number().int().min(1900).max(3000).optional(),
   label: z.string(),
+  opportunityCountPerPosition: z.number().int().nonnegative().optional(),
+  prizesPerDrawActual: z.number().nonnegative().optional(),
+  prizesPerDrawExpected: z.number().int().positive().nullable().optional(),
   sampleSize: z.number(),
   summary: z.string(),
   prizeType: calendarPrizeTypeSchema.optional(),

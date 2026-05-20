@@ -47,7 +47,7 @@ bun run db:audit:calc
 
 (with production env via `scripts/run-with-env.ts` for analysis/scope audits)
 
-`db:compute-analysis:prod` processes 572 analysis contexts and may take a long time.
+`db:compute-analysis:prod` processes the full v7 matrix (`11 + 11×12×N` contexts, `N` = draw years in DB) and may take a long time.
 
 ## 4. Smoke test
 

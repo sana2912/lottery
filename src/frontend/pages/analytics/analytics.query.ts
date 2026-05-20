@@ -10,17 +10,17 @@ type SearchParamsInput =
 export function parseAnalyticsSearchParams(searchParams?: SearchParamsInput): FilterContext {
   const record = toSearchParamRecord(searchParams);
   const query = filterContextSchema.parse(record);
-  const windowPreset = query.windowPreset ?? "50";
   const scope = query.scope ?? "ALL_TIME";
+  const now = new Date();
 
   return {
     ...query,
-    month: scope === "MONTH" ? (query.month ?? new Date().getUTCMonth() + 1) : undefined,
+    month: scope === "MONTH" ? (query.month ?? now.getUTCMonth() + 1) : undefined,
     numberLength: query.numberLength ?? getDefaultNumberLength(query.prizeType),
     prizeType: query.prizeType ?? "TWO_DIGIT",
     scope,
-    windowPreset,
-    windowSize: getWindowSizeFromPreset(windowPreset)
+    windowPreset: "ALL",
+    year: scope === "MONTH" ? (query.year ?? now.getUTCFullYear()) : undefined
   };
 }
 
@@ -36,7 +36,7 @@ export function buildAnalyticsHref(
       continue;
     }
 
-    if (key === "windowSize" && next.windowPreset) {
+    if (key === "windowPreset" && value === "ALL") {
       continue;
     }
 
@@ -61,13 +61,8 @@ export function toAnalyticsApiQuery(query: FilterContext) {
     scope: query.scope,
     startDate: query.startDate,
     windowPreset: query.windowPreset,
-    windowSize: query.windowSize,
     year: query.year
   };
-}
-
-function getWindowSizeFromPreset(windowPreset: NonNullable<FilterContext["windowPreset"]>) {
-  return windowPreset === "ALL" ? 2000 : Number(windowPreset);
 }
 
 function toSearchParamRecord(searchParams?: SearchParamsInput) {

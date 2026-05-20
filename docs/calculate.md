@@ -76,14 +76,14 @@ SIX_DIGIT_ALL =
 ตัวอย่างแบบบ้าน ๆ:
 
 ```text
-windowPreset = 50
 scope = ALL_TIME
 prizeType = SIX_DIGIT_ALL
+engineVersion = analysis-engine-v7
 ```
 
 แปลว่า:
 
-1. เลือก 50 งวดล่าสุดที่มีรางวัล 6 หลักอย่างน้อยหนึ่งตัว
+1. ใช้ทุกงวดที่มีรางวัล 6 หลักอย่างน้อยหนึ่งตัวใน scope (ไม่มี cap 50/100/500)
 2. ดึงเลขจาก `FIRST`, `NEAR_FIRST`, `PRIZE2`, `PRIZE3`, `PRIZE4`, `PRIZE5` ของงวดเหล่านั้นทั้งหมด
 3. ตัดเลขที่ความยาวไม่ใช่ 6 หลักออก เช่นข้อมูลเก่าที่ first prize เป็น 7 หลัก
 4. map `type` ของเลขเหล่านั้นให้เป็น `SIX_DIGIT_ALL`
@@ -145,36 +145,53 @@ position 6 -> digit 0
 
 `calculateDigitStats` เพื่อคำนวณ hot, overdue, trend รายตำแหน่ง
 
-## 2. Analytics Window
+## 2. Analysis sample (v7 — single path)
 
 ไฟล์หลัก:
 
-`src/api/service/analytics/analytics-engine.ts:16`
+- `src/api/service/analysis-snapshot/sample-resolver.ts`
+- `src/api/service/analysis-snapshot/analysis-context.ts`
 
 หน้าที่:
 
-เลือกข้อมูลย้อนหลังตาม filter เช่น lottery type, prize type, date, month, year, window size
+เลือก **sample เดียว** ตาม analysis context — ไม่มี preset 50/100/500 และไม่มี numeric `windowSize` cap อีกต่อไป
+
+นิยาม:
+
+| ช่อง | ความหมาย |
+| --- | --- |
+| `scope = ALL_TIME` | ทุกงวดที่มีรางวัลตรง `prizeType` จนถึง now |
+| `scope = MONTH` | งวดที่ `EXTRACT(MONTH)` และ `EXTRACT(YEAR)` ตรง `month` + `year` (บังคับ year) |
+| `windowPreset` | ค่าเดียว: `ALL` (= full eligible sample ใน scope) |
+| `engineVersion` | `analysis-engine-v7` — snapshot เก่า (v4–v6) ไม่ใช้ |
 
 วิธีทำ:
 
-1. query draw ล่าสุดตาม `windowSize`
-2. เอา draw id ไป query prize rows
-3. ผูก prize กลับกับ draw date
-4. ส่ง prize rows ไปสร้าง analytics read model
-
-code สร้าง read model:
-
-`src/api/service/analytics/analytics-engine.ts:116`
+1. `resolveAnalysisSample(context)` — SQL ไม่มี `LIMIT`
+2. กรอง prize ตาม `prizeType` / `numberLength`
+3. `buildAnalyticsReadModelFromPrizes(sample.prizes, context)` → digit/number/pattern stats
+4. Snapshot hit ใช้ `contextKey` เดียวกับ on-demand; miss → on-demand; query นอก context (เช่น `startDate`) → empty read model
 
 dependency:
 
 ```text
-getPrizeWindow
+resolveAnalysisSample
+  -> buildAnalyticsReadModelFromPrizes
   -> extractDigitEvents
   -> calculateDigitStats
   -> calculateNumberStats
   -> summarizePatterns
 ```
+
+Precompute matrix (v7):
+
+```text
+contexts = 11 ALL_TIME + (11 prize types × 12 months × N years)
+N = years from discoverAnalysisDrawYears()
+```
+
+`windowSize` ในแถว `analysis_snapshot_runs` = `sampleDrawCount` (ไม่ใช่ cap)  
+Query นอก context (`startDate` / `endDate` / `q`) → empty read model (ไม่ silent cap)
 
 ผลลัพธ์:
 
@@ -1111,73 +1128,79 @@ digitSums
 
 ไฟล์หลัก:
 
-`src/api/service/calendar.service.ts:142`
+- `src/api/service/calendar/calendar-heatmap-insight.ts`
+- `src/api/service/calendar.service.ts`
+- `src/api/service/analytics/position-heatmap.ts`
+- `src/api/service/lottery/prize-slots.ts`
 
 หน้าที่:
 
-ดูแนวโน้ม digit รายตำแหน่งของเดือนที่เลือก เช่น เดือน May และ prize type ที่เลือก
+แสดงความถี่ digit 0-9 ในแต่ละ position ของเลขรางวัลที่เลือก โดยนับจาก **ทุกแถวรางวัล** ในทุกงวดของ sample (ไม่ใช่แค่ “งวดที่เคยออก”)
 
-flow:
-
-```text
-เลือก month
-เลือก prizeType
-เลือก windowSize
-เอางวดในเดือนนั้นที่มี prize
-สร้าง heatmap position 1-6
-แต่ละ cell คือ digit 0-9 ใน position นั้น
-```
-
-### appearanceCount
-
-จำนวนงวดที่ digit นั้นเคยปรากฏใน position นั้น
-
-code:
-
-`src/api/service/calendar.service.ts:182`
-
-### missingRounds
-
-จำนวนงวดที่หายไปล่าสุดใน sample เดือนนั้น
-
-code:
-
-`src/api/service/calendar.service.ts:210`
-
-### heatmap score
-
-ไฟล์:
-
-`src/api/service/calendar.service.ts:214`
-
-สูตร:
+### sample
 
 ```text
-frequencyScore = appearanceCount / maxAppearanceCount
-recencyScore = 1 - missingRounds / maxMissingRounds
-score = (frequencyScore * 0.7 + recencyScore * 0.3) * 100
+resolveAnalysisSample(context)   # snapshot, on-demand, และ audit replay ใช้นิยามเดียว
+drawCount = ทุกงวด eligible ใน scope (ไม่มี draw cap)
+prize rows = ทุกเลขรางวัลที่ตรง prizeType และ numberLength
 ```
 
-แปล:
+**MONTH scope** (ทุก consumer รวม `/calendar`):
 
 ```text
-70% มาจากออกบ่อย
-30% มาจากเพิ่งออกไม่นาน
+EXTRACT(MONTH FROM drawDate) = month
+EXTRACT(YEAR FROM drawDate) = year   # บังคับ year ใน analysis context
 ```
 
-### tone
+ตัวอย่าง May 2026 + PRIZE5 = ทุกงวดใน พ.ค. 2026 ที่มี PRIZE5 → ตัวหาร = draws × prizes/draw จริง (~100–200 ต่องวด)
 
-ไฟล์:
+### matrix ขนาด
 
-`src/api/service/calendar.service.ts:300`
+แถว = ความยาวเลข (`numberLength`: 2 / 3 / 6)  
+คอลัมน์ = digit 0-9
+
+รางวัลต่องวด (catalog):
 
 ```text
-score >= 80 = hot
-score >= 65 = warm
-score >= 45 = neutral
-score >= 30 = cool
-ต่ำกว่า 30 = cold
+TWO_DIGIT = 1  → 2×10
+THREE_FRONT / THREE_BACK = 2  → 3×10
+FIRST = 1, NEAR_FIRST = 2  → 6×10
+PRIZE2 = 5, PRIZE3 = 10, PRIZE4 = 50, PRIZE5 = 100  → 6×10
 ```
+
+### hit / opportunity (ตัวเลขหลักบน UI)
+
+ต่อ cell ที่ position P และ digit D:
+
+```text
+hitCount(P,D) = จำนวนครั้งที่ D ปรากฏที่ตำแหน่ง P จากทุกแถวรางวัลใน sample
+opportunityCount(P) = ผลรวมช่องอ่านที่ตำแหน่ง P (= drawCount × แถวรางวัลจริงต่องวด)
+hitRatePercent = hitCount / opportunityCount × 100
+```
+
+ตัวอย่าง PRIZE5, 50 งวดใน scope, ข้อครบ 100 แถว/งวด:
+
+```text
+opportunityCount ต่อ position = 50 × 100 = 5,000
+แสดงใน UI: hit / 5,000 และ %
+```
+
+ถ้าข้อไม่ครบ catalog → ใช้ **แถวรางวัลจริง** เป็นตัวหาร + `dataCompleteness = partial`
+
+### tone (สี)
+
+code: `assignWithinRowVisualTones` ใน `position-heatmap.ts`
+
+```text
+จัดอันดับ digit ภายในแถว position เดียวกัน
+~20% บน = hot/warm, ~20% ล่าง = cool/cold
+ไม่ใช่ความน่าจะถูกรางวัล
+```
+
+### ฟิลด์เสริม (API เท่านั้น ไม่แสดงบนหน้า Calendar หลัก)
+
+- `appearanceCount` = จำนวน**งวด**ที่ digit ปรากฏอย่างน้อย 1 ครั้ง
+- `missingRounds`, `score`, `lift`, `expectedRatePercent` = ใช้ภายใน engine / หน้าอื่น
 
 ## 14. Analysis Snapshot Engine
 
@@ -1196,33 +1219,23 @@ precompute analytics stats เก็บลง table เพื่อให้ห�
 flow:
 
 ```text
-เลือก prizeType + windowSize
-เรียก getPrizeWindow
-เรียก buildAnalyticsReadModelFromPrizes
-ลบ snapshot เก่า
-insert analysis_snapshot_runs
-insert analysis_digit_stats
-insert analysis_number_stats
-insert analysis_pattern_summaries
-insert analysis_calendar_heatmaps
+listAnalysisContexts({ years }) จาก context-plan
+resolveAnalysisSample(context)   # ไม่มี LIMIT
+buildAnalyticsReadModelFromPrizes + pattern + calendar read models
+ลบ snapshot เก่า → insert analysis_snapshot_runs (+ derived tables)
 ```
 
-ใช้กับ canonical context:
+Runtime: `snapshot-reader` hit → return; miss → `on-demand-read-model` (sample + builders เดียวกัน)
 
-`src/api/service/analysis-snapshot/snapshot-reader.ts`
-
-เงื่อนไขที่ใช้ analysis snapshot ได้:
+เงื่อนไข snapshot hit:
 
 ```text
-prizeType ต้องอยู่ใน catalog
-windowSize ต้องอยู่ใน catalog
-ไม่มี startDate/endDate/year/month/q
-numberLength ต้องตรงกับ prizeType
+prizeType + scope (+ month/year เมื่อ MONTH) ตรง analysis context
+ไม่มี startDate/endDate/q นอก context
+engineVersion = analysis-engine-v7
 ```
 
-catalog:
-
-`src/api/service/analysis-snapshot/analysis-context.ts`
+catalog: `src/api/service/analysis-snapshot/analysis-context.ts`
 
 `ANALYSIS_PRIZE_TYPES` ตอนนี้มี `SIX_DIGIT_ALL` ด้วย โดยเป็น grouped analysis prize type ไม่ใช่ raw lottery prize type
 
@@ -1255,9 +1268,9 @@ script incremental:
 ตัวอย่าง command:
 
 ```bash
-bun scripts/compute-analysis.ts
-bun scripts/compute-analysis.ts --prizeType=TWO_DIGIT --scope=ALL_TIME --windowPreset=50
-bun scripts/compute-analysis.ts --prizeType=FIRST --scope=MONTH --month=5 --windowPreset=100
+bun run db:compute-analysis
+bun run db:compute-analysis -- --prizeType=TWO_DIGIT --scope=ALL_TIME
+bun run db:compute-analysis -- --prizeType=FIRST --scope=MONTH --month=5 --year=2026
 ```
 
 ## 15. Dashboard

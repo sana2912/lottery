@@ -8,57 +8,87 @@ afterEach(() => {
 
 describe("calendar.service", () => {
   test("maps recent draws, uses future persisted draws as next draw, and includes monthly insights", async () => {
-    const calls: unknown[] = [];
-
     (globalThis as { prisma?: unknown }).prisma = {
+      $queryRaw: async (...args: unknown[]) => {
+        const sql = getSqlText(args[0]);
+
+        if (sql.includes("analysis_snapshot_runs")) {
+          return [];
+        }
+
+        if (sql.includes("SELECT DISTINCT")) {
+          return [
+            {
+              drawDate: new Date("2026-04-16T00:00:00.000Z"),
+              id: "draw-2",
+              lotteryType: "THAI_GOVERNMENT"
+            },
+            {
+              drawDate: new Date("2026-04-01T00:00:00.000Z"),
+              id: "draw-1",
+              lotteryType: "THAI_GOVERNMENT"
+            }
+          ];
+        }
+
+        return [
+          {
+            drawDate: new Date("2026-04-16T00:00:00.000Z"),
+            drawId: "draw-2",
+            lotteryType: "THAI_GOVERNMENT",
+            number: "123456",
+            position: null,
+            type: "FIRST"
+          },
+          {
+            drawDate: new Date("2026-04-16T00:00:00.000Z"),
+            drawId: "draw-2",
+            lotteryType: "THAI_GOVERNMENT",
+            number: "654321",
+            position: null,
+            type: "FIRST"
+          },
+          {
+            drawDate: new Date("2026-04-01T00:00:00.000Z"),
+            drawId: "draw-1",
+            lotteryType: "THAI_GOVERNMENT",
+            number: "111111",
+            position: null,
+            type: "FIRST"
+          },
+          {
+            drawDate: new Date("2026-04-01T00:00:00.000Z"),
+            drawId: "draw-1",
+            lotteryType: "THAI_GOVERNMENT",
+            number: "222222",
+            position: null,
+            type: "FIRST"
+          }
+        ];
+      },
       lotteryDraw: {
         findFirst: async () => ({
           drawDate: new Date("2026-05-02T00:00:00.000Z"),
           drawNo: "09/2026",
           id: "draw-3"
         }),
-        findMany: async (args: { include?: { prizes: boolean } }) => {
-          calls.push(args);
-
-          if (args.include?.prizes) {
-            return [
-              {
-                drawDate: new Date("2026-04-16T00:00:00.000Z"),
-                id: "draw-2",
-                prizes: [
-                  { number: "123456", type: "FIRST" },
-                  { number: "654321", type: "FIRST" }
-                ]
-              },
-              {
-                drawDate: new Date("2026-04-01T00:00:00.000Z"),
-                id: "draw-1",
-                prizes: [
-                  { number: "111111", type: "FIRST" },
-                  { number: "222222", type: "FIRST" }
-                ]
-              }
-            ];
+        findMany: async () => [
+          {
+            drawDate: new Date("2026-04-16T00:00:00.000Z"),
+            drawNo: "08/2026",
+            id: "draw-2"
           }
-
-          return [
-            {
-              drawDate: new Date("2026-04-16T00:00:00.000Z"),
-              drawNo: "08/2026",
-              id: "draw-2"
-            }
-          ];
-        }
+        ]
       }
     };
 
     const response = await calendarService.getCalendarReadModel({
       month: 4,
       prizeType: "FIRST",
-      windowSize: 2
+      windowPreset: "ALL",
+      year: 2026
     });
 
-    expect(calls).toHaveLength(2);
     expect(calendarReadModelSchema.parse(response)).toEqual(response);
     expect(response.nextDraw.status).toBe("upcoming");
     expect(response.nextDraw.isNextDraw).toBe(true);
@@ -68,12 +98,15 @@ describe("calendar.service", () => {
       false
     );
     expect(response.monthlyInsights.length).toBeGreaterThan(0);
+    expect(response.monthlyInsights[0]?.drawCount).toBe(2);
     expect(response.monthlyInsights[0]?.heatmapRows).toHaveLength(6);
     expect(response.monthlyInsights[0]?.heatmapRows[0]?.cells).toHaveLength(10);
     expect(response.monthlyInsights[0]?.heatmapRows[0]?.cells[0]).toMatchObject({
       appearanceCount: expect.any(Number),
       digit: expect.any(String),
+      hitCount: expect.any(Number),
       missingRounds: expect.any(Number),
+      opportunityCount: expect.any(Number),
       score: expect.any(Number),
       tone: expect.any(String)
     });
@@ -81,6 +114,7 @@ describe("calendar.service", () => {
 
   test("returns a safe calendar read model when the database is empty", async () => {
     (globalThis as { prisma?: unknown }).prisma = {
+      $queryRaw: async () => [],
       lotteryDraw: {
         findFirst: async () => null,
         findMany: async () => []
@@ -104,3 +138,15 @@ describe("calendar.service", () => {
     expect(parsed.prizeType).toBeUndefined();
   });
 });
+
+function getSqlText(value: unknown) {
+  if (!value || typeof value !== "object") {
+    return "";
+  }
+
+  if ("strings" in value && Array.isArray((value as { strings: string[] }).strings)) {
+    return (value as { strings: string[] }).strings.join(" ");
+  }
+
+  return String(value);
+}

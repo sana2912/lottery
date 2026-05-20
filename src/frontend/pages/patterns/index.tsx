@@ -126,7 +126,7 @@ export async function PatternsPage({ pageData, searchParams }: PatternsPageProps
 
           <div className="mt-6 grid gap-3">
             <MetricCard label="Active view" value={patterns.activePattern ?? "All patterns"} />
-            <MetricCard label="Window" value={patterns.windowLabel} />
+            <MetricCard label="Sample" value={patterns.sampleLabel} />
             <MetricCard label="Shape records" value={String(patterns.totalHits)} />
           </div>
         </Card>

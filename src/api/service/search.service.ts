@@ -7,7 +7,6 @@ import type {
 } from "@/schema/api/search";
 import type { SearchQuery } from "@/schema/app/query.schema";
 
-const SEARCH_STATS_WINDOW_SIZE = 120;
 const SEARCHABLE_PRIZE_TYPES = [
   "FIRST",
   "THREE_DIGIT",
@@ -171,7 +170,7 @@ async function getSearchStats(query: SearchQuery) {
         page: 1,
         pageSize: 100,
         prizeType: "TWO_DIGIT",
-        windowSize: SEARCH_STATS_WINDOW_SIZE
+        windowPreset: "ALL"
       }),
       query.q ?? ""
     );
@@ -185,7 +184,7 @@ async function getSearchStats(query: SearchQuery) {
         page: 1,
         pageSize: 1000,
         prizeType: "THREE_DIGIT",
-        windowSize: SEARCH_STATS_WINDOW_SIZE
+        windowPreset: "ALL"
       }),
       query.q ?? ""
     );
@@ -199,8 +198,8 @@ async function getSearchStats(query: SearchQuery) {
         page: 1,
         pageSize: 1000,
         prizeType: "SIX_DIGIT_ALL",
-        windowPreset: "100",
-        windowSize: SEARCH_STATS_WINDOW_SIZE
+        scope: "ALL_TIME",
+        windowPreset: "ALL"
       }),
       query.q ?? ""
     );

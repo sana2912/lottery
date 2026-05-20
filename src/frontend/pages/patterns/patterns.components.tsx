@@ -8,8 +8,7 @@ import {
   type PatternPageQuery,
   patternMonthOptions,
   patternPrizeOptions,
-  patternScopeOptions,
-  patternWindowOptions
+  patternScopeOptions
 } from "@/frontend/pages/patterns/patterns.mappers";
 import { Button, Card } from "@/frontend/primitives";
 
@@ -19,10 +18,11 @@ type PatternsFilterPanelProps = Readonly<{
 
 export function PatternsFilterPanel({ query }: PatternsFilterPanelProps) {
   const router = useRouter();
+  const now = new Date();
   const [prizeType, setPrizeType] = useState(query.prizeType);
   const [scope, setScope] = useState(query.scope);
-  const [month, setMonth] = useState(query.month ?? new Date().getUTCMonth() + 1);
-  const [windowPreset, setWindowPreset] = useState(query.windowPreset);
+  const [month, setMonth] = useState(query.month ?? now.getUTCMonth() + 1);
+  const [year, setYear] = useState(query.year ?? now.getUTCFullYear());
 
   function submitFilters(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -33,8 +33,7 @@ export function PatternsFilterPanel({ query }: PatternsFilterPanelProps) {
         month: scope === "MONTH" ? month : undefined,
         prizeType,
         scope,
-        windowPreset,
-        windowSize: windowPreset
+        year: scope === "MONTH" ? year : undefined
       })
     );
   }
@@ -78,7 +77,7 @@ export function PatternsFilterPanel({ query }: PatternsFilterPanelProps) {
 
         <div>
           <p className="mt-2 text-sm leading-6 text-[var(--color-text-secondary)]">
-            Choose whether this analysis uses every month or one historical month only.
+            Choose whether this analysis uses every month or one calendar month and year.
           </p>
           <label
             className="mt-4 block text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]"
@@ -104,49 +103,45 @@ export function PatternsFilterPanel({ query }: PatternsFilterPanelProps) {
           </select>
 
           {scope === "MONTH" ? (
-            <select
-              className="mt-2 h-11 w-full rounded-none border border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 py-2 text-sm font-semibold text-[var(--color-text-primary)] shadow-[var(--shadow-micro)] focus:border-[var(--color-brand)] focus:outline-none"
-              name="month"
-              onChange={(event) => {
-                setMonth(Number(event.target.value));
-              }}
-              value={month}
-            >
-              {patternMonthOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            <>
+              <select
+                className="mt-2 h-11 w-full rounded-none border border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 py-2 text-sm font-semibold text-[var(--color-text-primary)] shadow-[var(--shadow-micro)] focus:border-[var(--color-brand)] focus:outline-none"
+                name="month"
+                onChange={(event) => {
+                  setMonth(Number(event.target.value));
+                }}
+                value={month}
+              >
+                {patternMonthOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <select
+                className="mt-2 h-11 w-full rounded-none border border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 py-2 text-sm font-semibold text-[var(--color-text-primary)] shadow-[var(--shadow-micro)] focus:border-[var(--color-brand)] focus:outline-none"
+                name="year"
+                onChange={(event) => {
+                  setYear(Number(event.target.value));
+                }}
+                value={year}
+              >
+                {Array.from({ length: 30 }, (_, index) => now.getUTCFullYear() - index).map(
+                  (value) => (
+                    <option key={value} value={value}>
+                      {value}
+                    </option>
+                  )
+                )}
+              </select>
+            </>
           ) : null}
         </div>
 
         <div>
           <p className="mt-2 text-sm leading-6 text-[var(--color-text-secondary)]">
-            {patternsContent.filters.windowSummary}
+            Analysis uses every eligible draw in the selected scope (no draw cap).
           </p>
-          <label
-            className="mt-4 block text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]"
-            htmlFor="patterns-window-size"
-          >
-            {patternsContent.filters.windowStep}
-          </label>
-          <select
-            className="mt-2 h-11 w-full rounded-none border border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 py-2 text-sm font-semibold text-[var(--color-text-primary)] shadow-[var(--shadow-micro)] focus:border-[var(--color-brand)] focus:outline-none"
-            id="patterns-window-size"
-            name="windowPreset"
-            onChange={(event) => {
-              setWindowPreset(event.target.value as typeof windowPreset);
-            }}
-            required
-            value={windowPreset}
-          >
-            {patternWindowOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
         </div>
 
         <div>

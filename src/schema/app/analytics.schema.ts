@@ -81,13 +81,7 @@ export const patternSummarySchema = z.object({
   insight: z.string()
 });
 
-export const analyticsDataSourceSchema = z.enum([
-  "mock",
-  "api",
-  "snapshot",
-  "on-demand",
-  "prize-window"
-]);
+export const analyticsDataSourceSchema = z.enum(["mock", "api", "snapshot", "on-demand", "empty"]);
 
 export const analyticsReadModelSchema = z.object({
   generatedAt: z.string(),

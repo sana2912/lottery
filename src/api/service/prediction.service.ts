@@ -57,7 +57,8 @@ export async function generate(input: PredictionRequest) {
       page: 1,
       pageSize: 20,
       prizeType: normalizedInput.prizeType,
-      windowSize: normalizedInput.windowSize
+      scope: "ALL_TIME",
+      windowPreset: "ALL"
     })
   );
   const rankedResults = timeSync("prediction.generate build results", () =>

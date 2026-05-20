@@ -92,11 +92,12 @@ describe("frontend query/mappers", () => {
   test("parseAnalyticsSearchParams accepts grouped six-digit analysis prize", () => {
     const parsed = parseAnalyticsSearchParams({
       prizeType: "SIX_DIGIT_ALL",
-      windowPreset: "50"
+      scope: "ALL_TIME"
     });
 
     expect(parsed.numberLength).toBe(6);
     expect(parsed.prizeType).toBe("SIX_DIGIT_ALL");
+    expect(parsed.windowPreset).toBe("ALL");
   });
 
   test("parseResultsSearchParams accepts URLSearchParams", () => {

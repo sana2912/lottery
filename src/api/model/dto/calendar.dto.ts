@@ -42,8 +42,11 @@ type MonthlyInsightDtoInput = Omit<
       eventRatePercent?: number;
       expectedRatePercent?: number;
       expectedPresenceRatePercent?: number;
+      hitCount?: number;
+      hitRatePercent?: number;
       lift?: number;
       missingRounds: number;
+      opportunityCount?: number;
       presenceRatePercent?: number;
       sampleEventCount?: number;
       score: number;
@@ -73,8 +76,15 @@ type MonthlyInsightDtoInput = Omit<
 export function toApiMonthlyInsight(insight: MonthlyInsightDtoInput): ApiMonthlyInsight {
   return {
     coldNumbers: [...insight.coldNumbers],
+    dataCompleteness: insight.dataCompleteness,
+    drawCount: insight.drawCount,
     heatmapRows: insight.heatmapRows.map((row) => ({
-      cells: row.cells.map((cell) => ({ ...cell })),
+      cells: row.cells.map((cell) => ({
+        ...cell,
+        hitCount: cell.hitCount ?? cell.eventCount,
+        hitRatePercent: cell.hitRatePercent ?? cell.eventRatePercent,
+        opportunityCount: cell.opportunityCount ?? cell.sampleEventCount
+      })),
       coldDigits: [...row.coldDigits],
       hotDigits: [...row.hotDigits],
       position: row.position
@@ -83,6 +93,10 @@ export function toApiMonthlyInsight(insight: MonthlyInsightDtoInput): ApiMonthly
     id: insight.id,
     label: insight.label,
     month: insight.month,
+    year: insight.year,
+    opportunityCountPerPosition: insight.opportunityCountPerPosition,
+    prizesPerDrawActual: insight.prizesPerDrawActual,
+    prizesPerDrawExpected: insight.prizesPerDrawExpected,
     patternNotes: [...insight.patternNotes],
     prizeType: insight.prizeType,
     scope: insight.scope,

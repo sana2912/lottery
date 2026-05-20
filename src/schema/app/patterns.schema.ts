@@ -44,6 +44,7 @@ export const patternsReadModelSchema = z.object({
     numberLength: numberLengthSchema,
     prizeType: z.string(),
     scope: analysisScopeSchema,
+    year: z.number().int().min(1900).max(3000).optional(),
     windowPreset: analysisWindowPresetSchema,
     windowSize: z.number()
   }),

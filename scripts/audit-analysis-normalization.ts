@@ -4,6 +4,7 @@ import {
   matchesAnalysisPrizeSample
 } from "@/api/service/analysis-snapshot/prize-sample-types";
 import { buildPositionHeatmapRows } from "@/api/service/analytics/position-heatmap";
+import { EXPECTED_PRIZES_PER_DRAW } from "@/api/service/lottery/prize-slots";
 import { getPrisma } from "@/api/service/prisma";
 import { parseCliValues, printOrWriteJsonReport, writeTextReport } from "./audit-utils";
 import {
@@ -61,18 +62,10 @@ const CALENDAR_DIAGNOSTIC_PRIZE_TYPES = [
 ] as const;
 const MATRIX_DIAGNOSTIC_MONTHS = [1, 5, 12] as const;
 const MATRIX_DIAGNOSTIC_SCOPES = ["ALL_TIME", "MONTH"] as const;
+
 const EXPECTED_ROWS_PER_DRAW = {
-  FIRST: 1,
-  NEAR_FIRST: 2,
-  OTHER: null,
-  PRIZE2: 5,
-  PRIZE3: 10,
-  PRIZE4: 50,
-  PRIZE5: 100,
-  THREE_BACK: 2,
-  THREE_DIGIT: null,
-  THREE_FRONT: 2,
-  TWO_DIGIT: 1
+  ...EXPECTED_PRIZES_PER_DRAW,
+  OTHER: null
 } satisfies Record<PrizeType, number | null>;
 
 type PrizeType = (typeof PRIZE_TYPES)[number];

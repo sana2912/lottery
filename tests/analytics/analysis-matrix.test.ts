@@ -9,7 +9,6 @@ import {
   getExpectedRowsPerDraw,
   type MatrixPrizeType,
   type MatrixScope,
-  type MatrixWindowPreset,
   selectMatrixSampleDraws
 } from "./fixtures/analysis-matrix";
 
@@ -25,47 +24,34 @@ const PRIZE_TYPES: MatrixPrizeType[] = [
   "SIX_DIGIT_ALL"
 ];
 
-const WINDOW_PRESETS: MatrixWindowPreset[] = ["50", "100", "500", "ALL"];
 const SCOPES: MatrixScope[] = ["ALL_TIME", "MONTH"];
 const MONTHS = [1, 5, 12] as const;
 
 describe("analysis normalization matrix", () => {
   for (const prizeType of PRIZE_TYPES) {
-    for (const windowPreset of WINDOW_PRESETS) {
-      for (const scope of SCOPES) {
-        const months = scope === "MONTH" ? MONTHS : [undefined];
+    for (const scope of SCOPES) {
+      const months = scope === "MONTH" ? MONTHS : [undefined];
 
-        for (const month of months) {
-          test(`${prizeType} ${scope} month=${month ?? "ALL"} window=${windowPreset}`, () => {
-            const totalDraws = windowPreset === "ALL" ? 120 : Number(windowPreset) + 20;
-            const draws = buildSyntheticDraws({
-              drawCount: totalDraws,
-              month: month ?? 1,
-              prizeType
-            });
-            const sampleDraws = selectMatrixSampleDraws(
-              draws,
-              prizeType,
-              scope,
-              windowPreset,
-              month
-            );
-            const prizes = flattenValidPrizes(sampleDraws, prizeType);
-            const expectedDrawLimit =
-              windowPreset === "ALL" ? sampleDraws.length : Number(windowPreset);
-
-            expect(sampleDraws.length).toBeLessThanOrEqual(expectedDrawLimit);
-            expect(prizes.length).toBe(sampleDraws.length * getExpectedRowsPerDraw(prizeType));
-
-            assertNumberStatsDenominator(
-              prizes,
-              sampleDraws.length,
-              prizeType === "TWO_DIGIT" ? 2 : prizeType === "THREE_DIGIT" ? 3 : 6
-            );
-            assertDigitStatsDenominator(prizes, sampleDraws.length);
-            assertHeatmapEventInvariant(sampleDraws, prizeType);
+      for (const month of months) {
+        test(`${prizeType} ${scope} month=${month ?? "ALL"} full sample`, () => {
+          const draws = buildSyntheticDraws({
+            drawCount: 120,
+            month: month ?? 1,
+            prizeType
           });
-        }
+          const sampleDraws = selectMatrixSampleDraws(draws, prizeType, scope, month);
+          const prizes = flattenValidPrizes(sampleDraws, prizeType);
+
+          expect(prizes.length).toBe(sampleDraws.length * getExpectedRowsPerDraw(prizeType));
+
+          assertNumberStatsDenominator(
+            prizes,
+            sampleDraws.length,
+            prizeType === "TWO_DIGIT" ? 2 : prizeType === "THREE_DIGIT" ? 3 : 6
+          );
+          assertDigitStatsDenominator(prizes, sampleDraws.length);
+          assertHeatmapEventInvariant(sampleDraws, prizeType);
+        });
       }
     }
   }
@@ -78,34 +64,19 @@ describe("analysis normalization matrix", () => {
         drawDate: new Date(Date.UTC(2026, 0, index + 1)),
         lotteryType: "THAI_GOVERNMENT"
       },
-      number: index === 0 ? "09" : "12",
-      type: "TWO_DIGIT"
+      drawId: `draw-${index}`,
+      number: sharedNumber,
+      position: 1,
+      type: "FIRST" as const
     }));
-    const prize5Prizes = Array.from({ length: drawCount * 100 }, (_, index) => {
-      const drawIndex = Math.floor(index / 100);
-
-      return {
-        draw: {
-          drawDate: new Date(Date.UTC(2026, 0, drawIndex + 1)),
-          lotteryType: "THAI_GOVERNMENT"
-        },
-        number: index % 10 === 0 ? sharedNumber : "000000",
-        type: "PRIZE5"
-      };
-    });
-    const ctx = {
-      computedAt: new Date("2026-05-01T00:00:00.000Z"),
-      drawCount,
-      windowSize: drawCount
-    };
-    const twoDigitStat = calculateNumberStats(twoDigitPrizes, ctx, 2).find(
-      (stat) => stat.number === "09"
+    const stats = calculateNumberStats(
+      twoDigitPrizes,
+      { computedAt: new Date(), drawCount, windowSize: drawCount },
+      6
     );
-    const prize5Stat = calculateNumberStats(prize5Prizes, ctx, 6).find(
-      (stat) => stat.number === sharedNumber
-    );
+    const hit = stats.find((stat) => stat.number === sharedNumber);
 
-    expect(twoDigitStat?.frequencyPercent).toBe(10);
-    expect(prize5Stat?.frequencyPercent).toBe(10);
+    expect(hit?.hitCount).toBe(drawCount);
+    expect(hit?.frequencyPercent).toBe(100);
   });
 });

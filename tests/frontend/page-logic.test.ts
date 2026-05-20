@@ -132,7 +132,8 @@ describe("frontend logic helpers", () => {
           page: 1,
           pageSize: 20,
           prizeType: "SIX_DIGIT_ALL",
-          windowSize: 50
+          scope: "ALL_TIME",
+          windowPreset: "ALL"
         }
       ).context.numberLength
     ).toBe(6);
@@ -435,7 +436,7 @@ describe("frontend logic helpers", () => {
     const firstQuery = parsePatternSearchParams({
       pattern: "has_repeat",
       prizeType: "FIRST",
-      windowPreset: "100"
+      scope: "ALL_TIME"
     });
     const defaultQuery = parsePatternSearchParams();
     const firstModel = buildPatternReadModel(analytics, firstQuery);
@@ -443,8 +444,8 @@ describe("frontend logic helpers", () => {
     expect(toPatternsAnalyticsQuery(firstQuery)).toMatchObject({
       numberLength: 6,
       prizeType: "FIRST",
-      windowPreset: "100",
-      windowSize: 100
+      scope: "ALL_TIME",
+      windowPreset: "ALL"
     });
     expect(firstModel.prizeLabel).toBe("FIRST");
     expect(firstModel.numberLengthLabel).toBe("6 digits");
@@ -453,16 +454,12 @@ describe("frontend logic helpers", () => {
     expect(firstModel.overviewCards.find((card) => card.id === "has_repeat")?.value).toBe(6);
     expect(defaultQuery).toMatchObject({
       prizeType: "TWO_DIGIT",
-      scope: "ALL_TIME",
-      windowPreset: "50",
-      windowSize: "50"
+      scope: "ALL_TIME"
     });
 
     const threeModel = buildPatternReadModel(analytics, {
       prizeType: "THREE_FRONT",
-      scope: "ALL_TIME",
-      windowPreset: "50",
-      windowSize: "50"
+      scope: "ALL_TIME"
     });
 
     expect(threeModel.playground.map((pattern) => pattern.id)).toContain("palindrome");
@@ -470,15 +467,13 @@ describe("frontend logic helpers", () => {
 
     const twoModel = buildPatternReadModel(analytics, {
       prizeType: "TWO_DIGIT",
-      scope: "ALL_TIME",
-      windowPreset: "50",
-      windowSize: "50"
+      scope: "ALL_TIME"
     });
 
     expect(twoModel.playground.map((pattern) => pattern.id)).toEqual(
       expect.arrayContaining(["odd_last_digit", "double", "mirror"])
     );
-    expect(twoModel.windowLabel).toBe("50 draws");
+    expect(twoModel.sampleLabel).toContain("draws");
 
     const snapshotModel = buildPatternReadModelFromSnapshot(
       {
@@ -487,8 +482,8 @@ describe("frontend logic helpers", () => {
           numberLength: 6,
           prizeType: "SIX_DIGIT_ALL",
           scope: "ALL_TIME",
-          windowPreset: "100",
-          windowSize: 100
+          windowPreset: "ALL",
+          windowSize: 10
         },
         generatedAt: "2026-04-29T00:00:00.000Z",
         pattern: {
@@ -525,7 +520,7 @@ describe("frontend logic helpers", () => {
       parsePatternSearchParams({
         pattern: "has_repeat",
         prizeType: "SIX_DIGIT_ALL",
-        windowPreset: "100"
+        scope: "ALL_TIME"
       })
     );
 
@@ -689,29 +684,27 @@ describe("frontend logic helpers", () => {
         month: "5",
         prizeType: "FIRST",
         scope: "MONTH",
-        windowPreset: "100"
+        year: "2026"
       })
     ).toEqual({
       month: 5,
+      year: 2026,
       prizeType: "FIRST",
-      scope: "MONTH",
-      windowPreset: "100",
-      windowSize: 100
+      scope: "MONTH"
     });
     expect(
       toCalendarApiQuery({
         month: 5,
+        year: 2026,
         prizeType: "FIRST",
-        scope: "MONTH",
-        windowPreset: "100",
-        windowSize: 100
+        scope: "MONTH"
       })
     ).toEqual({
       month: 5,
+      year: 2026,
       prizeType: "FIRST",
       scope: "MONTH",
-      windowPreset: "100",
-      windowSize: 100
+      windowPreset: "ALL"
     });
     expect(
       getDaysUntilNextDraw(

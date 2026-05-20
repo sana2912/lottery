@@ -14,13 +14,6 @@ export const analyticsPrizeOptions = [
   { label: "รวมรางวัล 6 หลักทั้งหมด", numberLength: 6, value: "SIX_DIGIT_ALL" }
 ] as const;
 
-export const analyticsWindowOptions = [
-  { label: "50 draws", value: "50" },
-  { label: "100 draws", value: "100" },
-  { label: "500 draws", value: "500" },
-  { label: "All draws", value: "ALL" }
-] as const;
-
 export const analyticsScopeOptions = [
   { label: "All months", value: "ALL_TIME" },
   { label: "Specific month", value: "MONTH" }
@@ -52,9 +45,8 @@ export type AnalyticsViewModel = {
     sampleSize: number;
     scope: NonNullable<FilterContext["scope"]>;
     scopeLabel: string;
-    windowLabel: string;
-    windowPreset: NonNullable<FilterContext["windowPreset"]>;
-    windowSize: number;
+    scopeDrawLabel: string;
+    windowPreset: "ALL";
   };
   digitPositions: Array<{
     digit: string;
@@ -112,9 +104,8 @@ export function buildAnalyticsViewModel(
       sampleSize: analytics.summary.drawCount,
       scope: query.scope ?? "ALL_TIME",
       scopeLabel: getScopeLabel(query),
-      windowLabel: getWindowLabel(query.windowPreset),
-      windowPreset: query.windowPreset ?? "50",
-      windowSize: query.windowSize
+      scopeDrawLabel: getScopeDrawLabel(query, analytics.summary.drawCount),
+      windowPreset: "ALL"
     },
     digitPositions: getPositionDigitStats(filteredDigits, query.prizeType, numberLength),
     exactNumbers: filteredNumbers.slice(0, numberLength === 6 ? 10 : 12),
@@ -164,10 +155,13 @@ export function buildAnalyticsHrefQuery(
 export function buildAnalyticsScopeHrefQuery(
   scope: NonNullable<FilterContext["scope"]>
 ): Partial<FilterContext> {
+  const now = new Date();
+
   return {
-    month: scope === "MONTH" ? new Date().getUTCMonth() + 1 : undefined,
+    month: scope === "MONTH" ? now.getUTCMonth() + 1 : undefined,
     page: 1,
-    scope
+    scope,
+    year: scope === "MONTH" ? now.getUTCFullYear() : undefined
   };
 }
 
@@ -178,16 +172,18 @@ export function getPrizeLabel(prizeType: FilterContext["prizeType"]) {
   );
 }
 
-function getWindowLabel(windowPreset: FilterContext["windowPreset"]) {
-  return (
-    analyticsWindowOptions.find((option) => option.value === windowPreset)?.label ??
-    analyticsWindowOptions[0].label
-  );
+function getScopeDrawLabel(query: FilterContext, drawCount: number) {
+  const scope = getScopeLabel(query);
+
+  return `${drawCount} draws · ${scope}`;
 }
 
 function getScopeLabel(query: FilterContext) {
   if (query.scope === "MONTH" && query.month) {
-    return analyticsMonthOptions.find((option) => option.value === query.month)?.label ?? "Month";
+    const monthLabel =
+      analyticsMonthOptions.find((option) => option.value === query.month)?.label ?? "Month";
+
+    return query.year ? `${monthLabel} ${query.year}` : monthLabel;
   }
 
   return "All months";

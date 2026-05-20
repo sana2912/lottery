@@ -124,7 +124,8 @@ async function enrichStatsForPrizeType(
     page: 1,
     pageSize: numberLength === 6 ? 5000 : 1000,
     prizeType,
-    windowSize: 120
+    scope: "ALL_TIME",
+    windowPreset: "ALL"
   });
 
   for (const stat of stats) {

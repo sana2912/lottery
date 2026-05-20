@@ -34,12 +34,13 @@ describe("analysis snapshot engine", () => {
         month: 4,
         prizeType: "TWO_DIGIT",
         scope: "MONTH",
-        windowPreset: "50"
+        year: 2026
       })
     );
 
     expect(queryCalls[0]).toContain('prize."type" IN');
     expect(queryCalls[0]).toContain("EXTRACT(MONTH");
+    expect(queryCalls[0]).toContain("EXTRACT(YEAR");
     expect(queryCalls[1]).toContain('prize."drawId" IN');
     expect(sample.drawCount).toBe(2);
     expect(sample.prizeCount).toBe(3);
@@ -66,8 +67,7 @@ describe("analysis snapshot engine", () => {
     const sample = await resolveAnalysisSample(
       createAnalysisContext({
         prizeType: "SIX_DIGIT_ALL",
-        scope: "ALL_TIME",
-        windowPreset: "50"
+        scope: "ALL_TIME"
       })
     );
 
@@ -85,25 +85,31 @@ describe("analysis snapshot engine", () => {
   test("builds pattern and calendar read models from the same sample shape", () => {
     const analytics = analyticsReadModel();
     const patternReadModel = buildAnalysisPatternReadModel(analytics);
+    const calendarPrizes = prizeRows()
+      .filter((prize) => prize.number.length === 2)
+      .map((prize) => ({
+        draw: {
+          drawDate: prize.drawDate,
+          lotteryType: prize.lotteryType
+        },
+        drawId: prize.drawId,
+        number: prize.number,
+        position: prize.position,
+        type: prize.type
+      }));
     const calendarReadModel = buildAnalysisCalendarHeatmapReadModel(
       createAnalysisContext({
         month: 4,
         prizeType: "TWO_DIGIT",
         scope: "MONTH",
-        windowPreset: "50"
+        year: 2026
       }),
-      prizeRows()
-        .filter((prize) => prize.number.length === 2)
-        .map((prize) => ({
-          draw: {
-            drawDate: prize.drawDate,
-            lotteryType: prize.lotteryType
-          },
-          drawId: prize.drawId,
-          number: prize.number,
-          position: prize.position,
-          type: prize.type
-        }))
+      calendarPrizes,
+      {
+        drawCount: 2,
+        invalidPrizeCount: 0,
+        prizeCount: calendarPrizes.length
+      }
     );
 
     expect(patternReadModel.sampleSize).toBe(7);
@@ -112,6 +118,8 @@ describe("analysis snapshot engine", () => {
     expect(calendarReadModel.scope).toBe("MONTH");
     expect(calendarReadModel.month).toBe(4);
     expect(calendarReadModel.sampleSize).toBe(2);
+    expect(calendarReadModel.drawCount).toBe(2);
+    expect(calendarReadModel.prizesPerDrawExpected).toBe(1);
     expect(calendarReadModel.heatmapRows).toHaveLength(2);
   });
 
@@ -150,7 +158,7 @@ describe("analysis snapshot engine", () => {
         month: 4,
         prizeType: "TWO_DIGIT",
         scope: "MONTH",
-        windowPreset: "50"
+        year: 2026
       })
     );
 
@@ -160,7 +168,7 @@ describe("analysis snapshot engine", () => {
       sampleDrawCount: 2,
       samplePrizeCount: 3,
       scope: "MONTH",
-      windowPreset: "50"
+      windowPreset: "ALL"
     });
     expect(transactionOptions).toEqual([{ timeout: 60_000 }]);
     expect(executedSql.some((sql) => sql.includes('DELETE FROM "analysis_snapshot_runs"'))).toBe(
@@ -259,8 +267,7 @@ describe("analysis snapshot engine", () => {
       pageSize: 20,
       prizeType: "SIX_DIGIT_ALL",
       scope: "ALL_TIME",
-      windowPreset: "50",
-      windowSize: 50
+      windowPreset: "ALL"
     });
 
     expect(queryCalls[0]).toContain('"patternReadModel"');
@@ -270,7 +277,7 @@ describe("analysis snapshot engine", () => {
       numberLength: 6,
       prizeType: "SIX_DIGIT_ALL",
       scope: "ALL_TIME",
-      windowPreset: "50"
+      windowPreset: "ALL"
     });
     expect(model?.pattern.sampleSize).toBe(3);
   });

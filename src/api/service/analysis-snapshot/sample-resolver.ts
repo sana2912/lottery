@@ -1,7 +1,8 @@
-import {
-  type AnalysisContext,
-  getAnalysisWindowLimit
-} from "@/api/service/analysis-snapshot/analysis-context";
+/**
+ * SQL scope/prize filters must stay aligned with in-memory replay in
+ * `eligible-sample.ts` (MONTH+year, source prize types, numberLength).
+ */
+import type { AnalysisContext } from "@/api/service/analysis-snapshot/analysis-context";
 import {
   getPrizeTypesForSampleQuery,
   matchesAnalysisPrizeSample,
@@ -92,7 +93,6 @@ export async function resolveAnalysisSample(context: AnalysisContext): Promise<A
 }
 
 async function getAnalysisDrawRows(prisma: ReturnType<typeof getPrisma>, context: AnalysisContext) {
-  const limit = getAnalysisWindowLimit(context.windowPreset);
   const sourcePrizeTypes = getSourcePrizeTypeSql(context);
   const rows = await prisma.$queryRaw<DrawRow[]>`
     SELECT DISTINCT
@@ -106,9 +106,14 @@ async function getAnalysisDrawRows(prisma: ReturnType<typeof getPrisma>, context
       draw."lotteryType" = ${context.lotteryType}::"LotteryType"
       AND prize."type" IN (${sourcePrizeTypes})
       AND draw."drawDate" <= ${new Date()}
-      AND (${context.scope} <> 'MONTH' OR EXTRACT(MONTH FROM draw."drawDate") = ${context.month ?? 0})
+      AND (
+        ${context.scope} <> 'MONTH'
+        OR (
+          EXTRACT(MONTH FROM draw."drawDate") = ${context.month ?? 0}
+          AND EXTRACT(YEAR FROM draw."drawDate") = ${context.year ?? 0}
+        )
+      )
     ORDER BY draw."drawDate" DESC
-    ${limit ? Prisma.sql`LIMIT ${limit}` : Prisma.empty}
   `;
 
   return rows.sort((left, right) => left.drawDate.getTime() - right.drawDate.getTime());
