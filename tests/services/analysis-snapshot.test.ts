@@ -122,7 +122,7 @@ describe("analysis snapshot engine", () => {
 
   test("recomputes one snapshot context and writes all derived snapshot tables", async () => {
     const executedSql: string[] = [];
-    const transactionOptions: unknown[] = [];
+    const transactionOptions: Array<{ timeout: number }> = [];
 
     (globalThis as { prisma?: unknown }).prisma = {
       $queryRaw: async (...args: unknown[]) => {
@@ -136,7 +136,7 @@ describe("analysis snapshot engine", () => {
       },
       $transaction: async (
         operation: (transaction: TransactionMock) => Promise<void>,
-        options: unknown
+        options: { timeout: number }
       ) => {
         transactionOptions.push(options);
 
