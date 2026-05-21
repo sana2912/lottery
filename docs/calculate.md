@@ -79,6 +79,7 @@ SIX_DIGIT_ALL =
 scope = ALL_TIME
 prizeType = SIX_DIGIT_ALL
 engineVersion = analysis-engine-v8
+snapshot row metadata matches payload metadata (sampleDrawCount/samplePrizeCount/windowSize)
 ```
 
 แปลว่า:
@@ -145,7 +146,7 @@ position 6 -> digit 0
 
 `calculateDigitStats` เพื่อคำนวณ hot, overdue, trend รายตำแหน่ง
 
-## 2. Analysis sample (v7 — single path)
+## 2. Analysis sample (v8 — single path)
 
 ไฟล์หลัก:
 
@@ -163,19 +164,20 @@ position 6 -> digit 0
 | `scope = ALL_TIME` | ทุกงวดที่มีรางวัลตรง `prizeType` จนถึง now (ทุกเดือน ทุกปี) |
 | `scope = MONTH` | งวดที่ `EXTRACT(MONTH FROM drawDate) = month` ทุกปี (ไม่มี year ใน product/compute) |
 | `windowPreset` | ค่าเดียว: `ALL` (= full eligible sample ใน scope) |
-| `engineVersion` | `analysis-engine-v8` — snapshot v7 (MONTH×year) และเก่ากว่าไม่ใช้ |
+| `engineVersion` | `analysis-engine-v8` — snapshot v8 (MONTH across all years) และเก่ากว่าไม่ใช้ |
 
 วิธีทำ:
 
 1. `resolveAnalysisSample(context)` — SQL ไม่มี `LIMIT`
 2. กรอง prize ตาม `prizeType` / `numberLength`
-3. `buildAnalyticsReadModelFromPrizes(sample.prizes, context)` → digit/number/pattern stats
+3. `buildAnalysisReadModelsFromSample(context, sample)` → analytics/pattern/calendar read models
 4. Snapshot hit ใช้ `contextKey` เดียวกับ on-demand; miss → on-demand; query นอก context (เช่น `startDate`) → empty read model
 
 dependency:
 
 ```text
 resolveAnalysisSample
+  -> buildAnalysisReadModelsFromSample
   -> buildAnalyticsReadModelFromPrizes
   -> extractDigitEvents
   -> calculateDigitStats
@@ -190,7 +192,7 @@ contexts = 11 ALL_TIME + (11 prize types × 12 months) = 143
 MONTH contextKey uses ALL_YEARS (no per-year cells)
 ```
 
-`windowSize` ในแถว `analysis_snapshot_runs` = `sampleDrawCount` (ไม่ใช่ cap)  
+`windowSize` ในแถว `analysis_snapshot_runs` = `sampleDrawCount` (ไม่ใช่ cap) และ analytics payload ภายใน snapshot ต้องมี metadata ตรงกับ row นี้  
 Query นอก context (`startDate` / `endDate` / `q`) → empty read model (ไม่ silent cap)
 
 ผลลัพธ์:
@@ -1218,9 +1220,9 @@ precompute analytics stats เก็บลง table เพื่อให้ห�
 flow:
 
 ```text
-listAnalysisContexts({ years }) จาก context-plan
+listAnalysisContexts() จาก context-plan
 resolveAnalysisSample(context)   # ไม่มี LIMIT
-buildAnalyticsReadModelFromPrizes + pattern + calendar read models
+buildAnalysisReadModelsFromSample(context, sample)
 ลบ snapshot เก่า → insert analysis_snapshot_runs (+ derived tables)
 ```
 

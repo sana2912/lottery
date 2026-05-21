@@ -130,6 +130,92 @@ describe("calendar.service", () => {
     expect(response.nextDraw.status).toBe("upcoming");
   });
 
+  test("falls back on-demand when calendar snapshot metadata is stale", async () => {
+    const queryCalls: string[] = [];
+
+    (globalThis as { prisma?: unknown }).prisma = {
+      $queryRaw: async (...args: unknown[]) => {
+        const sql = getSqlText(args[0]);
+        queryCalls.push(sql);
+
+        if (sql.includes("analysis_snapshot_runs")) {
+          return [
+            {
+              calendarReadModel: {
+                dataCompleteness: "complete",
+                drawCount: 50,
+                heatmapRows: [],
+                invalidPrizeCount: 0,
+                opportunityCountPerPosition: 50,
+                prizeCount: 50,
+                prizesPerDrawActual: 1,
+                prizesPerDrawExpected: 1,
+                sampleSize: 50,
+                scope: "MONTH",
+                summary: "stale snapshot"
+              },
+              computedAt: new Date("2026-04-29T00:00:00.000Z"),
+              invalidPrizeCount: 0,
+              sampleDrawCount: 2,
+              samplePrizeCount: 2,
+              windowSize: 2
+            }
+          ];
+        }
+
+        if (sql.includes("SELECT DISTINCT")) {
+          return [
+            {
+              drawDate: new Date("2026-04-01T00:00:00.000Z"),
+              id: "draw-1",
+              lotteryType: "THAI_GOVERNMENT"
+            },
+            {
+              drawDate: new Date("2026-04-16T00:00:00.000Z"),
+              id: "draw-2",
+              lotteryType: "THAI_GOVERNMENT"
+            }
+          ];
+        }
+
+        return [
+          {
+            drawDate: new Date("2026-04-01T00:00:00.000Z"),
+            drawId: "draw-1",
+            lotteryType: "THAI_GOVERNMENT",
+            number: "123456",
+            position: null,
+            type: "FIRST"
+          },
+          {
+            drawDate: new Date("2026-04-16T00:00:00.000Z"),
+            drawId: "draw-2",
+            lotteryType: "THAI_GOVERNMENT",
+            number: "654321",
+            position: null,
+            type: "FIRST"
+          }
+        ];
+      },
+      lotteryDraw: {
+        findFirst: async () => null,
+        findMany: async () => []
+      }
+    };
+
+    const response = await calendarService.getCalendarReadModel({
+      month: 4,
+      prizeType: "FIRST",
+      scope: "MONTH",
+      windowPreset: "ALL"
+    });
+
+    expect(queryCalls.some((sql) => sql.includes("SELECT DISTINCT"))).toBe(true);
+    expect(calendarReadModelSchema.parse(response)).toEqual(response);
+    expect(response.monthlyInsights[0]?.drawCount).toBe(2);
+    expect(response.monthlyInsights[0]?.summary).not.toBe("stale snapshot");
+  });
+
   test("normalizes SIX_DIGIT_ALL out of calendar queries", () => {
     const parsed = calendarHeatmapQuerySchema.parse({
       prizeType: "SIX_DIGIT_ALL"

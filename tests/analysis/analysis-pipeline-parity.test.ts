@@ -67,10 +67,16 @@ describe("analysis pipeline parity", () => {
     };
 
     const sample = await resolveAnalysisSample(context);
-    const computePath = buildAnalyticsReadModelFromPrizes(sample.prizes, context, computedAt);
+    const computePath = buildAnalyticsReadModelFromPrizes(sample.prizes, context, computedAt, {
+      drawCount: sample.drawCount,
+      prizeCount: sample.prizeCount
+    });
     const onDemand = await buildOnDemandAnalysisReadModel(context, computedAt);
 
     expect(onDemand.summary.drawCount).toBe(computePath.summary.drawCount);
+    expect(onDemand.summary.drawCount).toBe(sample.drawCount);
+    expect(onDemand.summary.prizeCount).toBe(sample.prizeCount);
+    expect(onDemand.numberStats.every((stat) => stat.windowSize === sample.drawCount)).toBe(true);
     expect(onDemand.digitStats).toHaveLength(computePath.digitStats.length);
     expect(onDemand.numberStats.map((stat) => stat.number).sort()).toEqual(
       computePath.numberStats.map((stat) => stat.number).sort()
@@ -138,13 +144,13 @@ describe("analysis pipeline parity", () => {
     };
 
     const onDemand = await buildOnDemandAnalysisReadModel(context, computedAt);
+    const sample = await resolveAnalysisSample(context);
     const fromOnDemand = buildAnalysisPatternReadModel(onDemand);
     const fromCompute = buildAnalysisPatternReadModel(
-      buildAnalyticsReadModelFromPrizes(
-        (await resolveAnalysisSample(context)).prizes,
-        context,
-        computedAt
-      )
+      buildAnalyticsReadModelFromPrizes(sample.prizes, context, computedAt, {
+        drawCount: sample.drawCount,
+        prizeCount: sample.prizeCount
+      })
     );
 
     expect(fromOnDemand.sampleSize).toBe(fromCompute.sampleSize);
@@ -188,6 +194,11 @@ function drawRows() {
       drawDate: new Date("2026-04-16T00:00:00.000Z"),
       id: "00000000-0000-7000-8000-000000000002",
       lotteryType: "THAI_GOVERNMENT"
+    },
+    {
+      drawDate: new Date("2026-04-30T00:00:00.000Z"),
+      id: "00000000-0000-7000-8000-000000000004",
+      lotteryType: "THAI_GOVERNMENT"
     }
   ];
 }
@@ -198,7 +209,8 @@ function prizeRows() {
     prizeRow("00000000-0000-7000-8000-000000000001", "2026-04-01T00:00:00.000Z", "09", 1),
     prizeRow("00000000-0000-7000-8000-000000000001", "2026-04-01T00:00:00.000Z", "123", 2),
     prizeRow("00000000-0000-7000-8000-000000000002", "2026-04-16T00:00:00.000Z", "11", 1),
-    prizeRow("00000000-0000-7000-8000-000000000002", "2026-04-16T00:00:00.000Z", "22", 2)
+    prizeRow("00000000-0000-7000-8000-000000000002", "2026-04-16T00:00:00.000Z", "22", 2),
+    prizeRow("00000000-0000-7000-8000-000000000004", "2026-04-30T00:00:00.000Z", "123", 1)
   ];
 }
 

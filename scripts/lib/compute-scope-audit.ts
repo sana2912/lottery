@@ -110,9 +110,9 @@ export function buildComputeScopeAuditReport(input: {
     prizeProfilesByYear,
     semantics: {
       computePipeline:
-        "resolveAnalysisSample (full scope, no LIMIT) → buildAnalyticsReadModelFromPrizes → pattern + calendar read models → analysis_snapshot_runs",
+        "resolveAnalysisSample (full scope, no LIMIT) -> buildAnalysisReadModelsFromSample -> analysis_snapshot_runs",
       scope: ANALYSIS_SCOPE_SEMANTICS,
-      windowPreset: "ALL — windowSize stored equals sampleDrawCount"
+      windowPreset: "ALL only; windowSize stored equals sampleDrawCount"
     },
     summary
   };

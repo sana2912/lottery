@@ -57,19 +57,19 @@ export const dashboardShell: DashboardReadModel = dashboardReadModelSchema.parse
       value: "0"
     },
     {
-      hint: "Number appearing more often than baseline in the current window.",
+      hint: "Number appearing more often than baseline in the current sample.",
       label: "Hot number",
       tone: "hot",
       value: "-"
     },
     {
-      hint: "Number appearing less often than baseline in the current window.",
+      hint: "Number appearing less often than baseline in the current sample.",
       label: "Cold number",
       tone: "cold",
       value: "-"
     },
     {
-      hint: "Number missing longer than the typical gap observed in the current window.",
+      hint: "Number missing longer than the typical gap observed in the current sample.",
       label: "Overdue number",
       tone: "overdue",
       value: "-"

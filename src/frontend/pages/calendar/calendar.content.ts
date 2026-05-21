@@ -35,7 +35,7 @@ export const calendarContent = {
     },
     monthlyInsights: {
       description:
-        "No heatmap rows are available for the selected month, prize type, and window size.",
+        "No heatmap rows are available for the selected month, prize type, and sample scope.",
       title: "No heatmap data"
     }
   },
@@ -105,8 +105,8 @@ export const calendarContent = {
       placeholder: "Prize type"
     },
     windowSize: {
-      label: "Window size",
-      placeholder: "Window size"
+      label: "Sample size",
+      placeholder: "Sample size"
     }
   },
   heatmap: {

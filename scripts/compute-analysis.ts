@@ -2,6 +2,7 @@ import {
   ANALYSIS_MONTHS,
   ANALYSIS_PRIZE_TYPES,
   ANALYSIS_SCOPES,
+  ANALYSIS_WINDOW_PRESET,
   type AnalysisMonth,
   type AnalysisPrizeType,
   type AnalysisScope,
@@ -79,6 +80,7 @@ async function parseArgs(args: readonly string[]): Promise<ComputeAnalysisOption
   );
   const prizeType = values.prizeType;
   const scope = values.scope;
+  const windowPreset = values.windowPreset;
   const month = values.month ? Number(values.month) : undefined;
   let parsedPrizeType: AnalysisPrizeType | undefined;
   let parsedScope: AnalysisScope | undefined;
@@ -101,6 +103,10 @@ async function parseArgs(args: readonly string[]): Promise<ComputeAnalysisOption
 
   if (month !== undefined && !ANALYSIS_MONTHS.includes(month as AnalysisMonth)) {
     throw new Error("Invalid --month. Supported values: 1..12");
+  }
+
+  if (windowPreset !== undefined && windowPreset !== ANALYSIS_WINDOW_PRESET) {
+    throw new Error(`Invalid --windowPreset. Only "${ANALYSIS_WINDOW_PRESET}" is supported.`);
   }
 
   if (parsedScope === "MONTH" && month === undefined) {

@@ -4,7 +4,6 @@ import { analyticsService } from "@/api/service/analytics.service";
 import { predictionService } from "@/api/service/prediction.service";
 import { getPrisma } from "@/api/service/prisma";
 
-const DASHBOARD_WINDOW_SIZE = 120;
 const DASHBOARD_HERO = {
   description:
     "This dashboard summarizes the latest verified draw, live analytics signals, and prediction availability from the current database-backed services.",
@@ -137,10 +136,10 @@ export async function getDashboardReadModel() {
           },
       metrics: [
         {
-          hint: "Distinct draw records included in the current two-digit analytics window.",
+          hint: "Distinct draw records included in the current two-digit analysis sample.",
           label: "Draws in sample",
           tone: "default",
-          trend: `${DASHBOARD_WINDOW_SIZE} draw window`,
+          trend: "Full eligible sample",
           value: String(analytics.summary.drawCount)
         },
         {
@@ -254,7 +253,7 @@ function toSignal(
       ? Math.round(Math.min(100, (stat.missingDrawCount / Math.max(1, stat.drawCount)) * 100))
       : Math.round(stat.frequencyPercent);
 
-  let reason = "Missing longer than neighboring numbers in the same evaluation window.";
+  let reason = "Missing longer than neighboring numbers in the same analysis sample.";
 
   if (tone === "hot") {
     reason = "Repeated more often than the current two-digit sample average.";

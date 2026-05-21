@@ -47,14 +47,14 @@ bun run db:audit
 If you need to refresh one analysis context only:
 
 ```bash
-bun run db:compute-analysis -- --prizeType=TWO_DIGIT --scope=ALL_TIME --windowPreset=50
+bun run db:compute-analysis -- --prizeType=TWO_DIGIT --scope=ALL_TIME
 bun run db:audit
 ```
 
 If you need to refresh one month-scoped analysis context only:
 
 ```bash
-bun run db:compute-analysis -- --prizeType=FIRST --scope=MONTH --month=5 --windowPreset=100
+bun run db:compute-analysis -- --prizeType=FIRST --scope=MONTH --month=5
 bun run db:audit
 ```
 
@@ -117,7 +117,7 @@ bun run scripts/run-with-env.ts <secure-env-file> -- bun scripts/db-audit.ts
 
 ## Deep calculation audits (optional)
 
-Run after changing analytics formulas, heatmap logic, or `analysis-engine-v4`:
+Run after changing analytics formulas, heatmap logic, or `analysis-engine-v8`:
 
 ```bash
 bun run db:audit:calc
@@ -129,14 +129,14 @@ This writes JSON (and markdown summaries) under `reports/audit/`:
 | --- | --- |
 | `db:audit:draw-prizes` | Per-draw prize row counts vs observed profile (sparse early years) |
 | `db:audit:analysis` | Metric denominators, heatmap matrix, snapshot coverage |
-| `db:audit:scope` | **Full v7 compute matrix**: 11 ALL_TIME + 11×12×years MONTH contexts; live sample vs `analysis_snapshot_runs`; in-memory replay vs `resolveAnalysisSample` |
+| `db:audit:scope` | **Full v8 compute matrix**: 11 ALL_TIME + 11×12 MONTH contexts (143 total); live sample vs `analysis_snapshot_runs`; in-memory replay vs `resolveAnalysisSample` |
 
 Use `db:audit` for day-to-day health checks; use `db:audit:calc` when validating compute → snapshot correctness.
 
-Analysis sample (v7):
+Analysis sample (v8):
 
 - **ALL_TIME** — every eligible draw with matching prize types up to now (no draw cap).
-- **MONTH** — `EXTRACT(MONTH)` + `EXTRACT(YEAR)` on `drawDate`; year is required in context.
+- **MONTH** — `EXTRACT(MONTH)` on `drawDate`; month-across-all-years, no year dimension in product/compute.
 - **`windowPreset`** — always `ALL`; `windowSize` in snapshot rows equals `sampleDrawCount`.
 - **Prediction/backtest `windowSize`** — training draw count only; not the analysis sample.
 
@@ -157,7 +157,7 @@ If `db:seed` fails:
 
 If `db:compute-analysis` fails:
 
-- rerun with a single `prizeType`, `scope`, `month`, and `windowPreset` to isolate the problem
+- rerun with a single `prizeType`, `scope`, and `month` to isolate the problem
 - confirm snapshot counts with `db:audit`
 
 If `db:audit` reports stale or zero counts:

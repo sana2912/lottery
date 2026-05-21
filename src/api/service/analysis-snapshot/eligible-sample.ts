@@ -22,10 +22,10 @@ export type EligibleSampleMetrics = {
   prizeCount: number;
 };
 
-export function selectEligibleDraws(
-  draws: readonly EligibleSampleDraw[],
+export function selectEligibleDraws<T extends EligibleSampleDraw>(
+  draws: readonly T[],
   context: AnalysisContext
-): EligibleSampleDraw[] {
+): T[] {
   return draws.filter((draw) => {
     if (context.scope === "MONTH") {
       if (draw.drawDate.getUTCMonth() + 1 !== context.month) {

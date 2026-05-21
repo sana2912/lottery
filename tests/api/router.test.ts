@@ -864,10 +864,10 @@ function dashboardReadModel() {
     },
     metrics: [
       {
-        hint: "Distinct draw records included in the current two-digit analytics window.",
+        hint: "Distinct draw records included in the current two-digit analysis sample.",
         label: "Draws in sample",
         tone: "default" as const,
-        trend: "120 draw window",
+        trend: "Full eligible sample",
         value: "24"
       }
     ],

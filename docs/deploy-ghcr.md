@@ -47,19 +47,19 @@ bun run db:audit:calc
 
 (with production env via `scripts/run-with-env.ts` for analysis/scope audits)
 
-`db:compute-analysis:prod` processes the full v7 matrix (`11 + 11×12×N` contexts, `N` = draw years in DB) and may take a long time.
+`db:compute-analysis:prod` processes the full v8 matrix (`11 + 11×12 = 143` contexts) and may take a long time.
 
 ## 4. Smoke test
 
 | URL | Expect |
 | --- | --- |
-| `GET /api` | `status: "ok"`, `engineVersion: "analysis-engine-v4"` |
+| `GET /api` | `status: "ok"`, `engineVersion: "analysis-engine-v8"` |
 | `/dashboard` | Latest draw and metrics from live API |
 | `/calendar` | Heatmap with varied cell tones per prize row |
 
 ## 5. Optional post-deploy
 
-- Delete legacy `analysis_snapshot_runs` rows where `engineVersion` is not `analysis-engine-v4`
+- Delete legacy `analysis_snapshot_runs` rows where `engineVersion` is not `analysis-engine-v8`
 - Re-run seed + compute after new historical CSV imports
 
 See also [`production-data-ops.md`](production-data-ops.md).

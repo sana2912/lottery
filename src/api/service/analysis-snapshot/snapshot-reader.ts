@@ -20,20 +20,25 @@ import { analysisPatternReadModelSchema } from "@/schema/app/patterns.schema";
 import type { FilterContext } from "@/schema/app/query.schema";
 
 type AnalysisSnapshotRow = {
-  analyticsReadModel: unknown;
   calendarReadModel: unknown;
-  computedAt: Date;
-  patternReadModel: unknown;
+  invalidPrizeCount: number;
+  sampleDrawCount: number;
+  samplePrizeCount: number;
+  windowSize: number | null;
 };
 
 type AnalysisSnapshotAnalyticsRow = {
   analyticsReadModel: unknown;
+  sampleDrawCount: number;
+  samplePrizeCount: number;
+  windowSize: number | null;
 };
 
 type AnalysisSnapshotPatternRow = {
   computedAt: Date;
   patternReadModel: unknown;
   sampleDrawCount: number;
+  samplePrizeCount: number;
   windowSize: number | null;
 };
 
@@ -47,7 +52,11 @@ export async function getAnalysisSnapshotAnalyticsReadModel(query: FilterContext
   const snapshot = await getAnalysisSnapshotAnalyticsRow(context);
   const parsed = analyticsReadModelSchema.safeParse(snapshot?.analyticsReadModel);
 
-  return parsed.success ? (parsed.data satisfies ApiAnalyticsReadModel) : null;
+  if (!snapshot || !parsed.success || !isAnalyticsSnapshotMetadataCurrent(parsed.data, snapshot)) {
+    return null;
+  }
+
+  return parsed.data satisfies ApiAnalyticsReadModel;
 }
 
 export async function getAnalysisSnapshotPatternReadModel(
@@ -66,6 +75,15 @@ export async function getAnalysisSnapshotPatternReadModel(
     return null;
   }
 
+  const expectedWindowSize = snapshot.windowSize ?? snapshot.sampleDrawCount;
+
+  if (
+    parsed.data.sampleSize !== snapshot.samplePrizeCount ||
+    snapshot.windowSize !== snapshot.sampleDrawCount
+  ) {
+    return null;
+  }
+
   const generatedAt = snapshot.computedAt.toISOString();
 
   return {
@@ -77,7 +95,7 @@ export async function getAnalysisSnapshotPatternReadModel(
       scope: context.scope,
       year: context.year,
       windowPreset: context.windowPreset,
-      windowSize: snapshot.windowSize ?? snapshot.sampleDrawCount
+      windowSize: expectedWindowSize
     },
     generatedAt,
     pattern: parsed.data,
@@ -98,7 +116,11 @@ export async function getAnalysisSnapshotCalendarReadModel(query: CalendarHeatma
 
   const snapshot = await getAnalysisSnapshot(context);
 
-  return isAnalysisCalendarHeatmapReadModel(snapshot?.calendarReadModel)
+  if (!snapshot || !isAnalysisCalendarHeatmapReadModel(snapshot.calendarReadModel)) {
+    return null;
+  }
+
+  return isCalendarSnapshotMetadataCurrent(snapshot.calendarReadModel, snapshot)
     ? snapshot.calendarReadModel
     : null;
 }
@@ -172,7 +194,10 @@ async function getAnalysisSnapshotAnalyticsRow(
   try {
     const [snapshot] = await prisma.$queryRaw<AnalysisSnapshotAnalyticsRow[]>`
       SELECT
-        "analyticsReadModel"
+        "analyticsReadModel",
+        "sampleDrawCount",
+        "samplePrizeCount",
+        "windowSize"
       FROM "analysis_snapshot_runs"
       WHERE
         "contextKey" = ${contextKey}
@@ -197,6 +222,7 @@ async function getAnalysisSnapshotPatternRow(
       SELECT
         "patternReadModel",
         "sampleDrawCount",
+        "samplePrizeCount",
         "windowSize",
         "computedAt"
       FROM "analysis_snapshot_runs"
@@ -219,10 +245,11 @@ async function getAnalysisSnapshot(context: AnalysisContext): Promise<AnalysisSn
   try {
     const [snapshot] = await prisma.$queryRaw<AnalysisSnapshotRow[]>`
       SELECT
-        "analyticsReadModel",
-        "patternReadModel",
         "calendarReadModel",
-        "computedAt"
+        "sampleDrawCount",
+        "samplePrizeCount",
+        "invalidPrizeCount",
+        "windowSize"
       FROM "analysis_snapshot_runs"
       WHERE
         "contextKey" = ${contextKey}
@@ -245,5 +272,42 @@ function isAnalysisCalendarHeatmapReadModel(
 
   return (
     "heatmapRows" in value && Array.isArray((value as AnalysisCalendarHeatmapReadModel).heatmapRows)
+  );
+}
+
+function isAnalyticsSnapshotMetadataCurrent(
+  model: ApiAnalyticsReadModel,
+  snapshot: AnalysisSnapshotAnalyticsRow
+) {
+  const expectedWindowSize = snapshot.windowSize ?? snapshot.sampleDrawCount;
+
+  return (
+    snapshot.windowSize === snapshot.sampleDrawCount &&
+    model.summary.drawCount === snapshot.sampleDrawCount &&
+    model.summary.prizeCount === snapshot.samplePrizeCount &&
+    (snapshot.samplePrizeCount === 0 || model.numberStats.length > 0) &&
+    model.digitStats.every(
+      (stat) =>
+        stat.drawCount === snapshot.sampleDrawCount && stat.windowSize === expectedWindowSize
+    ) &&
+    model.numberStats.every(
+      (stat) =>
+        stat.drawCount === snapshot.sampleDrawCount &&
+        stat.windowSize === expectedWindowSize &&
+        stat.samplePrizeCount === snapshot.samplePrizeCount
+    )
+  );
+}
+
+function isCalendarSnapshotMetadataCurrent(
+  model: AnalysisCalendarHeatmapReadModel,
+  snapshot: AnalysisSnapshotRow
+) {
+  return (
+    snapshot.windowSize === snapshot.sampleDrawCount &&
+    model.drawCount === snapshot.sampleDrawCount &&
+    model.invalidPrizeCount === snapshot.invalidPrizeCount &&
+    model.prizeCount === snapshot.samplePrizeCount &&
+    model.sampleSize === snapshot.sampleDrawCount
   );
 }

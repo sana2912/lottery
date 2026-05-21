@@ -13,22 +13,29 @@ import type { FilterContext } from "@/schema/app/query.schema";
 
 export type AnalyticsQuery = FilterContext;
 
+type AnalysisSampleMetadata = {
+  drawCount: number;
+  prizeCount?: number;
+};
+
 export function buildAnalyticsReadModelFromPrizes(
   prizes: readonly AnalysisPrizeSample[],
   context: Pick<
     AnalysisContext,
     "lotteryType" | "numberLength" | "prizeType" | "scope" | "month" | "year" | "windowPreset"
   >,
-  computedAt: Date
+  computedAt: Date,
+  sampleMetadata?: AnalysisSampleMetadata
 ): ApiAnalyticsReadModel {
   const normalizedPrizes = prizes.map((prize) => ({
     ...prize,
     type: isGroupedAnalysisPrizeType(context.prizeType) ? context.prizeType : prize.type
   }));
-  const drawCount = new Set(normalizedPrizes.map((prize) => prize.drawId)).size;
-  const prizeCount = normalizedPrizes.filter(
-    (prize) => prize.number.length === context.numberLength
-  ).length;
+  const drawCount =
+    sampleMetadata?.drawCount ?? new Set(normalizedPrizes.map((prize) => prize.drawId)).size;
+  const prizeCount =
+    sampleMetadata?.prizeCount ??
+    normalizedPrizes.filter((prize) => prize.number.length === context.numberLength).length;
   const statsContext = {
     computedAt,
     drawCount,

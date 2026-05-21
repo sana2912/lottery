@@ -166,7 +166,7 @@ describe("analysis snapshot engine", () => {
       scope: "MONTH",
       windowPreset: "ALL"
     });
-    expect(transactionOptions).toEqual([{ timeout: 60_000 }]);
+    expect(transactionOptions[0]?.timeout).toBeGreaterThanOrEqual(120_000);
     expect(executedSql.some((sql) => sql.includes('DELETE FROM "analysis_snapshot_runs"'))).toBe(
       true
     );
@@ -250,7 +250,7 @@ describe("analysis snapshot engine", () => {
             },
             sampleDrawCount: 2,
             samplePrizeCount: 3,
-            windowSize: 50
+            windowSize: 2
           }
         ];
       }

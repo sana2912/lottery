@@ -69,16 +69,11 @@ export function selectMatrixSampleDraws(
   draws: ReturnType<typeof buildSyntheticDraws>,
   prizeType: MatrixPrizeType,
   scope: MatrixScope,
-  month?: number,
-  year = 2026
+  month?: number
 ) {
   const matching = draws.filter((draw) => {
     if (scope === "MONTH") {
       if (draw.drawDate.getUTCMonth() + 1 !== month) {
-        return false;
-      }
-
-      if (draw.drawDate.getUTCFullYear() !== year) {
         return false;
       }
     }

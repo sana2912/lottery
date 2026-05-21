@@ -24,13 +24,12 @@ export const methodologyContent = {
     eyebrow: "Glossary",
     items: [
       {
-        detail:
-          "How many historical draws are visible to analytics, compare, prediction, and backtest runs.",
+        detail: "How many historical draws are visible to compare, prediction, and backtest runs.",
         term: "Window size"
       },
       {
         detail:
-          "How many eligible historical rows contributed to a summary, comparison, or month insight.",
+          "How many eligible historical draws or prize rows contributed to an analytics summary, pattern view, or month insight.",
         term: "Sample size"
       },
       {
@@ -59,7 +58,7 @@ export const methodologyContent = {
     eyebrow: "Limits",
     items: [
       "The dashboard does not estimate true winning odds and does not guarantee future outcomes.",
-      "Strategy scores depend on the chosen prize type, number length, date range, and window size. Changing context can change ranking materially.",
+      "Strategy scores depend on the chosen prize type, number length, date range, scope, and training window. Changing context can change ranking materially.",
       "Historical patterns can disappear. Use this product as a research aid, not as evidence that chance has been removed from the lottery."
     ],
     linkHref: "#prediction-score",
@@ -77,7 +76,7 @@ export const methodologyContent = {
         title: "Sample-size rule"
       },
       scopeRule: {
-        body: "Hot and cold numbers in Calendar are seasonality hints. They are not direct substitutes for the main analytics views, which use broader configurable windows.",
+        body: "Hot and cold numbers in Calendar are seasonality hints. They are not direct substitutes for the main analytics views, which use broader analysis samples across the selected scope.",
         title: "Scope rule"
       }
     },

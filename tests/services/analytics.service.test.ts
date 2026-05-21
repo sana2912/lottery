@@ -46,6 +46,7 @@ describe("analytics.service", () => {
           numberLength: 2,
           patternFlags: ["odd", "high"],
           prizeType: "TWO_DIGIT",
+          samplePrizeCount: 4,
           trendScore: 39.33,
           windowSize: 50
         }
@@ -54,7 +55,8 @@ describe("analytics.service", () => {
       source: "api",
       summary: {
         drawCount: 50,
-        generatedAt: "2026-04-29T00:00:00.000Z"
+        generatedAt: "2026-04-29T00:00:00.000Z",
+        prizeCount: 4
       }
     };
 
@@ -66,7 +68,10 @@ describe("analytics.service", () => {
         if (sql.includes('FROM "analysis_snapshot_runs"')) {
           return [
             {
-              analyticsReadModel
+              analyticsReadModel,
+              sampleDrawCount: 50,
+              samplePrizeCount: 4,
+              windowSize: 50
             }
           ];
         }
@@ -90,6 +95,89 @@ describe("analytics.service", () => {
     expect(analyticsReadModelSchema.parse(model)).toEqual(model);
     expect(model.summary.drawCount).toBe(50);
     expect(model.numberStats[0]?.number).toBe("09");
+  });
+
+  test("falls back on-demand when snapshot metadata is stale", async () => {
+    const queryCalls: string[] = [];
+    const staleAnalyticsReadModel = {
+      digitStats: [],
+      generatedAt: "2026-04-29T00:00:00.000Z",
+      numberStats: [],
+      patternSummaries: [],
+      source: "api",
+      summary: {
+        drawCount: 50,
+        generatedAt: "2026-04-29T00:00:00.000Z",
+        prizeCount: 50
+      }
+    };
+
+    (globalThis as { prisma?: unknown }).prisma = {
+      $queryRaw: async (...args: unknown[]) => {
+        const sql = getSqlText(args[0]);
+        queryCalls.push(sql);
+
+        if (sql.includes('FROM "analysis_snapshot_runs"')) {
+          return [
+            {
+              analyticsReadModel: staleAnalyticsReadModel,
+              sampleDrawCount: 2,
+              samplePrizeCount: 2,
+              windowSize: 2
+            }
+          ];
+        }
+
+        if (sql.includes("SELECT DISTINCT")) {
+          return [
+            {
+              drawDate: new Date("2026-04-01T00:00:00.000Z"),
+              id: "draw-1",
+              lotteryType: "THAI_GOVERNMENT"
+            },
+            {
+              drawDate: new Date("2026-04-16T00:00:00.000Z"),
+              id: "draw-2",
+              lotteryType: "THAI_GOVERNMENT"
+            }
+          ];
+        }
+
+        return [
+          {
+            drawDate: new Date("2026-04-01T00:00:00.000Z"),
+            drawId: "draw-1",
+            lotteryType: "THAI_GOVERNMENT",
+            number: "09",
+            position: 1,
+            type: "TWO_DIGIT"
+          },
+          {
+            drawDate: new Date("2026-04-16T00:00:00.000Z"),
+            drawId: "draw-2",
+            lotteryType: "THAI_GOVERNMENT",
+            number: "11",
+            position: 1,
+            type: "TWO_DIGIT"
+          }
+        ];
+      }
+    };
+
+    const model = await getAnalyticsReadModel({
+      lotteryType: "THAI_GOVERNMENT",
+      numberLength: 2,
+      page: 1,
+      pageSize: 20,
+      prizeType: "TWO_DIGIT",
+      windowPreset: "ALL"
+    });
+
+    expect(queryCalls.some((sql) => sql.includes("SELECT DISTINCT"))).toBe(true);
+    expect(model.source).toBe("on-demand");
+    expect(model.summary.drawCount).toBe(2);
+    expect(model.summary.prizeCount).toBe(2);
+    expect(model.numberStats.map((stat) => stat.number).sort()).toEqual(["09", "11"]);
   });
 
   test("returns an empty safe read model when query is outside snapshot context", async () => {

@@ -56,7 +56,7 @@ export function buildAnalysisCalendarHeatmapReadModel(
     prizeCount: sample.prizeCount,
     prizesPerDrawActual: metadata.prizesPerDrawActual,
     prizesPerDrawExpected: metadata.prizesPerDrawExpected,
-    sampleSize: sampleDraws.length,
+    sampleSize: sample.drawCount,
     scope: context.scope,
     summary: metadata.summary
   };
