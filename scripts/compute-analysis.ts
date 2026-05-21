@@ -2,31 +2,36 @@ import {
   ANALYSIS_MONTHS,
   ANALYSIS_PRIZE_TYPES,
   ANALYSIS_SCOPES,
-  ANALYSIS_WINDOW_PRESETS,
+  ANALYSIS_WINDOW_PRESET,
   type AnalysisMonth,
   type AnalysisPrizeType,
   type AnalysisScope,
-  type AnalysisWindowPreset,
   isAnalysisPrizeType,
-  isAnalysisScope,
-  isAnalysisWindowPreset
+  isAnalysisScope
 } from "@/api/service/analysis-snapshot/analysis-context";
 import { recomputeAnalysisSnapshot } from "@/api/service/analysis-snapshot/compute-analysis-snapshot";
-import { listAnalysisContexts } from "@/api/service/analysis-snapshot/context-plan";
+import {
+  getExpectedAnalysisContextCount,
+  listAllTimeAnalysisContexts,
+  listAnalysisContexts
+} from "@/api/service/analysis-snapshot/context-plan";
 
 type ComputeAnalysisOptions = {
   month?: AnalysisMonth;
   prizeType?: AnalysisPrizeType;
   scope?: AnalysisScope;
-  windowPreset?: AnalysisWindowPreset;
 };
 
 async function main() {
-  const options = parseArgs(process.argv.slice(2));
+  const options = await parseArgs(process.argv.slice(2));
   const contexts = buildComputePlan(options);
 
+  assertFullComputePlan(contexts, options);
+
+  const expected = getExpectedAnalysisContextCount();
+
   console.info(
-    `Compute analysis: recomputing ${contexts.length} context${contexts.length === 1 ? "" : "s"}.`
+    `Compute analysis: recomputing ${contexts.length} context${contexts.length === 1 ? "" : "s"}. Expected full matrix: ${expected}.`
   );
 
   for (const [index, context] of contexts.entries()) {
@@ -35,6 +40,7 @@ async function main() {
       `prizeType=${context.prizeType}`,
       `scope=${context.scope}`,
       `month=${context.month ?? "ALL"}`,
+      `years=ALL_YEARS`,
       `window=${context.windowPreset}`
     ].join(" ");
     const startedAt = Date.now();
@@ -55,14 +61,16 @@ async function main() {
   }
 }
 
-void main().catch((error: unknown) => {
-  const message = error instanceof Error ? error.message : String(error);
+if (import.meta.main) {
+  void main().catch((error: unknown) => {
+    const message = error instanceof Error ? error.message : String(error);
 
-  console.error(`Compute analysis failed: ${message}`);
-  process.exitCode = 1;
-});
+    console.error(`Compute analysis failed: ${message}`);
+    process.exitCode = 1;
+  });
+}
 
-function parseArgs(args: readonly string[]): ComputeAnalysisOptions {
+async function parseArgs(args: readonly string[]): Promise<ComputeAnalysisOptions> {
   const values = Object.fromEntries(
     args.map((argument) => {
       const [key, value] = argument.replace(/^--/, "").split("=", 2);
@@ -71,12 +79,11 @@ function parseArgs(args: readonly string[]): ComputeAnalysisOptions {
     })
   );
   const prizeType = values.prizeType;
-  const windowPreset = values.windowPreset;
   const scope = values.scope;
+  const windowPreset = values.windowPreset;
   const month = values.month ? Number(values.month) : undefined;
   let parsedPrizeType: AnalysisPrizeType | undefined;
   let parsedScope: AnalysisScope | undefined;
-  let parsedWindowPreset: AnalysisWindowPreset | undefined;
 
   if (prizeType) {
     if (!isAnalysisPrizeType(prizeType)) {
@@ -84,16 +91,6 @@ function parseArgs(args: readonly string[]): ComputeAnalysisOptions {
     }
 
     parsedPrizeType = prizeType;
-  }
-
-  if (windowPreset) {
-    if (!isAnalysisWindowPreset(windowPreset)) {
-      throw new Error(
-        `Invalid --windowPreset. Supported values: ${ANALYSIS_WINDOW_PRESETS.join(", ")}`
-      );
-    }
-
-    parsedWindowPreset = windowPreset;
   }
 
   if (scope) {
@@ -108,11 +105,18 @@ function parseArgs(args: readonly string[]): ComputeAnalysisOptions {
     throw new Error("Invalid --month. Supported values: 1..12");
   }
 
+  if (windowPreset !== undefined && windowPreset !== ANALYSIS_WINDOW_PRESET) {
+    throw new Error(`Invalid --windowPreset. Only "${ANALYSIS_WINDOW_PRESET}" is supported.`);
+  }
+
+  if (parsedScope === "MONTH" && month === undefined) {
+    throw new Error("MONTH scope requires --month=1..12");
+  }
+
   return {
     month: month as AnalysisMonth | undefined,
     prizeType: parsedPrizeType,
-    scope: parsedScope,
-    windowPreset: parsedWindowPreset
+    scope: parsedScope
   };
 }
 
@@ -120,7 +124,23 @@ function buildComputePlan(options: ComputeAnalysisOptions) {
   return listAnalysisContexts({
     month: options.month,
     prizeType: options.prizeType,
-    scope: options.scope,
-    windowPreset: options.windowPreset
+    scope: options.scope
   });
+}
+
+function assertFullComputePlan(
+  contexts: ReturnType<typeof buildComputePlan>,
+  options: ComputeAnalysisOptions
+) {
+  const isFilteredRun =
+    options.scope !== undefined || options.prizeType !== undefined || options.month !== undefined;
+
+  if (!isFilteredRun && contexts.length <= listAllTimeAnalysisContexts().length) {
+    throw new Error(
+      [
+        `Full db:compute-analysis resolved only ${contexts.length} contexts (ALL_TIME only).`,
+        "MONTH matrix was skipped — expected 143 contexts (11 ALL_TIME + 132 MONTH)."
+      ].join(" ")
+    );
+  }
 }

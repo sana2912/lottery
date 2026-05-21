@@ -185,12 +185,12 @@ async function mergeDbSpotChecks(
 
 async function runBaselineDbSpotChecks() {
   const spotContexts = [
-    ...listAnalysisContexts({ scope: "ALL_TIME", windowPreset: "50" }).filter(
+    ...listAnalysisContexts({ scope: "ALL_TIME" }).filter(
       (context, index, all) =>
         all.findIndex((item) => item.prizeType === context.prizeType) === index
     ),
-    ...listAnalysisContexts({ scope: "MONTH", month: 1, windowPreset: "50" }),
-    ...listAnalysisContexts({ scope: "MONTH", month: 12, windowPreset: "ALL" })
+    ...listAnalysisContexts({ scope: "MONTH", month: 1 }),
+    ...listAnalysisContexts({ scope: "MONTH", month: 12 })
   ];
   const results = new Map<string, { drawCount: number; prizeCount: number }>();
 

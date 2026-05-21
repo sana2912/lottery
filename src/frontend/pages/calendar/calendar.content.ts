@@ -35,7 +35,7 @@ export const calendarContent = {
     },
     monthlyInsights: {
       description:
-        "No heatmap rows are available for the selected month, prize type, and window size.",
+        "No heatmap rows are available for the selected month, prize type, and sample scope.",
       title: "No heatmap data"
     }
   },
@@ -84,38 +84,45 @@ export const calendarContent = {
   },
   monthlyInsights: {
     description:
-      "The heatmap shows digit-position event rates for the selected prize and window. Cell colors highlight the strongest and weakest digits within each position row, not across prize types.",
+      "Each cell shows how often a digit appeared at that position across all prize numbers in the selected draws. Colors rank digits within the row only—not win odds.",
     eyebrow: "Monthly heatmap",
     title: "Digit heatmap by position"
   },
   filters: {
-    description:
-      "Change the month, window size, and prize type to redraw the heatmap from a new sample.",
+    description: "All months in history, or one calendar month across every year, plus prize type.",
     eyebrow: "Heatmap controls",
     title: "Choose the sample",
     month: {
       label: "Month",
       placeholder: "Month"
     },
+    year: {
+      label: "Year",
+      placeholder: "Year"
+    },
     prizeType: {
       label: "Prize type",
       placeholder: "Prize type"
     },
     windowSize: {
-      label: "Window size",
-      placeholder: "Window size"
+      label: "Sample size",
+      placeholder: "Sample size"
     }
   },
   heatmap: {
+    cellHitRate: "Hit rate",
+    cellHits: "Hits",
     legend: {
       cold: "Cold (lowest in row)",
-      countSample: "Count / sample",
-      eventRate: "Event rate",
-      expectedRate: "Expected 10%",
+      hitFrom: "Hits / opportunities",
+      hitRate: "Hit rate %",
       hot: "Hot (highest in row)",
-      lift: "Lift",
       relativeColor: "Colors are relative within each position row"
     },
+    partialDataBadge: "Incomplete prize rows",
+    partialDataNote:
+      "This sample has fewer prize rows per draw than the standard catalog count. Hit rates use actual rows only.",
+    sampleContext: "{drawCount} draws × ~{prizesPerDraw} prizes/draw",
     title: "Heatmap details"
   },
   nextDraw: {

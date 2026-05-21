@@ -1,7 +1,8 @@
-import {
-  type AnalysisContext,
-  getAnalysisWindowLimit
-} from "@/api/service/analysis-snapshot/analysis-context";
+/**
+ * SQL scope/prize filters must stay aligned with in-memory replay in
+ * `eligible-sample.ts` (MONTH across years or optional year, source prize types, numberLength).
+ */
+import type { AnalysisContext } from "@/api/service/analysis-snapshot/analysis-context";
 import {
   getPrizeTypesForSampleQuery,
   matchesAnalysisPrizeSample,
@@ -92,7 +93,6 @@ export async function resolveAnalysisSample(context: AnalysisContext): Promise<A
 }
 
 async function getAnalysisDrawRows(prisma: ReturnType<typeof getPrisma>, context: AnalysisContext) {
-  const limit = getAnalysisWindowLimit(context.windowPreset);
   const sourcePrizeTypes = getSourcePrizeTypeSql(context);
   const rows = await prisma.$queryRaw<DrawRow[]>`
     SELECT DISTINCT
@@ -106,9 +106,8 @@ async function getAnalysisDrawRows(prisma: ReturnType<typeof getPrisma>, context
       draw."lotteryType" = ${context.lotteryType}::"LotteryType"
       AND prize."type" IN (${sourcePrizeTypes})
       AND draw."drawDate" <= ${new Date()}
-      AND (${context.scope} <> 'MONTH' OR EXTRACT(MONTH FROM draw."drawDate") = ${context.month ?? 0})
-    ORDER BY draw."drawDate" DESC
-    ${limit ? Prisma.sql`LIMIT ${limit}` : Prisma.empty}
+      AND (${getDrawScopeSql(context)})
+      ORDER BY draw."drawDate" DESC
   `;
 
   return rows.sort((left, right) => left.drawDate.getTime() - right.drawDate.getTime());
@@ -137,6 +136,23 @@ async function getAnalysisPrizeRows(
       AND prize."type" IN (${sourcePrizeTypes})
     ORDER BY draw."drawDate" ASC, COALESCE(prize."position", 0) ASC, prize."number" ASC
   `;
+}
+
+function getDrawScopeSql(context: AnalysisContext): Prisma.Sql {
+  if (context.scope !== "MONTH") {
+    return Prisma.sql`TRUE`;
+  }
+
+  const month = context.month ?? 0;
+
+  if (context.year !== undefined) {
+    return Prisma.sql`(
+      EXTRACT(MONTH FROM draw."drawDate") = ${month}
+      AND EXTRACT(YEAR FROM draw."drawDate") = ${context.year}
+    )`;
+  }
+
+  return Prisma.sql`EXTRACT(MONTH FROM draw."drawDate") = ${month}`;
 }
 
 function getSourcePrizeTypeSql(context: AnalysisContext) {

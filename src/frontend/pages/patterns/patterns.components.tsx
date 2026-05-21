@@ -8,8 +8,7 @@ import {
   type PatternPageQuery,
   patternMonthOptions,
   patternPrizeOptions,
-  patternScopeOptions,
-  patternWindowOptions
+  patternScopeOptions
 } from "@/frontend/pages/patterns/patterns.mappers";
 import { Button, Card } from "@/frontend/primitives";
 
@@ -19,10 +18,10 @@ type PatternsFilterPanelProps = Readonly<{
 
 export function PatternsFilterPanel({ query }: PatternsFilterPanelProps) {
   const router = useRouter();
+  const now = new Date();
   const [prizeType, setPrizeType] = useState(query.prizeType);
   const [scope, setScope] = useState(query.scope);
-  const [month, setMonth] = useState(query.month ?? new Date().getUTCMonth() + 1);
-  const [windowPreset, setWindowPreset] = useState(query.windowPreset);
+  const [month, setMonth] = useState(query.month ?? now.getUTCMonth() + 1);
 
   function submitFilters(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -32,9 +31,7 @@ export function PatternsFilterPanel({ query }: PatternsFilterPanelProps) {
         pattern: undefined,
         month: scope === "MONTH" ? month : undefined,
         prizeType,
-        scope,
-        windowPreset,
-        windowSize: windowPreset
+        scope
       })
     );
   }
@@ -42,7 +39,7 @@ export function PatternsFilterPanel({ query }: PatternsFilterPanelProps) {
   return (
     <Card className="border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] p-5 shadow-[var(--shadow-card)]">
       <form
-        className="grid gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)_minmax(0,0.8fr)_auto] lg:items-end"
+        className="grid gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)_auto] lg:items-end"
         onSubmit={submitFilters}
       >
         <div>
@@ -78,7 +75,7 @@ export function PatternsFilterPanel({ query }: PatternsFilterPanelProps) {
 
         <div>
           <p className="mt-2 text-sm leading-6 text-[var(--color-text-secondary)]">
-            Choose whether this analysis uses every month or one historical month only.
+            All months in history, or one calendar month across every year.
           </p>
           <label
             className="mt-4 block text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]"
@@ -119,34 +116,6 @@ export function PatternsFilterPanel({ query }: PatternsFilterPanelProps) {
               ))}
             </select>
           ) : null}
-        </div>
-
-        <div>
-          <p className="mt-2 text-sm leading-6 text-[var(--color-text-secondary)]">
-            {patternsContent.filters.windowSummary}
-          </p>
-          <label
-            className="mt-4 block text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]"
-            htmlFor="patterns-window-size"
-          >
-            {patternsContent.filters.windowStep}
-          </label>
-          <select
-            className="mt-2 h-11 w-full rounded-none border border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 py-2 text-sm font-semibold text-[var(--color-text-primary)] shadow-[var(--shadow-micro)] focus:border-[var(--color-brand)] focus:outline-none"
-            id="patterns-window-size"
-            name="windowPreset"
-            onChange={(event) => {
-              setWindowPreset(event.target.value as typeof windowPreset);
-            }}
-            required
-            value={windowPreset}
-          >
-            {patternWindowOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
         </div>
 
         <div>

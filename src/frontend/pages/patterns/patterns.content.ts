@@ -9,8 +9,8 @@ export const patternsContent = {
     prizeStep: "1. เลือกรางวัลก่อน",
     prizeSummary:
       "รางวัลแต่ละประเภทมีจำนวนหลักและ sample size ไม่เท่ากัน จึงต้องเลือก prize type ก่อนวิเคราะห์ shape",
-    windowStep: "2. เลือกช่วงงวดย้อนหลัง",
-    windowSummary: "หลังจากเลือกรางวัลแล้ว ค่อยกำหนดจำนวนงวดที่ใช้เป็น sample window"
+    windowStep: "2. เลือก scope ของ sample",
+    windowSummary: "ระบบใช้ full eligible sample ใน scope ที่เลือก ไม่มี cap 50/100/500"
   },
   hero: {
     description:

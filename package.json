@@ -10,6 +10,7 @@
     "lint": "bun --bun biome check . && bun --bun eslint .",
     "format": "bun --bun biome format --write .",
     "check": "bun --bun biome check . && bun --bun eslint . --max-warnings=0 && bun run typecheck",
+    "precommit": "bun run typecheck",
     "docker:local": "docker compose --env-file .env.development -f docker-compose.local.yml up --build",
     "docker:local:down": "docker compose --env-file .env.development -f docker-compose.local.yml down",
     "docker:local:logs": "docker compose --env-file .env.development -f docker-compose.local.yml logs -f web",

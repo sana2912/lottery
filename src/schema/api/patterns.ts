@@ -37,7 +37,8 @@ export interface ApiPatternsReadModel {
     numberLength: 2 | 3 | 6;
     prizeType: string;
     scope: "ALL_TIME" | "MONTH";
-    windowPreset: "50" | "100" | "500" | "ALL";
+    windowPreset: "ALL";
+    year?: number;
     windowSize: number;
   };
   generatedAt: string;

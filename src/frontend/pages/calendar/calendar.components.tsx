@@ -7,8 +7,7 @@ import {
   type CalendarPageFilters,
   getCalendarMonthOptions,
   getCalendarPrizeTypeOptions,
-  getCalendarScopeOptions,
-  getCalendarWindowPresetOptions
+  getCalendarScopeOptions
 } from "@/frontend/pages/calendar/calendar.mappers";
 import {
   Label,
@@ -30,7 +29,6 @@ export function CalendarHeatmapFilters({ filters }: CalendarHeatmapFiltersProps)
   const monthOptions = getCalendarMonthOptions();
   const prizeTypeOptions = getCalendarPrizeTypeOptions();
   const scopeOptions = getCalendarScopeOptions();
-  const windowPresetOptions = getCalendarWindowPresetOptions();
 
   function updateQuery(nextPartialFilters: Partial<CalendarPageFilters>) {
     const nextSearchParams = new URLSearchParams(searchParams.toString());
@@ -42,9 +40,10 @@ export function CalendarHeatmapFilters({ filters }: CalendarHeatmapFiltersProps)
       nextSearchParams.delete("month");
     }
 
+    nextSearchParams.delete("year");
     nextSearchParams.set("prizeType", nextFilters.prizeType);
     nextSearchParams.set("scope", nextFilters.scope);
-    nextSearchParams.set("windowPreset", nextFilters.windowPreset);
+    nextSearchParams.delete("windowPreset");
     nextSearchParams.delete("windowSize");
 
     router.replace(
@@ -53,16 +52,17 @@ export function CalendarHeatmapFilters({ filters }: CalendarHeatmapFiltersProps)
   }
 
   return (
-    <div className="grid gap-3 lg:grid-cols-4">
+    <div className="grid gap-3 lg:grid-cols-3">
       <Field label="Scope">
         <Select
-          onValueChange={(value) =>
+          onValueChange={(value) => {
+            const now = new Date();
+
             updateQuery({
-              month:
-                value === "MONTH" ? (filters.month ?? new Date().getUTCMonth() + 1) : undefined,
+              month: value === "MONTH" ? (filters.month ?? now.getUTCMonth() + 1) : undefined,
               scope: value as CalendarPageFilters["scope"]
-            })
-          }
+            });
+          }}
           value={filters.scope}
         >
           <SelectTrigger className="h-11 w-full rounded-none border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 py-3 shadow-[var(--shadow-micro)]">
@@ -115,29 +115,6 @@ export function CalendarHeatmapFilters({ filters }: CalendarHeatmapFiltersProps)
           </SelectTrigger>
           <SelectContent>
             {prizeTypeOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </Field>
-
-      <Field label={calendarContent.filters.windowSize.label}>
-        <Select
-          onValueChange={(value) =>
-            updateQuery({
-              windowPreset: value as CalendarPageFilters["windowPreset"],
-              windowSize: value === "ALL" ? 500 : Number(value)
-            })
-          }
-          value={filters.windowPreset}
-        >
-          <SelectTrigger className="h-11 w-fulls rounded-none border-[var(--color-border-default)] bg-[var(--color-bg-canvas)] px-4 py-3 shadow-[var(--shadow-micro)]">
-            <SelectValue placeholder={calendarContent.filters.windowSize.placeholder} />
-          </SelectTrigger>
-          <SelectContent>
-            {windowPresetOptions.map((option) => (
               <SelectItem key={option.value} value={option.value}>
                 {option.label}
               </SelectItem>

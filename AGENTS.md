@@ -14,7 +14,7 @@ Operating guide for AI/code agents in this repository.
 | `bun run db:compute-analysis` | After analytics engine or snapshot payload changes |
 | `bun run db:audit` | After seed, import, or compute |
 | `bun run db:audit:calc` | Deep audits: draw-prizes + normalization + compute scope matrix |
-| `bun run db:audit:scope` | Compute/snapshot scope only (572 contexts) |
+| `bun run db:audit:scope` | Compute/snapshot scope: v8 matrix (`11 + 11×12` = 143 contexts) |
 
 Agents may edit code, read files, and explain failures from user-provided output. Do not bypass Husky pre-commit unless the user asks.
 
@@ -38,6 +38,16 @@ When you touch a feature, page, API, or data pipeline, finish it **end-to-end** 
 6. **No drive-by** — do not start a second feature while the first is incomplete; do not leave TODO stubs, mock-only paths, or partial refactors.
 
 **One task, one completion.** If scope is too large, propose a split with a clear done checklist per slice — do not jump to a new feature and leave the prior slice half-wired.
+
+### Analysis pipeline guardrails
+
+When changing analytics sample, snapshot, calendar heatmap, or audit scripts:
+
+1. **One contract** — update `docs/calculate.md` §2 in the same change; do not add a third sample path (snapshot / on-demand / separate cap).
+2. **Parity** — extend `tests/analysis/analysis-pipeline-parity.test.ts` or `tests/analysis/compute-scope-audit.test.ts` so snapshot, on-demand, and `eligible-sample` replay agree for the touched context.
+3. **Audit** — `scripts/lib/compute-scope-audit.ts` must import eligibility from `eligible-sample.ts` (aligned with `sample-resolver.ts` SQL).
+4. **Terminology** — `windowSize` in analysis = stored `sampleDrawCount`; prediction/backtest `windowSize` = training draw count (different domain).
+5. **Close the loop** — ask the human to run `db:compute-analysis` + `db:audit:scope` after snapshot payload changes; fix sample/snapshot before UI patches.
 
 ## Runtime
 

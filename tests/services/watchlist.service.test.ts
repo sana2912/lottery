@@ -66,7 +66,8 @@ describe("watchlist.service", () => {
         page: 1,
         pageSize: 1000,
         prizeType: "TWO_DIGIT",
-        windowSize: 120
+        scope: "ALL_TIME",
+        windowPreset: "ALL"
       },
       {
         lotteryType: "THAI_GOVERNMENT",
@@ -74,7 +75,8 @@ describe("watchlist.service", () => {
         page: 1,
         pageSize: 5000,
         prizeType: "SIX_DIGIT_ALL",
-        windowSize: 120
+        scope: "ALL_TIME",
+        windowPreset: "ALL"
       }
     ]);
     expect(watchlistReadModelSchema.parse(response)).toEqual(response);

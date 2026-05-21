@@ -1,29 +1,19 @@
 import {
   ANALYSIS_ENGINE_VERSION,
   type AnalysisContext,
-  getAnalysisContextKey,
-  getAnalysisPrizeNumberLength,
-  getAnalysisWindowLimit
+  getAnalysisContextKey
 } from "@/api/service/analysis-snapshot/analysis-context";
 import {
   ANALYSIS_SCOPE_SEMANTICS,
-  ANALYSIS_WINDOW_SEMANTICS,
   listAnalysisContexts
 } from "@/api/service/analysis-snapshot/context-plan";
 import {
-  matchesAnalysisPrizeSample,
-  toAnalysisPrizeTypeLabel
-} from "@/api/service/analysis-snapshot/prize-sample-types";
+  type EligibleSampleDraw,
+  replayEligibleSampleFromDraws,
+  selectEligibleDraws
+} from "@/api/service/analysis-snapshot/eligible-sample";
 
-export type ScopeAuditDraw = {
-  drawDate: Date;
-  drawNo: string | null;
-  prizes: Array<{
-    number: string;
-    position: number | null;
-    type: string;
-  }>;
-};
+export type ScopeAuditDraw = EligibleSampleDraw;
 
 export type ScopeAuditSnapshot = {
   computedAt: Date;
@@ -47,8 +37,8 @@ export type ContextAuditStatus =
   | "legacy_engine"
   | "draw_count_mismatch"
   | "prize_count_mismatch"
-  | "window_size_mismatch"
   | "month_scope_leak"
+  | "year_scope_leak"
   | "zero_eligible"
   | "db_resolver_mismatch";
 
@@ -69,7 +59,6 @@ export type ContextAuditRow = {
   snapshotSamplePrizeCount: number | null;
   snapshotWindowSize: number | null;
   status: ContextAuditStatus;
-  underfilledWindow: boolean;
   windowPreset: string;
 };
 
@@ -121,9 +110,9 @@ export function buildComputeScopeAuditReport(input: {
     prizeProfilesByYear,
     semantics: {
       computePipeline:
-        "resolveAnalysisSample → buildAnalyticsReadModelFromPrizes(windowSize = cap ?? sampleDrawCount) → pattern + calendar read models → analysis_snapshot_runs",
+        "resolveAnalysisSample (full scope, no LIMIT) -> buildAnalysisReadModelsFromSample -> analysis_snapshot_runs",
       scope: ANALYSIS_SCOPE_SEMANTICS,
-      windowPreset: ANALYSIS_WINDOW_SEMANTICS
+      windowPreset: "ALL only; windowSize stored equals sampleDrawCount"
     },
     summary
   };
@@ -135,20 +124,13 @@ export function auditContext(
   snapshot: ScopeAuditSnapshot | undefined,
   dbSpotChecks?: ReadonlyMap<string, { drawCount: number; prizeCount: number }>
 ): ContextAuditRow {
-  const configuredDrawCap = getAnalysisWindowLimit(context.windowPreset) ?? null;
   const eligibleDraws = selectEligibleDraws(draws, context);
-  const sampleDraws = applyWindowCap(eligibleDraws, configuredDrawCap);
-  const livePrizes = sampleDraws.flatMap((draw) =>
-    filterValidPrizes(draw.prizes, context).map((prize) => ({
-      drawDate: draw.drawDate,
-      number: prize.number
-    }))
-  );
-  const expectedSampleDrawCount = sampleDraws.length;
-  const liveSampleDrawCount = expectedSampleDrawCount;
-  const liveSamplePrizeCount = livePrizes.length;
-  const invalidPrizeCountLive = countInvalidLength(draws, context, sampleDraws);
-  const expectedWindowSizeStored = configuredDrawCap;
+  const liveSample = replayEligibleSampleFromDraws(draws, context);
+  const expectedSampleDrawCount = liveSample.drawCount;
+  const liveSampleDrawCount = liveSample.drawCount;
+  const liveSamplePrizeCount = liveSample.prizeCount;
+  const invalidPrizeCountLive = liveSample.invalidPrizeCount;
+  const expectedWindowSizeStored = liveSampleDrawCount;
   const issues: string[] = [];
   let status: ContextAuditStatus = "ok";
 
@@ -158,27 +140,26 @@ export function auditContext(
   }
 
   if (context.scope === "MONTH" && context.month) {
-    const leak = livePrizes.some((prize) => prize.drawDate.getUTCMonth() + 1 !== context.month);
+    const monthLeak = eligibleDraws.some(
+      (draw) => draw.drawDate.getUTCMonth() + 1 !== context.month
+    );
 
-    if (leak) {
+    if (monthLeak) {
       status = "month_scope_leak";
       issues.push("Sample contains drawDate outside configured UTC month.");
     }
-  }
 
-  if (
-    configuredDrawCap &&
-    eligibleDraws.length > configuredDrawCap &&
-    liveSampleDrawCount !== configuredDrawCap
-  ) {
-    issues.push(
-      `Window cap ${configuredDrawCap} but live sample has ${liveSampleDrawCount} draws (eligible=${eligibleDraws.length}).`
-    );
-  }
+    if (context.year !== undefined) {
+      const yearLeak = eligibleDraws.some(
+        (draw) => draw.drawDate.getUTCFullYear() !== context.year
+      );
 
-  const underfilledWindow = Boolean(
-    configuredDrawCap && eligibleDraws.length > 0 && liveSampleDrawCount < configuredDrawCap
-  );
+      if (yearLeak) {
+        status = "year_scope_leak";
+        issues.push("Sample contains drawDate outside configured UTC year.");
+      }
+    }
+  }
 
   if (!snapshot && eligibleDraws.length > 0 && status !== "month_scope_leak") {
     status = "missing_snapshot";
@@ -203,9 +184,9 @@ export function auditContext(
       }
 
       if (snapshot.windowSize !== expectedWindowSizeStored) {
-        status = status === "ok" ? "window_size_mismatch" : status;
+        status = status === "ok" ? "draw_count_mismatch" : status;
         issues.push(
-          `Snapshot windowSize=${snapshot.windowSize ?? "null"} vs expected=${expectedWindowSizeStored ?? "null"}.`
+          `Snapshot windowSize=${snapshot.windowSize ?? "null"} vs sampleDrawCount=${expectedWindowSizeStored}.`
         );
       }
     }
@@ -227,7 +208,7 @@ export function auditContext(
   }
 
   return {
-    configuredDrawCap,
+    configuredDrawCap: null,
     contextKey: getAnalysisContextKey(context),
     eligibleDrawCount: eligibleDraws.length,
     expectedSampleDrawCount,
@@ -243,71 +224,8 @@ export function auditContext(
     snapshotSamplePrizeCount: snapshot?.samplePrizeCount ?? null,
     snapshotWindowSize: snapshot?.windowSize ?? null,
     status,
-    underfilledWindow,
     windowPreset: context.windowPreset
   };
-}
-
-export function selectEligibleDraws(draws: readonly ScopeAuditDraw[], context: AnalysisContext) {
-  return draws.filter((draw) => {
-    if (context.scope === "MONTH" && draw.drawDate.getUTCMonth() + 1 !== context.month) {
-      return false;
-    }
-
-    return filterPrizesForContext(draw.prizes, context).length > 0;
-  });
-}
-
-export function applyWindowCap<T extends { drawDate: Date }>(
-  draws: readonly T[],
-  cap: number | null
-): T[] {
-  const newestFirst = [...draws].sort(
-    (left, right) => right.drawDate.getTime() - left.drawDate.getTime()
-  );
-  const windowed = cap ? newestFirst.slice(0, cap) : newestFirst;
-
-  return windowed.sort((left, right) => left.drawDate.getTime() - right.drawDate.getTime());
-}
-
-function filterPrizesForContext(prizes: ScopeAuditDraw["prizes"], context: AnalysisContext) {
-  return prizes.filter((prize) =>
-    matchesAnalysisPrizeSample(
-      { position: prize.position, type: prize.type },
-      { prizeType: context.prizeType }
-    )
-  );
-}
-
-function filterValidPrizes(prizes: ScopeAuditDraw["prizes"], context: AnalysisContext) {
-  const numberLength = getAnalysisPrizeNumberLength(context.prizeType);
-
-  return filterPrizesForContext(prizes, context)
-    .filter((prize) => prize.number.length === numberLength)
-    .map((prize) => ({
-      ...prize,
-      type: toAnalysisPrizeTypeLabel(
-        { position: prize.position, type: prize.type },
-        { prizeType: context.prizeType }
-      )
-    }));
-}
-
-function countInvalidLength(
-  _draws: readonly ScopeAuditDraw[],
-  context: AnalysisContext,
-  sampleDraws: readonly ScopeAuditDraw[]
-) {
-  let invalid = 0;
-
-  for (const draw of sampleDraws) {
-    const matched = filterPrizesForContext(draw.prizes, context);
-    const valid = filterValidPrizes(draw.prizes, context);
-
-    invalid += matched.length - valid.length;
-  }
-
-  return invalid;
 }
 
 function buildPrizeProfilesByYear(draws: readonly ScopeAuditDraw[]): PrizeYearProfile[] {
@@ -358,21 +276,17 @@ function buildPrizeProfilesByYear(draws: readonly ScopeAuditDraw[]): PrizeYearPr
 
 function summarizeContextRows(rows: readonly ContextAuditRow[]) {
   const byStatus = new Map<ContextAuditStatus, number>();
-  const byWindowPreset = new Map<string, { ok: number; fail: number; underfilled: number }>();
+  const byWindowPreset = new Map<string, { ok: number; fail: number }>();
 
   for (const row of rows) {
     byStatus.set(row.status, (byStatus.get(row.status) ?? 0) + 1);
 
-    const bucket = byWindowPreset.get(row.windowPreset) ?? { fail: 0, ok: 0, underfilled: 0 };
+    const bucket = byWindowPreset.get(row.windowPreset) ?? { fail: 0, ok: 0 };
 
     if (row.status === "ok" || row.status === "zero_eligible") {
       bucket.ok += 1;
     } else {
       bucket.fail += 1;
-    }
-
-    if (row.underfilledWindow) {
-      bucket.underfilled += 1;
     }
 
     byWindowPreset.set(row.windowPreset, bucket);
@@ -385,7 +299,6 @@ function summarizeContextRows(rows: readonly ContextAuditRow[]) {
       .filter((row) => row.status !== "ok" && row.status !== "zero_eligible")
       .slice(0, 40),
     totalContexts: rows.length,
-    underfilledWindowExamples: rows.filter((row) => row.underfilledWindow).slice(0, 30),
     zeroEligibleCount: rows.filter((row) => row.status === "zero_eligible").length
   };
 }
@@ -397,13 +310,9 @@ export function buildComputeScopeMarkdown(report: ReturnType<typeof buildCompute
 
 Generated: ${report.generatedAt}
 
-## Window preset semantics
+## Window semantics
 
-| Preset | Draw cap | Meaning |
-| --- | --- | --- |
-${Object.entries(report.semantics.windowPreset)
-  .map(([preset, meta]) => `| ${preset} | ${meta.drawCap ?? "none"} | ${meta.weightNote} |`)
-  .join("\n")}
+${report.semantics.windowPreset}
 
 ## Summary
 
@@ -423,20 +332,6 @@ ${
         )
         .join("\n")
     : "- None"
-}
-
-## Under-filled windows (cap not reached)
-
-${
-  summary.underfilledWindowExamples.length > 0
-    ? summary.underfilledWindowExamples
-        .slice(0, 15)
-        .map(
-          (row) =>
-            `- ${row.prizeType} ${row.scope} month=${row.month ?? "ALL"} window=${row.windowPreset}: ${row.liveSampleDrawCount}/${row.configuredDrawCap} eligible draws`
-        )
-        .join("\n")
-    : "- None in sampled failures list"
 }
 
 ## Historical prize row density (by year)

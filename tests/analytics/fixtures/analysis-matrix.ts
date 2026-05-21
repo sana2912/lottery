@@ -20,7 +20,6 @@ export type MatrixPrizeType =
   | "PRIZE5"
   | "SIX_DIGIT_ALL";
 
-export type MatrixWindowPreset = "50" | "100" | "500" | "ALL";
 export type MatrixScope = "ALL_TIME" | "MONTH";
 
 const ROWS_PER_DRAW: Record<MatrixPrizeType, number> = {
@@ -70,13 +69,13 @@ export function selectMatrixSampleDraws(
   draws: ReturnType<typeof buildSyntheticDraws>,
   prizeType: MatrixPrizeType,
   scope: MatrixScope,
-  windowPreset: MatrixWindowPreset,
   month?: number
 ) {
-  const limit = windowPreset === "ALL" ? undefined : Number(windowPreset);
   const matching = draws.filter((draw) => {
-    if (scope === "MONTH" && draw.drawDate.getUTCMonth() + 1 !== month) {
-      return false;
+    if (scope === "MONTH") {
+      if (draw.drawDate.getUTCMonth() + 1 !== month) {
+        return false;
+      }
     }
 
     return draw.prizes.some((prize) =>
@@ -86,11 +85,7 @@ export function selectMatrixSampleDraws(
       )
     );
   });
-  const newestFirst = [...matching].sort(
-    (left, right) => right.drawDate.getTime() - left.drawDate.getTime()
-  );
-
-  return (limit ? newestFirst.slice(0, limit) : newestFirst).reverse();
+  return [...matching].sort((left, right) => left.drawDate.getTime() - right.drawDate.getTime());
 }
 
 export function flattenValidPrizes(

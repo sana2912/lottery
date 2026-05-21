@@ -4,15 +4,24 @@ import {
   buildPositionHeatmapRows,
   type PositionHeatmapCell
 } from "@/api/service/analytics/position-heatmap";
+import type { CalendarDataCompleteness } from "@/api/service/calendar/calendar-heatmap-metadata";
+import { deriveCalendarInsightMetadata } from "@/api/service/calendar/calendar-heatmap-metadata";
 
 export type AnalysisCalendarHeatmapReadModel = {
+  dataCompleteness: CalendarDataCompleteness;
+  drawCount: number;
   heatmapRows: Array<{
     cells: PositionHeatmapCell[];
     coldDigits: string[];
     hotDigits: string[];
     position: number;
   }>;
+  invalidPrizeCount: number;
   month?: number;
+  opportunityCountPerPosition: number;
+  prizeCount: number;
+  prizesPerDrawActual: number;
+  prizesPerDrawExpected: number | null;
   sampleSize: number;
   scope: AnalysisContext["scope"];
   summary: string;
@@ -25,17 +34,31 @@ type SampleDraw = {
 
 export function buildAnalysisCalendarHeatmapReadModel(
   context: AnalysisContext,
-  prizes: readonly AnalysisPrizeSample[]
+  prizes: readonly AnalysisPrizeSample[],
+  sample: { drawCount: number; invalidPrizeCount: number; prizeCount: number }
 ): AnalysisCalendarHeatmapReadModel {
   const sampleDraws = groupPrizesByDraw(prizes);
   const heatmapRows = buildPositionHeatmapRows(sampleDraws, context.numberLength);
+  const metadata = deriveCalendarInsightMetadata(context, {
+    drawCount: sample.drawCount,
+    heatmapRows,
+    invalidPrizeCount: sample.invalidPrizeCount,
+    prizeCount: sample.prizeCount
+  });
 
   return {
+    dataCompleteness: metadata.dataCompleteness,
+    drawCount: metadata.drawCount,
     heatmapRows,
+    invalidPrizeCount: sample.invalidPrizeCount,
     month: context.month,
-    sampleSize: sampleDraws.length,
+    opportunityCountPerPosition: metadata.opportunityCountPerPosition,
+    prizeCount: sample.prizeCount,
+    prizesPerDrawActual: metadata.prizesPerDrawActual,
+    prizesPerDrawExpected: metadata.prizesPerDrawExpected,
+    sampleSize: sample.drawCount,
     scope: context.scope,
-    summary: buildSummary(context, sampleDraws.length)
+    summary: metadata.summary
   };
 }
 
@@ -59,10 +82,4 @@ function groupPrizesByDraw(prizes: readonly AnalysisPrizeSample[]): SampleDraw[]
   return [...drawByDate.values()].sort(
     (left, right) => left.drawDate.getTime() - right.drawDate.getTime()
   );
-}
-
-function buildSummary(context: AnalysisContext, sampleSize: number) {
-  const scopeLabel = context.scope === "MONTH" ? `month ${context.month}` : "all months";
-
-  return `${context.prizeType} ${scopeLabel} heatmap uses ${sampleSize} matching draws from preset ${context.windowPreset}.`;
 }

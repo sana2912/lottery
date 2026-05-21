@@ -1,9 +1,21 @@
-import { ANALYSIS_ENGINE_VERSION } from "@/api/service/analysis-snapshot/analysis-context";
+import {
+  ANALYSIS_ENGINE_VERSION,
+  ANALYSIS_MONTHS,
+  ANALYSIS_PRIZE_TYPES,
+  ANALYSIS_WINDOW_PRESET,
+  type AnalysisMonth,
+  type AnalysisPrizeType,
+  createAnalysisContext,
+  getAnalysisContextKey,
+  getAnalysisPrizeNumberLength
+} from "@/api/service/analysis-snapshot/analysis-context";
+import { selectEligibleDraws } from "@/api/service/analysis-snapshot/eligible-sample";
 import {
   getPrizeTypesForSampleQuery,
   matchesAnalysisPrizeSample
 } from "@/api/service/analysis-snapshot/prize-sample-types";
 import { buildPositionHeatmapRows } from "@/api/service/analytics/position-heatmap";
+import { EXPECTED_PRIZES_PER_DRAW } from "@/api/service/lottery/prize-slots";
 import { getPrisma } from "@/api/service/prisma";
 import { parseCliValues, printOrWriteJsonReport, writeTextReport } from "./audit-utils";
 import {
@@ -14,8 +26,8 @@ import {
 const LOTTERY_TYPE = "THAI_GOVERNMENT";
 const DEFAULT_OUT = "reports/audit/analysis-normalization.json";
 const DEFAULT_REPORT_OUT = "reports/audit/normalization-system-audit.md";
-const WINDOW_PRESETS = ["50", "100", "500", "ALL"] as const;
-const MONTHS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as const;
+const WINDOW_PRESETS = [ANALYSIS_WINDOW_PRESET] as const;
+const MONTHS = ANALYSIS_MONTHS;
 const PRIZE_TYPES = [
   "FIRST",
   "NEAR_FIRST",
@@ -28,19 +40,6 @@ const PRIZE_TYPES = [
   "THREE_BACK",
   "TWO_DIGIT",
   "OTHER"
-] as const;
-const ANALYSIS_PRIZE_TYPES = [
-  "TWO_DIGIT",
-  "THREE_DIGIT",
-  "THREE_FRONT",
-  "THREE_BACK",
-  "FIRST",
-  "NEAR_FIRST",
-  "PRIZE2",
-  "PRIZE3",
-  "PRIZE4",
-  "PRIZE5",
-  "SIX_DIGIT_ALL"
 ] as const;
 const SIX_DIGIT_SOURCE_PRIZE_TYPES = [
   "FIRST",
@@ -61,22 +60,13 @@ const CALENDAR_DIAGNOSTIC_PRIZE_TYPES = [
 ] as const;
 const MATRIX_DIAGNOSTIC_MONTHS = [1, 5, 12] as const;
 const MATRIX_DIAGNOSTIC_SCOPES = ["ALL_TIME", "MONTH"] as const;
+
 const EXPECTED_ROWS_PER_DRAW = {
-  FIRST: 1,
-  NEAR_FIRST: 2,
-  OTHER: null,
-  PRIZE2: 5,
-  PRIZE3: 10,
-  PRIZE4: 50,
-  PRIZE5: 100,
-  THREE_BACK: 2,
-  THREE_DIGIT: null,
-  THREE_FRONT: 2,
-  TWO_DIGIT: 1
+  ...EXPECTED_PRIZES_PER_DRAW,
+  OTHER: null
 } satisfies Record<PrizeType, number | null>;
 
 type PrizeType = (typeof PRIZE_TYPES)[number];
-type AnalysisPrizeType = (typeof ANALYSIS_PRIZE_TYPES)[number];
 type WindowPreset = (typeof WINDOW_PRESETS)[number];
 type DrawRow = Awaited<ReturnType<typeof loadDraws>>[number];
 type PrizeRow = DrawRow["prizes"][number];
@@ -128,12 +118,14 @@ async function main() {
   }
 }
 
-void main().catch((error: unknown) => {
-  const message = error instanceof Error ? error.message : String(error);
+if (import.meta.main) {
+  void main().catch((error: unknown) => {
+    const message = error instanceof Error ? error.message : String(error);
 
-  console.error(`Analysis normalization audit failed: ${message}`);
-  process.exitCode = 1;
-});
+    console.error(`Analysis normalization audit failed: ${message}`);
+    process.exitCode = 1;
+  });
+}
 
 function parseArgs(args: readonly string[]): CliOptions {
   const values = parseCliValues(args);
@@ -336,9 +328,10 @@ function buildWindowSamples(draws: readonly DrawRow[]) {
       buildWindowSample(draws, prizeType, "ALL_TIME", windowPreset)
     )
   );
-  const monthSamplePrizeTypes = ["PRIZE3", "PRIZE4", "PRIZE5", "SIX_DIGIT_ALL"] as const;
-  const monthSamples = monthSamplePrizeTypes.flatMap((prizeType) =>
-    MONTHS.map((month) => buildWindowSample(draws, prizeType, "MONTH", "50", month))
+  const monthSamples = ANALYSIS_PRIZE_TYPES.flatMap((prizeType) =>
+    MONTHS.map((month) =>
+      buildWindowSample(draws, prizeType, "MONTH", ANALYSIS_WINDOW_PRESET, month)
+    )
   );
 
   return [...allTimeSamples, ...monthSamples];
@@ -370,7 +363,7 @@ function buildWindowSample(
     samplePrizeCount: sum(validPrizeCounts),
     scope,
     windowPreset,
-    windowSize: windowPreset === "ALL" ? null : Number(windowPreset)
+    windowSize: sampleDraws.length
   };
 }
 
@@ -569,11 +562,11 @@ function buildModuleAudit() {
       crossPrizeRawCompare: false,
       metricUnit: "pattern row distribution",
       module: "patterns",
-      onDemandFallback: false,
+      onDemandFallback: true,
       primaryDenominator: "totalHits (prize rows)",
       rawHitCountRanking: false,
       risk: "medium",
-      surfaces: ["patterns snapshot-only"]
+      surfaces: ["patterns snapshot + on-demand fallback"]
     },
     {
       crossPrizeRawCompare: false,
@@ -620,7 +613,7 @@ function buildModuleAudit() {
 
 function buildCalendarHeatmapDiagnostics(draws: readonly DrawRow[]) {
   return CALENDAR_DIAGNOSTIC_PRIZE_TYPES.map((prizeType) => {
-    const sampleDraws = selectSampleDraws(draws, prizeType, "ALL_TIME", "50");
+    const sampleDraws = selectSampleDraws(draws, prizeType, "ALL_TIME", ANALYSIS_WINDOW_PRESET);
     const numberLength = getAnalysisPrizeNumberLength(prizeType);
     const rowsPerDraw = sampleDraws.map(
       (draw) => filterValidAnalysisPrizes(draw.prizes, prizeType).length
@@ -637,7 +630,7 @@ function buildCalendarHeatmapDiagnostics(draws: readonly DrawRow[]) {
       minRowsPerDraw: rowsPerDraw.length > 0 ? Math.min(...rowsPerDraw) : 0,
       prizeType,
       sampleDrawCount: sampleDraws.length,
-      windowPreset: "50"
+      windowPreset: ANALYSIS_WINDOW_PRESET
     };
   });
 }
@@ -662,7 +655,7 @@ function buildCalendarHeatmapWarnings(
 
 function buildNumberStatsDiagnostics(draws: readonly DrawRow[]) {
   return CALENDAR_DIAGNOSTIC_PRIZE_TYPES.map((prizeType) => {
-    const sampleDraws = selectSampleDraws(draws, prizeType, "ALL_TIME", "50");
+    const sampleDraws = selectSampleDraws(draws, prizeType, "ALL_TIME", ANALYSIS_WINDOW_PRESET);
     const samplePrizes = sampleDraws.flatMap((draw) =>
       filterValidAnalysisPrizes(draw.prizes, prizeType)
     );
@@ -703,7 +696,7 @@ function buildNumberStatsDiagnostics(draws: readonly DrawRow[]) {
       sampleDrawCount,
       samplePrizeCount,
       topDrawDenominatorInflationExamples: rows,
-      windowPreset: "50"
+      windowPreset: ANALYSIS_WINDOW_PRESET
     };
   });
 }
@@ -749,35 +742,17 @@ function buildSnapshotCoverage(snapshots: readonly SnapshotRow[]) {
   };
 }
 
-function buildExpectedSnapshotContextKeys() {
+export function buildExpectedSnapshotContextKeys() {
   return ANALYSIS_PRIZE_TYPES.flatMap((prizeType) =>
     WINDOW_PRESETS.flatMap((windowPreset) => [
-      getContextKey({ month: undefined, prizeType, scope: "ALL_TIME", windowPreset }),
-      ...MONTHS.map((month) => getContextKey({ month, prizeType, scope: "MONTH", windowPreset }))
+      getAnalysisContextKey(createAnalysisContext({ prizeType, scope: "ALL_TIME", windowPreset })),
+      ...MONTHS.map((month) =>
+        getAnalysisContextKey(
+          createAnalysisContext({ month, prizeType, scope: "MONTH", windowPreset })
+        )
+      )
     ])
   );
-}
-
-function getContextKey({
-  month,
-  prizeType,
-  scope,
-  windowPreset
-}: {
-  month?: number;
-  prizeType: AnalysisPrizeType;
-  scope: "ALL_TIME" | "MONTH";
-  windowPreset: WindowPreset;
-}) {
-  return [
-    ANALYSIS_ENGINE_VERSION,
-    LOTTERY_TYPE,
-    prizeType,
-    getAnalysisPrizeNumberLength(prizeType),
-    scope,
-    month ?? "ALL_MONTHS",
-    windowPreset
-  ].join("|");
 }
 
 function selectSampleDraws(
@@ -787,19 +762,16 @@ function selectSampleDraws(
   windowPreset: WindowPreset,
   month?: number
 ) {
-  const limit = windowPreset === "ALL" ? undefined : Number(windowPreset);
-  const matchingDraws = draws.filter((draw) => {
-    if (scope === "MONTH" && draw.drawDate.getUTCMonth() + 1 !== month) {
-      return false;
-    }
-
-    return filterPrizesForAnalysis(draw.prizes, prizeType).length > 0;
+  const context = createAnalysisContext({
+    month: scope === "MONTH" ? (month as AnalysisMonth) : undefined,
+    prizeType,
+    scope,
+    windowPreset
   });
-  const newestFirst = [...matchingDraws].sort(
-    (left, right) => right.drawDate.getTime() - left.drawDate.getTime()
-  );
 
-  return (limit ? newestFirst.slice(0, limit) : newestFirst).reverse();
+  return selectEligibleDraws(draws, context).sort(
+    (left, right) => left.drawDate.getTime() - right.drawDate.getTime()
+  );
 }
 
 function buildHeatmapRows(
@@ -889,18 +861,6 @@ function getExpectedNumberLength(prizeType: PrizeType) {
 
   if (prizeType === "OTHER") {
     return null;
-  }
-
-  return 6;
-}
-
-function getAnalysisPrizeNumberLength(prizeType: AnalysisPrizeType) {
-  if (prizeType === "TWO_DIGIT") {
-    return 2;
-  }
-
-  if (prizeType === "THREE_DIGIT" || prizeType === "THREE_FRONT" || prizeType === "THREE_BACK") {
-    return 3;
   }
 
   return 6;

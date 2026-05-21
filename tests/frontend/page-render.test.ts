@@ -90,21 +90,19 @@ describe("page rendering", () => {
             filters: {
               month: 4,
               prizeType: "FIRST",
-              scope: "MONTH",
-              windowPreset: "50",
-              windowSize: 50
+              scope: "MONTH"
             },
             model: calendarModel(),
             state: "ready"
           },
-          searchParams: { month: "4", prizeType: "FIRST", scope: "MONTH", windowPreset: "50" }
+          searchParams: { month: "4", prizeType: "FIRST", scope: "MONTH" }
         })
       );
 
       expect(markup).toContain("16 April 2026");
       expect(markup).toContain("April");
-      expect(markup).toContain("Count 8/8");
-      expect(markup).toContain("Window 50");
+      expect(markup).toContain("Hits 8 / 8");
+      expect(markup).toContain("draws in scope");
     },
     RENDER_TEST_TIMEOUT_MS
   );
@@ -113,7 +111,7 @@ describe("page rendering", () => {
     "renders patterns page from analytics data and active filters",
     async () => {
       const { PatternsPage } = await import("@/frontend/pages/patterns");
-      const query = parsePatternSearchParams({ prizeType: "TWO_DIGIT", windowSize: "30" });
+      const query = parsePatternSearchParams({ prizeType: "TWO_DIGIT", scope: "ALL_TIME" });
 
       const markup = renderToStaticMarkup(
         await PatternsPage({
@@ -122,12 +120,12 @@ describe("page rendering", () => {
             query,
             state: "ready"
           },
-          searchParams: { prizeType: "TWO_DIGIT", windowSize: "30" }
+          searchParams: { prizeType: "TWO_DIGIT", scope: "ALL_TIME" }
         })
       );
 
       expect(markup).toContain("Prize type");
-      expect(markup).toContain("Window");
+      expect(markup).toContain("Sample");
       expect(markup).toContain("09");
       expect(markup).toContain("mini DNA");
     },
@@ -291,6 +289,7 @@ function calendarModel() {
         id: "monthly-insight-4",
         label: "April",
         month: 4,
+        year: 2026,
         patternNotes: ["odd-ending numbers appeared slightly more often."],
         positionInsights: [
           {
@@ -303,8 +302,8 @@ function calendarModel() {
         sampleSize: 8,
         scope: "MONTH" as const,
         summary: "April has 8 historical draws in sample.",
-        windowPreset: "50" as const,
-        windowSize: 50
+        windowPreset: "ALL" as const,
+        windowSize: 8
       }
     ],
     nextDraw: {

@@ -69,8 +69,11 @@ describe("dashboard.service", () => {
     expect(analyticsArgsSeen).toMatchObject({
       lotteryType: "THAI_GOVERNMENT",
       numberLength: 2,
+      page: 1,
+      pageSize: 20,
       prizeType: "TWO_DIGIT",
-      windowSize: 120
+      scope: "ALL_TIME",
+      windowPreset: "ALL"
     });
     expect(dashboardReadModelSchema.parse(model)).toEqual(model);
     expect(model.latestDraw.primaryPrize).toEqual({

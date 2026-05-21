@@ -1,13 +1,10 @@
 import { randomBytes } from "node:crypto";
 import {
   type AnalysisContext,
-  getAnalysisContextKey,
-  getAnalysisWindowLimit
+  getAnalysisContextKey
 } from "@/api/service/analysis-snapshot/analysis-context";
-import { buildAnalysisCalendarHeatmapReadModel } from "@/api/service/analysis-snapshot/calendar-heatmap-read-model";
-import { buildAnalysisPatternReadModel } from "@/api/service/analysis-snapshot/pattern-read-model";
+import { buildAnalysisReadModelsFromSample } from "@/api/service/analysis-snapshot/read-model-builder";
 import { resolveAnalysisSample } from "@/api/service/analysis-snapshot/sample-resolver";
-import { buildAnalyticsReadModelFromPrizes } from "@/api/service/analytics/analytics-engine";
 import { getPrisma } from "@/api/service/prisma";
 import { Prisma } from "@/generated/prisma/client";
 
@@ -23,7 +20,24 @@ export type AnalysisSnapshotSummary = {
 };
 
 const SNAPSHOT_INSERT_CHUNK_SIZE = 500;
-const SNAPSHOT_TRANSACTION_TIMEOUT_MS = 60_000;
+const SNAPSHOT_TRANSACTION_TIMEOUT_BASE_MS = 90_000;
+const SNAPSHOT_TRANSACTION_TIMEOUT_MIN_MS = 120_000;
+const SNAPSHOT_TRANSACTION_TIMEOUT_MAX_MS = 900_000;
+const SNAPSHOT_TRANSACTION_MS_PER_DERIVED_ROW = 5;
+const SNAPSHOT_TRANSACTION_MS_PER_1K_PRIZES = 1_000;
+
+/** Prod PRIZE5 / SIX_DIGIT_ALL can exceed 60s inside one snapshot write transaction. */
+export function getSnapshotTransactionTimeoutMs(samplePrizeCount: number, derivedRowCount: number) {
+  const estimate =
+    SNAPSHOT_TRANSACTION_TIMEOUT_BASE_MS +
+    derivedRowCount * SNAPSHOT_TRANSACTION_MS_PER_DERIVED_ROW +
+    Math.ceil(samplePrizeCount / 1000) * SNAPSHOT_TRANSACTION_MS_PER_1K_PRIZES;
+
+  return Math.min(
+    SNAPSHOT_TRANSACTION_TIMEOUT_MAX_MS,
+    Math.max(SNAPSHOT_TRANSACTION_TIMEOUT_MIN_MS, estimate)
+  );
+}
 
 export async function recomputeAnalysisSnapshot(
   context: AnalysisContext
@@ -32,22 +46,19 @@ export async function recomputeAnalysisSnapshot(
   const computedAt = new Date();
   const contextKey = getAnalysisContextKey(context);
   const sample = await resolveAnalysisSample(context);
-  const windowSize = getAnalysisWindowLimit(context.windowPreset) ?? sample.drawCount;
-  const analyticsReadModel = buildAnalyticsReadModelFromPrizes(
-    sample.prizes,
-    {
-      lotteryType: context.lotteryType,
-      numberLength: context.numberLength,
-      page: 1,
-      pageSize: 100,
-      prizeType: context.prizeType,
-      windowSize
-    },
-    computedAt
-  );
-  const patternReadModel = buildAnalysisPatternReadModel(analyticsReadModel);
-  const calendarReadModel = buildAnalysisCalendarHeatmapReadModel(context, sample.prizes);
+  const { analyticsReadModel, calendarReadModel, patternReadModel } =
+    buildAnalysisReadModelsFromSample(context, sample, computedAt);
   const runId = createUuidV7();
+  const heatmapCellCount = calendarReadModel.heatmapRows.reduce(
+    (total, row) => total + row.cells.length,
+    0
+  );
+  const derivedRowCount =
+    analyticsReadModel.digitStats.length +
+    analyticsReadModel.numberStats.length +
+    analyticsReadModel.patternSummaries.length +
+    heatmapCellCount;
+  const transactionTimeoutMs = getSnapshotTransactionTimeoutMs(sample.prizeCount, derivedRowCount);
 
   await prisma.$transaction(
     async (transaction) => {
@@ -88,7 +99,7 @@ export async function recomputeAnalysisSnapshot(
           ${context.scope},
           ${context.month ?? null},
           ${context.windowPreset},
-          ${getAnalysisWindowLimit(context.windowPreset) ?? null},
+          ${sample.drawCount},
           ${sample.drawCount},
           ${sample.prizeCount},
           ${sample.invalidPrizeCount},
@@ -295,7 +306,7 @@ export async function recomputeAnalysisSnapshot(
       }
     },
     {
-      timeout: SNAPSHOT_TRANSACTION_TIMEOUT_MS
+      timeout: transactionTimeoutMs
     }
   );
 

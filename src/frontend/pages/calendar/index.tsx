@@ -247,8 +247,11 @@ export async function CalendarPage({
                       {insight.label}
                     </p>
                     <h2 className="mt-2 text-xl font-bold tracking-normal text-[var(--color-text-primary)]">
-                      {insight.sampleSize} draws
+                      {formatInsightSampleTitle(insight)}
                     </h2>
+                    <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+                      {formatInsightSampleContext(insight)}
+                    </p>
                   </div>
                   <Sparkles className="size-5 text-[var(--calendar)]" />
                 </div>
@@ -256,11 +259,19 @@ export async function CalendarPage({
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Badge variant="neutral">{insight.prizeType}</Badge>
                   <Badge variant="neutral">{insight.scope ?? "MONTH"}</Badge>
-                  <Badge variant="neutral">
-                    Window {insight.windowPreset ?? insight.windowSize}
+                  <Badge variant="brand">
+                    {insight.drawCount ?? insight.sampleSize} draws in scope
                   </Badge>
-                  <Badge variant="brand">{insight.sampleSize} draws</Badge>
+                  {insight.dataCompleteness === "partial" ? (
+                    <Badge variant="warning">{calendarContent.heatmap.partialDataBadge}</Badge>
+                  ) : null}
                 </div>
+
+                {insight.dataCompleteness === "partial" ? (
+                  <p className="mt-3 text-sm leading-6 text-[var(--color-text-secondary)]">
+                    {calendarContent.heatmap.partialDataNote}
+                  </p>
+                ) : null}
 
                 <p className="mt-4 text-sm leading-6 text-[var(--color-text-secondary)]">
                   {insight.summary}
@@ -302,14 +313,10 @@ export async function CalendarPage({
                               {cell.digit}
                             </div>
                             <div className="mt-2 space-y-1 text-[10px] leading-4 text-[var(--color-text-secondary)]">
+                              <p>{getHeatmapHitLabel(cell)}</p>
                               <p>
-                                Count {getHeatmapEventCount(cell)}/
-                                {getHeatmapSampleEventCount(cell)}
+                                {calendarContent.heatmap.cellHitRate} {getHeatmapHitRate(cell)}
                               </p>
-                              <p>Rate {getHeatmapEventRate(cell)}</p>
-                              <p>Expected {getHeatmapExpectedRate(cell)}</p>
-                              <p>Lift {getHeatmapLift(cell)}</p>
-                              <p>Score {cell.score}</p>
                             </div>
                           </div>
                         ))}
@@ -338,10 +345,8 @@ export async function CalendarPage({
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-2 text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">
-                  <Badge variant="neutral">{calendarContent.heatmap.legend.countSample}</Badge>
-                  <Badge variant="neutral">{calendarContent.heatmap.legend.eventRate}</Badge>
-                  <Badge variant="neutral">{calendarContent.heatmap.legend.expectedRate}</Badge>
-                  <Badge variant="neutral">{calendarContent.heatmap.legend.lift}</Badge>
+                  <Badge variant="neutral">{calendarContent.heatmap.legend.hitFrom}</Badge>
+                  <Badge variant="neutral">{calendarContent.heatmap.legend.hitRate}</Badge>
                   <Badge variant="brand">{calendarContent.heatmap.legend.hot}</Badge>
                   <Badge variant="neutral">{calendarContent.heatmap.legend.cold}</Badge>
                   <Badge variant="neutral">{calendarContent.heatmap.legend.relativeColor}</Badge>
@@ -363,24 +368,59 @@ export async function CalendarPage({
   );
 }
 
-function getHeatmapEventCount(cell: { eventCount?: number }) {
-  return cell.eventCount ?? 0;
+function formatInsightSampleTitle(insight: { drawCount?: number; sampleSize: number }) {
+  const drawCount = insight.drawCount ?? insight.sampleSize;
+
+  return `${drawCount.toLocaleString("th-TH")} งวด`;
 }
 
-function getHeatmapSampleEventCount(cell: { sampleEventCount?: number }) {
-  return cell.sampleEventCount ?? 0;
+function formatInsightSampleContext(insight: {
+  drawCount?: number;
+  opportunityCountPerPosition?: number;
+  prizesPerDrawActual?: number;
+  prizeType?: string;
+  sampleSize: number;
+}) {
+  const drawCount = insight.drawCount ?? insight.sampleSize;
+  const prizesPerDraw =
+    insight.prizesPerDrawActual ??
+    (drawCount > 0 && insight.opportunityCountPerPosition
+      ? Math.round(insight.opportunityCountPerPosition / drawCount)
+      : 0);
+
+  return calendarContent.heatmap.sampleContext
+    .replace("{drawCount}", drawCount.toLocaleString("th-TH"))
+    .replace("{prizesPerDraw}", prizesPerDraw.toLocaleString("th-TH"))
+    .concat(insight.prizeType ? ` (${insight.prizeType})` : "");
 }
 
-function getHeatmapEventRate(cell: { eventRatePercent?: number }) {
-  return cell.eventRatePercent === undefined ? "-" : `${cell.eventRatePercent}%`;
+function getHeatmapHitCount(cell: { eventCount?: number; hitCount?: number }) {
+  return cell.hitCount ?? cell.eventCount ?? 0;
 }
 
-function getHeatmapExpectedRate(cell: { expectedRatePercent?: number }) {
-  return cell.expectedRatePercent === undefined ? "10%" : `${cell.expectedRatePercent}%`;
+function getHeatmapOpportunityCount(cell: {
+  opportunityCount?: number;
+  sampleEventCount?: number;
+}) {
+  return cell.opportunityCount ?? cell.sampleEventCount ?? 0;
 }
 
-function getHeatmapLift(cell: { lift?: number }) {
-  return cell.lift === undefined ? "-" : `${cell.lift}x`;
+function getHeatmapHitLabel(cell: {
+  eventCount?: number;
+  hitCount?: number;
+  opportunityCount?: number;
+  sampleEventCount?: number;
+}) {
+  const hit = getHeatmapHitCount(cell);
+  const total = getHeatmapOpportunityCount(cell);
+
+  return `${calendarContent.heatmap.cellHits} ${hit.toLocaleString("th-TH")} / ${total.toLocaleString("th-TH")}`;
+}
+
+function getHeatmapHitRate(cell: { eventRatePercent?: number; hitRatePercent?: number }) {
+  const rate = cell.hitRatePercent ?? cell.eventRatePercent;
+
+  return rate === undefined ? "-" : `${rate.toLocaleString("th-TH")}%`;
 }
 
 function getHeatmapCellToneClass(tone: "hot" | "warm" | "neutral" | "cool" | "cold") {

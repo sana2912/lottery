@@ -1,3 +1,4 @@
+import { normalizeProductAnalysisQuery } from "@/lib/app/analysis-product-scope";
 import { type FilterContext, filterContextSchema } from "@/schema/app/query.schema";
 
 export type { FilterContext } from "@/schema/app/query.schema";
@@ -10,25 +11,19 @@ type SearchParamsInput =
 export function parseAnalyticsSearchParams(searchParams?: SearchParamsInput): FilterContext {
   const record = toSearchParamRecord(searchParams);
   const query = filterContextSchema.parse(record);
-  const windowPreset = query.windowPreset ?? "50";
-  const scope = query.scope ?? "ALL_TIME";
 
-  return {
+  return normalizeProductAnalysisQuery({
     ...query,
-    month: scope === "MONTH" ? (query.month ?? new Date().getUTCMonth() + 1) : undefined,
     numberLength: query.numberLength ?? getDefaultNumberLength(query.prizeType),
-    prizeType: query.prizeType ?? "TWO_DIGIT",
-    scope,
-    windowPreset,
-    windowSize: getWindowSizeFromPreset(windowPreset)
-  };
+    prizeType: query.prizeType ?? "TWO_DIGIT"
+  });
 }
 
 export function buildAnalyticsHref(
   query: FilterContext,
   overrides: Partial<FilterContext> = {}
 ): string {
-  const next = { ...query, ...overrides };
+  const next = normalizeProductAnalysisQuery({ ...query, ...overrides });
   const searchParams = new URLSearchParams();
 
   for (const [key, value] of Object.entries(next)) {
@@ -36,7 +31,11 @@ export function buildAnalyticsHref(
       continue;
     }
 
-    if (key === "windowSize" && next.windowPreset) {
+    if (key === "windowPreset" && value === "ALL") {
+      continue;
+    }
+
+    if (key === "year") {
       continue;
     }
 
@@ -49,25 +48,21 @@ export function buildAnalyticsHref(
 }
 
 export function toAnalyticsApiQuery(query: FilterContext) {
-  return {
-    endDate: query.endDate,
-    lotteryType: query.lotteryType,
-    month: query.month,
-    numberLength: query.numberLength,
-    page: query.page,
-    pageSize: query.pageSize,
-    prizeType: query.prizeType,
-    q: query.q,
-    scope: query.scope,
-    startDate: query.startDate,
-    windowPreset: query.windowPreset,
-    windowSize: query.windowSize,
-    year: query.year
-  };
-}
+  const normalized = normalizeProductAnalysisQuery(query);
 
-function getWindowSizeFromPreset(windowPreset: NonNullable<FilterContext["windowPreset"]>) {
-  return windowPreset === "ALL" ? 2000 : Number(windowPreset);
+  return {
+    endDate: normalized.endDate,
+    lotteryType: normalized.lotteryType,
+    month: normalized.month,
+    numberLength: normalized.numberLength,
+    page: normalized.page,
+    pageSize: normalized.pageSize,
+    prizeType: normalized.prizeType,
+    q: normalized.q,
+    scope: normalized.scope,
+    startDate: normalized.startDate,
+    windowPreset: normalized.windowPreset
+  };
 }
 
 function toSearchParamRecord(searchParams?: SearchParamsInput) {

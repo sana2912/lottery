@@ -1,4 +1,4 @@
-import { getAnalysisWindowLimit } from "@/api/service/analysis-snapshot/analysis-context";
+import { ANALYSIS_WINDOW_PRESET } from "@/api/service/analysis-snapshot/analysis-context";
 import { buildOnDemandAnalysisReadModel } from "@/api/service/analysis-snapshot/on-demand-read-model";
 import { buildAnalysisPatternReadModel } from "@/api/service/analysis-snapshot/pattern-read-model";
 import {
@@ -19,12 +19,11 @@ export async function getPatternsReadModel(query: FilterContext): Promise<ApiPat
 
   if (context) {
     console.warn(
-      `patterns.snapshot miss for ${context.prizeType}/${context.scope}/${context.month ?? "ALL_MONTHS"}/${context.windowPreset}; using on-demand fallback.`
+      `patterns.snapshot miss for ${context.prizeType}/${context.scope}/${context.month ?? "ALL_MONTHS"}/${context.year ?? "ALL_YEARS"}; using on-demand fallback.`
     );
 
     const analytics = await buildOnDemandAnalysisReadModel(context);
     const generatedAt = analytics.generatedAt;
-    const windowSize = getAnalysisWindowLimit(context.windowPreset) ?? analytics.summary.drawCount;
 
     return {
       context: {
@@ -33,8 +32,9 @@ export async function getPatternsReadModel(query: FilterContext): Promise<ApiPat
         numberLength: context.numberLength,
         prizeType: context.prizeType,
         scope: context.scope,
+        year: context.year,
         windowPreset: context.windowPreset,
-        windowSize
+        windowSize: analytics.summary.drawCount
       },
       generatedAt,
       pattern: buildAnalysisPatternReadModel(analytics),
@@ -64,11 +64,9 @@ function getMissingPatternsReadModel(query: FilterContext): ApiPatternsReadModel
       numberLength: context?.numberLength ?? query.numberLength ?? 2,
       prizeType: context?.prizeType ?? query.prizeType ?? "TWO_DIGIT",
       scope: context?.scope ?? query.scope ?? "ALL_TIME",
-      windowPreset: context?.windowPreset ?? query.windowPreset ?? "50",
-      windowSize:
-        context?.windowPreset === "ALL"
-          ? (query.windowSize ?? 0)
-          : Number(context?.windowPreset ?? query.windowPreset ?? query.windowSize ?? 50)
+      year: context?.year ?? query.year,
+      windowPreset: context?.windowPreset ?? ANALYSIS_WINDOW_PRESET,
+      windowSize: 0
     },
     generatedAt,
     pattern: {

@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import {
   ANALYSIS_PRIZE_TYPES,
+  ANALYSIS_WINDOW_PRESET,
   createAnalysisContext,
   getAnalysisContextKey,
-  getAnalysisPrizeNumberLength,
-  getAnalysisWindowLimit
+  getAnalysisPrizeNumberLength
 } from "@/api/service/analysis-snapshot/analysis-context";
 import {
   getAnalysisContextForCalendarQuery,
@@ -20,44 +20,55 @@ describe("analysis context", () => {
     expect(getAnalysisPrizeNumberLength("FIRST")).toBe(6);
     expect(getAnalysisPrizeNumberLength("PRIZE5")).toBe(6);
     expect(getAnalysisPrizeNumberLength("SIX_DIGIT_ALL")).toBe(6);
-    expect(() => createAnalysisContext({ prizeType: "FIRST_PRIZE", windowPreset: "50" })).toThrow(
+    expect(() => createAnalysisContext({ prizeType: "FIRST_PRIZE" })).toThrow(
       "Invalid analysis prizeType"
+    );
+    expect(() => createAnalysisContext({ prizeType: "TWO_DIGIT", windowPreset: "50" })).toThrow(
+      'Invalid analysis windowPreset "50"'
     );
   });
 
-  test("builds distinct keys for all-time and monthly presets", () => {
+  test("builds distinct keys for all-time and month-across-years", () => {
     const allTime = createAnalysisContext({
       prizeType: "TWO_DIGIT",
-      scope: "ALL_TIME",
-      windowPreset: "ALL"
+      scope: "ALL_TIME"
     });
-    const may = createAnalysisContext({
+    const mayAllYears = createAnalysisContext({
+      month: 5,
+      prizeType: "TWO_DIGIT",
+      scope: "MONTH"
+    });
+    const may2026 = createAnalysisContext({
       month: 5,
       prizeType: "TWO_DIGIT",
       scope: "MONTH",
-      windowPreset: "ALL"
+      year: 2026
     });
 
-    expect(getAnalysisWindowLimit("ALL")).toBeUndefined();
-    expect(getAnalysisWindowLimit("500")).toBe(500);
-    expect(getAnalysisContextKey(allTime)).not.toEqual(getAnalysisContextKey(may));
-    expect(getAnalysisContextKey(may)).toContain("MONTH|5|ALL");
+    expect(getAnalysisContextKey(allTime)).not.toEqual(getAnalysisContextKey(mayAllYears));
+    expect(getAnalysisContextKey(mayAllYears)).toContain("MONTH|5|ALL_YEARS|ALL");
+    expect(getAnalysisContextKey(may2026)).toContain("MONTH|5|2026|ALL");
   });
 
-  test("requires month only for monthly scope", () => {
+  test("requires month for monthly scope; year is optional", () => {
     expect(() =>
       createAnalysisContext({
         prizeType: "TWO_DIGIT",
-        scope: "MONTH",
-        windowPreset: "50"
+        scope: "MONTH"
       })
     ).toThrow("MONTH scope requires month");
     expect(
       createAnalysisContext({
         month: 12,
         prizeType: "TWO_DIGIT",
-        scope: "ALL_TIME",
-        windowPreset: "50"
+        scope: "MONTH"
+      }).year
+    ).toBeUndefined();
+    expect(
+      createAnalysisContext({
+        month: 12,
+        prizeType: "TWO_DIGIT",
+        scope: "ALL_TIME"
       }).month
     ).toBeUndefined();
   });
@@ -70,14 +81,16 @@ describe("analysis context", () => {
         page: 1,
         pageSize: 20,
         prizeType: "TWO_DIGIT",
-        windowSize: 100
+        scope: "MONTH",
+        year: 2026
       })
     ).toMatchObject({
       month: 5,
       numberLength: 2,
       prizeType: "TWO_DIGIT",
       scope: "MONTH",
-      windowPreset: "100"
+      windowPreset: ANALYSIS_WINDOW_PRESET,
+      year: undefined
     });
     expect(
       getAnalysisContextForFilterQuery({
@@ -85,7 +98,7 @@ describe("analysis context", () => {
         page: 1,
         pageSize: 20,
         prizeType: "OTHER" as never,
-        windowSize: 100
+        windowPreset: "ALL"
       })
     ).toBeNull();
     expect(
@@ -95,7 +108,7 @@ describe("analysis context", () => {
         page: 1,
         pageSize: 20,
         prizeType: "TWO_DIGIT",
-        windowSize: 100
+        windowPreset: "ALL"
       })
     ).toBeNull();
     expect(
@@ -104,8 +117,17 @@ describe("analysis context", () => {
         page: 1,
         pageSize: 20,
         prizeType: "TWO_DIGIT",
-        windowSize: 120
+        startDate: "2026-01-01"
       })
+    ).toBeNull();
+    expect(
+      getAnalysisContextForFilterQuery({
+        lotteryType: "THAI_GOVERNMENT",
+        page: 1,
+        pageSize: 20,
+        prizeType: "TWO_DIGIT",
+        windowPreset: "50"
+      } as unknown as Parameters<typeof getAnalysisContextForFilterQuery>[0])
     ).toBeNull();
   });
 
@@ -115,7 +137,7 @@ describe("analysis context", () => {
         {
           month: 4,
           prizeType: "PRIZE5",
-          windowSize: 50
+          year: 2026
         },
         new Date("2026-05-12T00:00:00.000Z")
       )
@@ -124,14 +146,15 @@ describe("analysis context", () => {
       numberLength: 6,
       prizeType: "PRIZE5",
       scope: "MONTH",
-      windowPreset: "50"
+      windowPreset: ANALYSIS_WINDOW_PRESET,
+      year: undefined
     });
     expect(
       getAnalysisContextForCalendarQuery(
         {
           prizeType: "TWO_DIGIT",
-          windowSize: 24
-        },
+          windowPreset: "50"
+        } as unknown as Parameters<typeof getAnalysisContextForCalendarQuery>[0],
         new Date("2026-05-12T00:00:00.000Z")
       )
     ).toBeNull();

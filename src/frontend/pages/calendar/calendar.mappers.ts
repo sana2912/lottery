@@ -1,3 +1,4 @@
+import { normalizeProductAnalysisQuery } from "@/lib/app/analysis-product-scope";
 import {
   type CalendarHeatmapQuery,
   type CalendarReadModel,
@@ -14,8 +15,6 @@ export type CalendarPageFilters = {
   month?: number;
   prizeType: NonNullable<CalendarHeatmapQuery["prizeType"]>;
   scope: NonNullable<CalendarHeatmapQuery["scope"]>;
-  windowPreset: NonNullable<CalendarHeatmapQuery["windowPreset"]>;
-  windowSize: number;
 };
 
 const CALENDAR_PRIZE_TYPE_OPTIONS = [
@@ -33,12 +32,6 @@ const CALENDAR_PRIZE_TYPE_OPTIONS = [
 const CALENDAR_SCOPE_OPTIONS = [
   { label: "All months", value: "ALL_TIME" },
   { label: "Specific month", value: "MONTH" }
-] as const;
-const CALENDAR_WINDOW_PRESET_OPTIONS = [
-  { label: "50 draws", value: "50" },
-  { label: "100 draws", value: "100" },
-  { label: "500 draws", value: "500" },
-  { label: "All draws", value: "ALL" }
 ] as const;
 const CALENDAR_MONTH_OPTIONS = [
   "January",
@@ -59,15 +52,21 @@ export function parseCalendarPageFilters(
   searchParams?: Record<string, string | string[] | undefined> | URLSearchParams
 ): CalendarPageFilters {
   const parsed = calendarHeatmapQuerySchema.parse(toSearchParamRecord(searchParams));
-  const scope = parsed.scope ?? "MONTH";
-  const windowPreset = parsed.windowPreset ?? toWindowPreset(parsed.windowSize) ?? "50";
+  const prizeType: CalendarPageFilters["prizeType"] = parsed.prizeType ?? "FIRST";
+  const scope: CalendarPageFilters["scope"] = parsed.scope ?? "MONTH";
+  const normalized = normalizeProductAnalysisQuery({
+    lotteryType: "THAI_GOVERNMENT",
+    page: 1,
+    pageSize: 20,
+    month: parsed.month,
+    prizeType,
+    scope
+  });
 
   return {
-    month: scope === "MONTH" ? (parsed.month ?? new Date().getUTCMonth() + 1) : undefined,
-    prizeType: parsed.prizeType ?? "FIRST",
-    scope,
-    windowPreset,
-    windowSize: windowPreset === "ALL" ? 500 : Number(windowPreset)
+    month: normalized.month,
+    prizeType: normalized.prizeType,
+    scope: normalized.scope
   };
 }
 
@@ -76,8 +75,7 @@ export function toCalendarApiQuery(filters: CalendarPageFilters) {
     month: filters.month,
     prizeType: filters.prizeType,
     scope: filters.scope,
-    windowPreset: filters.windowPreset,
-    windowSize: filters.windowSize
+    windowPreset: "ALL" as const
   };
 }
 
@@ -96,10 +94,6 @@ export function getCalendarScopeOptions() {
   return [...CALENDAR_SCOPE_OPTIONS];
 }
 
-export function getCalendarWindowPresetOptions() {
-  return [...CALENDAR_WINDOW_PRESET_OPTIONS];
-}
-
 function toSearchParamRecord(
   searchParams?: Record<string, string | string[] | undefined> | URLSearchParams
 ) {
@@ -112,12 +106,4 @@ function toSearchParamRecord(
   }
 
   return searchParams;
-}
-
-function toWindowPreset(windowSize: number | undefined) {
-  if (windowSize === 50 || windowSize === 100 || windowSize === 500) {
-    return String(windowSize) as "50" | "100" | "500";
-  }
-
-  return undefined;
 }

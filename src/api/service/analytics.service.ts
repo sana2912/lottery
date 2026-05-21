@@ -5,10 +5,8 @@ import {
 } from "@/api/service/analysis-snapshot/snapshot-reader";
 import {
   type AnalyticsQuery,
-  buildAnalyticsReadModelFromPrizes,
-  getPrizeWindow
+  buildEmptyAnalyticsReadModel
 } from "@/api/service/analytics/analytics-engine";
-import { getPrisma } from "@/api/service/prisma";
 import type { ApiAnalyticsReadModel } from "@/schema/api/analytics";
 
 export async function getAnalyticsReadModel(query: AnalyticsQuery): Promise<ApiAnalyticsReadModel> {
@@ -27,7 +25,7 @@ export async function getAnalyticsReadModel(query: AnalyticsQuery): Promise<ApiA
 
   if (analysisContext) {
     console.warn(
-      `analytics.snapshot miss for ${analysisContext.engineVersion}/${analysisContext.lotteryType}/${analysisContext.prizeType}/${analysisContext.scope}/${analysisContext.month ?? "ALL_MONTHS"}/${analysisContext.windowPreset}; using on-demand fallback.`
+      `analytics.snapshot miss for ${analysisContext.engineVersion}/${analysisContext.lotteryType}/${analysisContext.prizeType}/${analysisContext.scope}/${analysisContext.month ?? "ALL_MONTHS"}/${analysisContext.year ?? "ALL_YEARS"}; using on-demand fallback.`
     );
 
     const readModel = await timeAsync("analytics.analysis on-demand fallback", () =>
@@ -40,15 +38,10 @@ export async function getAnalyticsReadModel(query: AnalyticsQuery): Promise<ApiA
     };
   }
 
-  const prisma = getPrisma();
-  const prizes = await timeAsync("analytics.prize window query", () =>
-    getPrizeWindow(prisma, query)
-  );
-
-  return timeSync("analytics.buildAnalyticsReadModelFromPrizes", () => ({
-    ...buildAnalyticsReadModelFromPrizes(prizes, query, new Date()),
-    source: "prize-window" as const
-  }));
+  return {
+    ...buildEmptyAnalyticsReadModel(query),
+    source: "empty" as const
+  };
 }
 
 export async function getDigitStats(query: AnalyticsQuery) {
@@ -70,16 +63,6 @@ async function timeAsync<T>(label: string, operation: () => Promise<T>) {
 
   try {
     return await operation();
-  } finally {
-    console.timeEnd(label);
-  }
-}
-
-function timeSync<T>(label: string, operation: () => T) {
-  console.time(label);
-
-  try {
-    return operation();
   } finally {
     console.timeEnd(label);
   }
