@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 import { patternsContent } from "@/frontend/pages/patterns/patterns.content";
+import type { PatternExample } from "@/frontend/pages/patterns/patterns.mappers";
 import {
   buildPatternsHref,
   type PatternPageQuery,
@@ -10,7 +11,86 @@ import {
   patternPrizeOptions,
   patternScopeOptions
 } from "@/frontend/pages/patterns/patterns.mappers";
-import { Button, Card } from "@/frontend/primitives";
+import { Badge, Button, Card, SectionHeading } from "@/frontend/primitives";
+
+type PatternExamplesPanelProps = Readonly<{
+  examples: readonly PatternExample[];
+  query: PatternPageQuery;
+}>;
+
+export function PatternExamplesPanel({ examples, query }: PatternExamplesPanelProps) {
+  const router = useRouter();
+  const showRandomControls = Boolean(query.pattern);
+
+  function shuffleExamples() {
+    router.push(
+      buildPatternsHref(query, {
+        exampleSeed: String(Date.now())
+      })
+    );
+  }
+
+  return (
+    <Card className="p-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <SectionHeading
+          eyebrow={patternsContent.sections.examples.eyebrow}
+          title={patternsContent.sections.examples.title}
+        />
+        {showRandomControls ? (
+          <Button className="rounded-none" onClick={shuffleExamples} size="sm" type="button">
+            {patternsContent.sections.examples.shuffle}
+          </Button>
+        ) : null}
+      </div>
+      {showRandomControls ? (
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--color-text-secondary)]">
+          {patternsContent.sections.examples.randomHintTh}{" "}
+          <span className="text-[var(--color-text-muted)]">
+            {patternsContent.sections.examples.randomHint}
+          </span>
+        </p>
+      ) : null}
+      <div className="mt-5 grid gap-3 md:grid-cols-2">
+        {examples.map((example) => (
+          <article
+            className="border border-[var(--color-border-soft)] bg-[var(--color-bg-subtle)] p-4"
+            key={`${example.prizeType}-${example.number}-${example.synthetic ? "s" : "h"}`}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-mono text-2xl font-bold tracking-normal text-[var(--color-text-primary)]">
+                  {example.number}
+                </p>
+                <p className="mt-1 text-xs font-semibold text-[var(--color-text-muted)]">
+                  {example.prizeType}
+                </p>
+              </div>
+              <div className="flex flex-col items-end gap-1.5">
+                {example.synthetic ? (
+                  <Badge variant="neutral">
+                    {patternsContent.sections.examples.syntheticBadge}
+                  </Badge>
+                ) : null}
+                <Badge variant="neutral">mini DNA</Badge>
+              </div>
+            </div>
+            <p className="mt-3 font-mono text-xs text-[var(--color-text-secondary)]">
+              {example.dna}
+            </p>
+            <div className="mt-4 flex flex-wrap gap-1.5">
+              {example.flags.map((flag) => (
+                <Badge key={`${example.number}-${flag}`} variant="brand">
+                  {flag}
+                </Badge>
+              ))}
+            </div>
+          </article>
+        ))}
+      </div>
+    </Card>
+  );
+}
 
 type PatternsFilterPanelProps = Readonly<{
   query: PatternPageQuery;
@@ -28,6 +108,7 @@ export function PatternsFilterPanel({ query }: PatternsFilterPanelProps) {
 
     router.push(
       buildPatternsHref(query, {
+        exampleSeed: undefined,
         pattern: undefined,
         month: scope === "MONTH" ? month : undefined,
         prizeType,

@@ -42,6 +42,7 @@ import {
   toCreateWatchlistPayload,
   toUpdateWatchlistPayload
 } from "@/frontend/pages/watchlist/watchlist.mappers";
+import { hasNumberShapeFlag } from "@/lib/app/number-shape";
 import type { AnalyticsReadModel } from "@/schema/app/analytics.schema";
 import type { BacktestReadModel } from "@/schema/app/backtest.schema";
 import type { DrawListResponse } from "@/schema/app/draw.schema";
@@ -423,6 +424,7 @@ describe("frontend logic helpers", () => {
         patternStat("551011", "FIRST", 6, 1),
         patternStat("121", "THREE_FRONT", 3, 4),
         patternStat("123", "THREE_FRONT", 3, 2),
+        patternStat("135", "THREE_FRONT", 3, 1),
         patternStat("99", "TWO_DIGIT", 2, 5),
         patternStat("42", "TWO_DIGIT", 2, 3)
       ],
@@ -450,8 +452,18 @@ describe("frontend logic helpers", () => {
     expect(firstModel.prizeLabel).toBe("FIRST");
     expect(firstModel.numberLengthLabel).toBe("6 digits");
     expect(firstModel.playground.map((pattern) => pattern.id)).toContain("double_pair");
+    expect(firstModel.playground.map((pattern) => pattern.id)).not.toContain("ascending_run");
+    expect(firstModel.playground.map((pattern) => pattern.id)).not.toContain("descending_run");
+    expect(firstModel.playground.map((pattern) => pattern.id)).not.toContain("ascending");
     expect(firstModel.examples.every((example) => example.number.length === 6)).toBe(true);
     expect(firstModel.overviewCards.find((card) => card.id === "has_repeat")?.value).toBe(6);
+    expect(
+      parsePatternSearchParams({
+        pattern: "ascending_run",
+        prizeType: "FIRST",
+        scope: "ALL_TIME"
+      }).pattern
+    ).toBeUndefined();
     expect(defaultQuery).toMatchObject({
       prizeType: "TWO_DIGIT",
       scope: "ALL_TIME"
@@ -463,7 +475,22 @@ describe("frontend logic helpers", () => {
     });
 
     expect(threeModel.playground.map((pattern) => pattern.id)).toContain("palindrome");
-    expect(threeModel.playground.map((pattern) => pattern.id)).toContain("balanced_odd_even");
+    expect(threeModel.playground.map((pattern) => pattern.id)).toContain("ascending");
+    expect(threeModel.playground.map((pattern) => pattern.id)).toContain("descending");
+    expect(threeModel.playground.map((pattern) => pattern.id)).not.toContain("ascending_run");
+    expect(threeModel.overviewCards.find((card) => card.id === "ascending")?.value).toBe(3);
+
+    const threeUniqueModel = buildPatternReadModel(analytics, {
+      prizeType: "THREE_FRONT",
+      scope: "ALL_TIME",
+      pattern: "all_unique"
+    });
+
+    expect(threeUniqueModel.examples.length).toBeGreaterThan(0);
+    expect(threeUniqueModel.examples.every((example) => example.synthetic)).toBe(true);
+    expect(
+      threeUniqueModel.examples.every((example) => hasNumberShapeFlag(example.number, "all_unique"))
+    ).toBe(true);
 
     const twoModel = buildPatternReadModel(analytics, {
       prizeType: "TWO_DIGIT",
@@ -471,7 +498,7 @@ describe("frontend logic helpers", () => {
     });
 
     expect(twoModel.playground.map((pattern) => pattern.id)).toEqual(
-      expect.arrayContaining(["odd_last_digit", "double", "mirror"])
+      expect.arrayContaining(["odd_last_digit", "double", "mirror", "ascending", "descending"])
     );
     expect(twoModel.sampleLabel).toContain("draws");
 

@@ -295,16 +295,16 @@ function getShapeSummary(stats: readonly NumberStat[], numberLength: AnalyticsNu
 }
 
 function getShapeDefinitions(numberLength: AnalyticsNumberLength) {
-  const common = [
+  const repeatAndUnique = [
     { id: "has_repeat", label: "has_repeat", matches: hasRepeat },
-    { id: "all_unique", label: "all_unique", matches: isAllUnique },
-    { id: "ascending_run", label: "ascending_run", matches: hasAscendingRun },
-    { id: "descending_run", label: "descending_run", matches: hasDescendingRun }
+    { id: "all_unique", label: "all_unique", matches: isAllUnique }
   ];
 
   if (numberLength === 3) {
     return [
-      ...common,
+      ...repeatAndUnique,
+      { id: "ascending", label: "ascending", matches: isFullyAscending },
+      { id: "descending", label: "descending", matches: isFullyDescending },
       { id: "triple", label: "triple", matches: hasTriple },
       { id: "palindrome", label: "palindrome", matches: isPalindrome },
       { id: "digit_sum_range", label: "digit_sum_range", matches: () => true }
@@ -313,7 +313,7 @@ function getShapeDefinitions(numberLength: AnalyticsNumberLength) {
 
   if (numberLength === 6) {
     return [
-      ...common,
+      ...repeatAndUnique,
       { id: "double_pair", label: "double_pair", matches: hasDoublePair },
       { id: "triple", label: "triple", matches: hasTriple },
       { id: "digit_sum_range", label: "digit_sum_range", matches: () => true }
@@ -401,24 +401,6 @@ function isFullyDescending(number: string) {
   const digits = [...number].map(Number);
 
   return digits.every((digit, index) => index === 0 || digit < digits[index - 1]);
-}
-
-function hasAscendingRun(number: string) {
-  const digits = [...number].map(Number);
-
-  return digits.some(
-    (digit, index) =>
-      index >= 2 && digits[index - 2] + 1 === digits[index - 1] && digits[index - 1] + 1 === digit
-  );
-}
-
-function hasDescendingRun(number: string) {
-  const digits = [...number].map(Number);
-
-  return digits.some(
-    (digit, index) =>
-      index >= 2 && digits[index - 2] - 1 === digits[index - 1] && digits[index - 1] - 1 === digit
-  );
 }
 
 function getDigitCounts(number: string) {

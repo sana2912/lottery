@@ -1,12 +1,18 @@
 import Link from "next/link";
 import { EmptyState, MetricCard } from "@/frontend/components";
-import { PatternsFilterPanel } from "@/frontend/pages/patterns/patterns.components";
+import {
+  PatternExamplesPanel,
+  PatternsFilterPanel
+} from "@/frontend/pages/patterns/patterns.components";
 import { patternsContent } from "@/frontend/pages/patterns/patterns.content";
 import {
   getPatternsPageData,
   type PatternsPageData
 } from "@/frontend/pages/patterns/patterns.data";
-import { buildPatternsHref } from "@/frontend/pages/patterns/patterns.mappers";
+import {
+  buildPatternsHref,
+  hasSequencePatternCards
+} from "@/frontend/pages/patterns/patterns.mappers";
 import {
   Badge,
   Button,
@@ -71,6 +77,14 @@ export async function PatternsPage({ pageData, searchParams }: PatternsPageProps
           eyebrow={patternsContent.sections.overview.eyebrow}
           title={patternsContent.sections.overview.title}
         />
+        {hasSequencePatternCards(patterns.prizeType) ? (
+          <p className="max-w-3xl text-sm leading-6 text-[var(--color-text-secondary)]">
+            {patternsContent.sections.overview.sequenceHintTh}{" "}
+            <span className="text-[var(--color-text-muted)]">
+              {patternsContent.sections.overview.sequenceHint}
+            </span>
+          </p>
+        ) : null}
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {patterns.overviewCards.map((card) => (
             <article
@@ -80,6 +94,13 @@ export async function PatternsPage({ pageData, searchParams }: PatternsPageProps
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-sm font-bold text-[var(--color-text-primary)]">{card.label}</p>
+                  {card.id === "ascending" || card.id === "descending" ? (
+                    <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+                      {card.id === "ascending"
+                        ? "Strictly increasing digits"
+                        : "Strictly decreasing digits"}
+                    </p>
+                  ) : null}
                   <p className="mt-1 text-xs text-[var(--color-text-muted)]">
                     {card.value} / {card.total}
                   </p>
@@ -107,7 +128,9 @@ export async function PatternsPage({ pageData, searchParams }: PatternsPageProps
               size="sm"
               variant={!patterns.activePattern ? "secondary" : "outline"}
             >
-              <Link href={buildPatternsHref(query, { pattern: undefined })}>All patterns</Link>
+              <Link href={buildPatternsHref(query, { exampleSeed: undefined, pattern: undefined })}>
+                All patterns
+              </Link>
             </Button>
             {patterns.playground.map((pattern) => (
               <Button
@@ -117,7 +140,12 @@ export async function PatternsPage({ pageData, searchParams }: PatternsPageProps
                 size="sm"
                 variant={patterns.activePattern === pattern.id ? "secondary" : "ghost"}
               >
-                <Link href={buildPatternsHref(query, { pattern: pattern.id })}>
+                <Link
+                  href={buildPatternsHref(query, {
+                    exampleSeed: undefined,
+                    pattern: pattern.id
+                  })}
+                >
                   {pattern.label}
                 </Link>
               </Button>
@@ -131,42 +159,7 @@ export async function PatternsPage({ pageData, searchParams }: PatternsPageProps
           </div>
         </Card>
 
-        <Card className="p-6">
-          <SectionHeading
-            eyebrow={patternsContent.sections.examples.eyebrow}
-            title={patternsContent.sections.examples.title}
-          />
-          <div className="mt-5 grid gap-3 md:grid-cols-2">
-            {patterns.examples.map((example) => (
-              <article
-                className="border border-[var(--color-border-soft)] bg-[var(--color-bg-subtle)] p-4"
-                key={`${example.prizeType}-${example.number}`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="font-mono text-2xl font-bold tracking-normal text-[var(--color-text-primary)]">
-                      {example.number}
-                    </p>
-                    <p className="mt-1 text-xs font-semibold text-[var(--color-text-muted)]">
-                      {example.prizeType}
-                    </p>
-                  </div>
-                  <Badge variant="neutral">mini DNA</Badge>
-                </div>
-                <p className="mt-3 font-mono text-xs text-[var(--color-text-secondary)]">
-                  {example.dna}
-                </p>
-                <div className="mt-4 flex flex-wrap gap-1.5">
-                  {example.flags.map((flag) => (
-                    <Badge key={`${example.number}-${flag}`} variant="brand">
-                      {flag}
-                    </Badge>
-                  ))}
-                </div>
-              </article>
-            ))}
-          </div>
-        </Card>
+        <PatternExamplesPanel examples={patterns.examples} query={query} />
       </section>
 
       <Card className="p-6">
