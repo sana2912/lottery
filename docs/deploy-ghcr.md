@@ -1,6 +1,6 @@
 # Deploy checklist (GHCR + Postgres)
 
-Use this after merging to `main` (triggers [`.github/workflows/build-image.yml`](../.github/workflows/build-image.yml)).
+Use this after merging to `main`. [`.github/workflows/build-image.yml`](../.github/workflows/build-image.yml) runs only after the **CodeQL** workflow on `main` completes successfully (both Analyze jobs must pass). Manual override: `workflow_dispatch` on that workflow.
 
 ## 1. Pre-merge (developer)
 

@@ -8,6 +8,7 @@ import {
   buildPatternDistributionItems,
   type PatternDistributionItem
 } from "@/lib/app/pattern-distribution";
+import { generateRandomPatternNumbers } from "@/lib/app/pattern-random-examples";
 import type { AnalyticsReadModel, NumberStat } from "@/schema/app/analytics.schema";
 import type { AnalysisPatternReadModel, PatternsApiReadModel } from "@/schema/app/patterns.schema";
 import type { FilterContext } from "@/schema/app/query.schema";
@@ -64,11 +65,13 @@ export type PatternExample = {
   flags: string[];
   number: string;
   prizeType: string;
+  synthetic?: boolean;
 };
 
 export type { PatternDistributionItem };
 
 export type PatternPageQuery = {
+  exampleSeed?: string;
   month?: number;
   pattern?: string;
   prizeType: PatternPrizeValue;
@@ -153,8 +156,8 @@ const definitionIdsByLength = {
     "has_repeat",
     "all_unique",
     "triple",
-    "ascending_run",
-    "descending_run",
+    "ascending",
+    "descending",
     "palindrome",
     "low_sum",
     "mid_sum",
@@ -169,8 +172,6 @@ const definitionIdsByLength = {
     "triple",
     "quad_or_more",
     "palindrome",
-    "ascending_run",
-    "descending_run",
     "balanced_odd_even",
     "balanced_high_low",
     "low_sum",
@@ -187,6 +188,7 @@ export function parsePatternSearchParams(
   const scope = getSingleValue(record.scope);
   const month = Number(getSingleValue(record.month));
   const pattern = getSingleValue(record.pattern);
+  const exampleSeed = getSingleValue(record.exampleSeed);
   const parsedScope = scope === "MONTH" ? "MONTH" : "ALL_TIME";
   const normalized = normalizeProductAnalysisQuery({
     lotteryType: "THAI_GOVERNMENT",
@@ -196,12 +198,34 @@ export function parsePatternSearchParams(
     scope: parsedScope
   });
 
-  return {
+  const query: PatternPageQuery = {
+    exampleSeed: exampleSeed || undefined,
     month: normalized.month,
     pattern: pattern || undefined,
     prizeType: isPatternPrizeValue(prizeType) ? prizeType : "TWO_DIGIT",
     scope: normalized.scope
   };
+
+  return sanitizePatternQuery(query);
+}
+
+export function sanitizePatternQuery(query: PatternPageQuery): PatternPageQuery {
+  if (!query.pattern) {
+    return query;
+  }
+
+  const allowedIds = new Set(getDefinitionsForStats(query).map((definition) => definition.id));
+
+  if (allowedIds.has(query.pattern)) {
+    return query;
+  }
+
+  return { ...query, pattern: undefined };
+}
+
+export function hasSequencePatternCards(prizeType: PatternPrizeValue) {
+  const length = getPrizeNumberLength(prizeType);
+  return length === 2 || length === 3;
 }
 
 export function toPatternsAnalyticsQuery(query: PatternPageQuery): FilterContext {
@@ -240,6 +264,10 @@ export function buildPatternsHref(
     searchParams.set("pattern", next.pattern);
   }
 
+  if (next.exampleSeed) {
+    searchParams.set("exampleSeed", next.exampleSeed);
+  }
+
   const queryString = searchParams.toString();
 
   return queryString ? `/patterns?${queryString}` : "/patterns";
@@ -258,7 +286,7 @@ export function buildPatternReadModel(
   const activePattern = overviewCards.some((card) => card.id === query.pattern)
     ? query.pattern
     : undefined;
-  const examples = getExamples(stats, definitions, activePattern);
+  const examples = getExamples(stats, definitions, query, activePattern);
 
   return {
     activePattern,
@@ -311,7 +339,7 @@ export function buildPatternReadModelFromSnapshot(
     activePattern,
     distribution: snapshot.pattern.distribution,
     drawCount: snapshot.summary.drawCount,
-    examples: getSnapshotExamples(snapshot.pattern, definitions, activePattern),
+    examples: getSnapshotExamples(snapshot.pattern, definitions, query, activePattern),
     generatedAt: snapshot.generatedAt,
     numberLengthLabel: getNumberLengthLabel(query.prizeType),
     overviewCards,
@@ -389,22 +417,71 @@ function toOverviewCard(
 function getExamples(
   stats: readonly NumberStat[],
   definitions: readonly PatternDefinition[],
+  query: PatternPageQuery,
   activePattern?: string
 ): PatternExample[] {
   const activeDefinition = definitions.find((definition) => definition.id === activePattern);
-  const visibleStats = activeDefinition
-    ? stats.filter((stat) => activeDefinition.matches(stat.number))
-    : stats.filter((stat) => definitions.some((definition) => definition.matches(stat.number)));
 
-  return visibleStats.slice(0, 12).map((stat) => ({
-    dna: getMiniDna(stat.number),
+  if (activeDefinition) {
+    return buildRandomPatternExamples(activeDefinition, definitions, query, stats);
+  }
+
+  const visibleStats = stats.filter((stat) =>
+    definitions.some((definition) => definition.matches(stat.number))
+  );
+
+  return visibleStats
+    .slice(0, 12)
+    .map((stat) => toPatternExample(stat.number, definitions, stat.prizeType));
+}
+
+function buildRandomPatternExamples(
+  activeDefinition: PatternDefinition,
+  definitions: readonly PatternDefinition[],
+  query: PatternPageQuery,
+  stats: readonly NumberStat[]
+): PatternExample[] {
+  const length = getPrizeNumberLength(query.prizeType);
+  const seed =
+    query.exampleSeed ??
+    `${query.prizeType}:${activeDefinition.id}:${query.scope}:${query.month ?? "all"}`;
+  const randomNumbers = generateRandomPatternNumbers({
+    count: 12,
+    length,
+    matches: activeDefinition.matches,
+    seed
+  });
+  const examples = randomNumbers.map((number) =>
+    toPatternExample(number, definitions, query.prizeType, true)
+  );
+
+  if (examples.length >= 12) {
+    return examples;
+  }
+
+  const historical = stats
+    .filter((stat) => activeDefinition.matches(stat.number))
+    .map((stat) => toPatternExample(stat.number, definitions, stat.prizeType));
+
+  return uniquePatternExamples([...examples, ...historical]).slice(0, 12);
+}
+
+function toPatternExample(
+  number: string,
+  definitions: readonly PatternDefinition[],
+  prizeType: string,
+  synthetic = false
+): PatternExample {
+  return {
+    dna: getMiniDna(number),
     flags: definitions
-      .filter((definition) => definition.matches(stat.number))
+      .filter((definition) => definition.matches(number))
       .slice(0, 4)
       .map((definition) => definition.label),
-    number: stat.number,
-    prizeType: stat.prizeType
-  }));
+    number,
+    prizeType,
+    synthetic
+  };
 }
 
 function getDistribution(
@@ -434,37 +511,41 @@ function getSnapshotOverviewByPattern(snapshot: AnalysisPatternReadModel) {
 function getSnapshotExamples(
   snapshot: AnalysisPatternReadModel,
   definitions: readonly PatternDefinition[],
+  query: PatternPageQuery,
   activePattern?: string
 ): PatternExample[] {
   const activeDefinition = definitions.find((definition) => definition.id === activePattern);
-  const definitionByFlag = new Map(definitions.map((definition) => [definition.flag, definition]));
-  const snapshotExamples = activeDefinition
-    ? snapshot.examples.filter((example) => example.flags.includes(activeDefinition.flag))
-    : snapshot.examples;
-  const examples = snapshotExamples.map((example) =>
-    toPatternExampleFromSnapshot(example, definitions, definitionByFlag)
-  );
 
-  if (!activeDefinition || examples.length >= 12) {
-    return uniquePatternExamples(examples).slice(0, 12);
+  if (activeDefinition) {
+    const prizeType = snapshot.examples[0]?.prizeType ?? query.prizeType;
+    const syntheticExamples = buildRandomPatternExamples(
+      activeDefinition,
+      definitions,
+      query,
+      []
+    ).map((example) => ({ ...example, prizeType }));
+
+    if (syntheticExamples.length >= 12) {
+      return syntheticExamples;
+    }
+
+    const definitionByFlag = new Map(
+      definitions.map((definition) => [definition.flag, definition])
+    );
+    const historical = snapshot.examples
+      .filter((example) => example.flags.includes(activeDefinition.flag))
+      .map((example) => toPatternExampleFromSnapshot(example, definitions, definitionByFlag));
+
+    return uniquePatternExamples([...syntheticExamples, ...historical]).slice(0, 12);
   }
 
-  const overviewByPattern = getSnapshotOverviewByPattern(snapshot);
-  const overviewExamples =
-    overviewByPattern.get(activeDefinition.flag)?.examples ??
-    overviewByPattern.get(activeDefinition.id)?.examples ??
-    [];
-  const supplementalExamples = overviewExamples.map((number) => ({
-    dna: getMiniDna(number),
-    flags: definitions
-      .filter((definition) => definition.matches(number))
-      .slice(0, 4)
-      .map((definition) => definition.label),
-    number,
-    prizeType: snapshot.examples[0]?.prizeType ?? ""
-  }));
+  const definitionByFlag = new Map(definitions.map((definition) => [definition.flag, definition]));
 
-  return uniquePatternExamples([...examples, ...supplementalExamples]).slice(0, 12);
+  return uniquePatternExamples(
+    snapshot.examples.map((example) =>
+      toPatternExampleFromSnapshot(example, definitions, definitionByFlag)
+    )
+  ).slice(0, 12);
 }
 
 function toPatternExampleFromSnapshot(
@@ -517,8 +598,14 @@ function getHumanSummary(
 ) {
   const sampleLabel = getSampleLabel(query, total);
   const exampleCopy = examples.length > 0 ? ` Examples: ${examples.join(", ")}` : "";
+  const sequenceRule =
+    label === "Ascending"
+      ? " Every digit is strictly greater than the previous."
+      : label === "Descending"
+        ? " Every digit is strictly less than the previous."
+        : "";
 
-  return `Found ${label.toLowerCase()} ${value} of ${total} records in ${sampleLabel} (${percent}%).${exampleCopy}`;
+  return `Found ${label.toLowerCase()}${sequenceRule} ${value} of ${total} records in ${sampleLabel} (${percent}%).${exampleCopy}`;
 }
 function getTotalHits(stats: readonly NumberStat[]) {
   return stats.reduce((total, stat) => total + stat.hitCount, 0);

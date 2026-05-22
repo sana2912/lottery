@@ -1,22 +1,44 @@
+# Runs after GitHub CodeQL workflow succeeds on main (not in parallel with it).
+# Workflow name must match Actions tab — default setup is usually "CodeQL".
 name: Build & Push Image
 
 on:
-  push:
-    branches:
-      - main
+  workflow_run:
+    workflows: ["CodeQL"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
   packages: write
+  actions: read
 
 jobs:
   build:
     name: Build and Push GHCR
     runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.head_branch == 'main'
+      )
 
     steps:
+      - name: Resolve commit SHA
+        id: sha
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "value=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.sha.outputs.value }}
 
       - name: Set image name
         run: echo "IMAGE_NAME=ghcr.io/${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
@@ -38,5 +60,5 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: |
-            ${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.IMAGE_NAME }}:${{ steps.sha.outputs.value }}
             ${{ env.IMAGE_NAME }}:latest
