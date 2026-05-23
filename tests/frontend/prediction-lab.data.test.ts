@@ -1,51 +1,61 @@
-import { beforeEach, describe, expect, mock, test } from "bun:test";
-import { ApiHttpError } from "@/lib/api/http";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import {
+  getLatestPredictionRun,
+  getPatternPlaygroundOptions
+} from "@/frontend/pages/prediction-lab/prediction-lab.data";
 import type { PatternsApiReadModel } from "@/schema/app/patterns.schema";
 
-const apiGet = mock<() => Promise<PatternsApiReadModel>>(async () => createPatternsSnapshot());
-
-mock.module("@/lib/api/http", () => ({
-  ApiHttpError,
-  apiGet,
-  apiPost: mock()
-}));
+const originalFetch = globalThis.fetch;
 
 describe("prediction-lab.data", () => {
   beforeEach(() => {
-    apiGet.mockReset();
-    apiGet.mockImplementation(async () => createPatternsSnapshot());
+    globalThis.fetch = createFetcher(
+      async () =>
+        new Response(JSON.stringify(createPatternsSnapshot()), {
+          headers: {
+            "content-type": "application/json"
+          },
+          status: 200
+        })
+    );
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
   });
 
   test("getPatternPlaygroundOptions loads patterns snapshot for prize type", async () => {
-    const { getPatternPlaygroundOptions } = await import(
-      "@/frontend/pages/prediction-lab/prediction-lab.data"
-    );
-
     const options = await getPatternPlaygroundOptions("TWO_DIGIT");
 
-    expect(apiGet).toHaveBeenCalled();
     expect(options.some((option) => option.id === "ascending")).toBe(true);
     expect(options[0]?.percent).toBeGreaterThanOrEqual(0);
   });
 
   test("getLatestPredictionRun returns null on 404", async () => {
-    const { getLatestPredictionRun } = await import(
-      "@/frontend/pages/prediction-lab/prediction-lab.data"
-    );
-
-    apiGet.mockImplementation(async () => {
-      throw new ApiHttpError(
-        new Response("Not found", {
+    globalThis.fetch = createFetcher(
+      async () =>
+        new Response(JSON.stringify({ error: "Not found" }), {
+          headers: {
+            "content-type": "application/json"
+          },
           status: 404,
           statusText: "Not Found"
-        }),
-        { error: "Not found" }
-      );
-    });
+        })
+    );
 
     await expect(getLatestPredictionRun()).resolves.toBeNull();
   });
 });
+
+function createFetcher(
+  implementation: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
+): typeof fetch {
+  return Object.assign(implementation, {
+    preconnect(_url: string | URL) {
+      return undefined;
+    }
+  }) as typeof fetch;
+}
 
 function createPatternsSnapshot(): PatternsApiReadModel {
   return {
