@@ -7,6 +7,7 @@ import {
   matchesAllPatternIds,
   normalizePatternIdsForPrize
 } from "@/lib/app/pattern-playground";
+import { toPatternStatsQueryForPrize } from "@/lib/app/pattern-playground/query";
 import type { PatternsApiReadModel } from "@/schema/app/patterns.schema";
 
 describe("pattern-playground", () => {
@@ -29,9 +30,28 @@ describe("pattern-playground", () => {
   });
 
   test("matchesAllPatternIds requires every selected pattern", () => {
+    expect(matchesAllPatternIds("12", [], "TWO_DIGIT")).toBe(true);
     expect(matchesAllPatternIds("12", ["ascending"], "TWO_DIGIT")).toBe(true);
     expect(matchesAllPatternIds("11", ["ascending"], "TWO_DIGIT")).toBe(false);
     expect(matchesAllPatternIds("12", ["ascending", "odd_last_digit"], "TWO_DIGIT")).toBe(false);
+    expect(matchesAllPatternIds("12", ["unknown_pattern"], "TWO_DIGIT")).toBe(false);
+  });
+
+  test("toPatternStatsQueryForPrize uses full-sample patterns scope", () => {
+    const twoDigit = toPatternStatsQueryForPrize("TWO_DIGIT");
+    const sixDigitAll = toPatternStatsQueryForPrize("SIX_DIGIT_ALL");
+
+    expect(twoDigit).toMatchObject({
+      lotteryType: "THAI_GOVERNMENT",
+      numberLength: 2,
+      page: 1,
+      pageSize: 100,
+      prizeType: "TWO_DIGIT",
+      scope: "ALL_TIME",
+      windowPreset: "ALL"
+    });
+    expect(sixDigitAll.numberLength).toBe(6);
+    expect(sixDigitAll.prizeType).toBe("SIX_DIGIT_ALL");
   });
 
   test("normalizePatternIdsForPrize drops invalid ids for prize length", () => {
