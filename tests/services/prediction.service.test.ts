@@ -6,6 +6,7 @@ import {
   getPredictionById,
   predictionService
 } from "@/api/service/prediction.service";
+import { hasNumberShapeFlag } from "@/lib/app/number-shape";
 import { predictionResponseSchema } from "@/schema/app/prediction.schema";
 
 const mutableAnalyticsService = analyticsService as {
@@ -49,6 +50,37 @@ describe("prediction.service", () => {
     expect(new Set(response.results.map((item) => item.number)).size).toBe(2);
     expect(response.results.map((item) => item.rank)).toEqual([1, 2]);
     expect(response.results[0]?.positionBreakdown).toHaveLength(2);
+  });
+
+  test("filters generated candidates by selected pattern ids", async () => {
+    const store = createPredictionStore();
+
+    (globalThis as { prisma?: unknown }).prisma = createPredictionPrismaStub(store);
+    mutableAnalyticsService.getDigitStats = async () => [
+      digitStat("1", 1, 18, 90, 0, "up"),
+      digitStat("0", 1, 6, 30, 12, "down"),
+      digitStat("9", 1, 1, 5, 20, "flat"),
+      digitStat("1", 2, 17, 85, 0, "up"),
+      digitStat("0", 2, 5, 25, 10, "down"),
+      digitStat("9", 2, 2, 10, 18, "flat")
+    ];
+
+    const response = await predictionService.generate({
+      count: 5,
+      lotteryType: "THAI_GOVERNMENT",
+      numberLength: 2,
+      patternIds: ["ascending"],
+      prizeType: "TWO_DIGIT",
+      strategyId: "balanced",
+      windowSize: 120
+    });
+
+    expect(predictionResponseSchema.parse(response)).toEqual(response);
+    expect(response.results.length).toBeGreaterThan(0);
+    expect(response.results.every((result) => hasNumberShapeFlag(result.number, "ascending"))).toBe(
+      true
+    );
+    expect(response.input.patternIds).toEqual(["ascending"]);
   });
 
   test("returns an empty result set when analytics has no candidates", async () => {
@@ -211,6 +243,7 @@ function predictionResponse(input: {
   count: number;
   lotteryType: "THAI_GOVERNMENT";
   numberLength: 2 | 3 | 6;
+  patternIds?: string[];
   prizeType:
     | "FIRST"
     | "PRIZE2"
@@ -226,7 +259,10 @@ function predictionResponse(input: {
 }) {
   return {
     generatedAt: "2026-04-29T00:00:00.000Z",
-    input,
+    input: {
+      patternIds: [],
+      ...input
+    },
     results: [
       {
         id: "result-1",

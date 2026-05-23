@@ -101,6 +101,7 @@ describe("runWalkForwardBacktest", () => {
       digitStats,
       inputWindow: 10,
       numberLength: 2,
+      prizeType: "TWO_DIGIT",
       strategy
     })[0]?.number;
 

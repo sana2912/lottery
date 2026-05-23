@@ -8,6 +8,16 @@ import {
   buildPatternDistributionItems,
   type PatternDistributionItem
 } from "@/lib/app/pattern-distribution";
+import {
+  getPatternDefinitionsForPrizeType,
+  getPatternPrizeNumberLength,
+  getSnapshotOverviewByPattern,
+  hasSequencePatternCardsForPrize,
+  type PatternDefinition,
+  type PatternTone,
+  resolvePatternOverviewHitCount,
+  roundPatternPercent
+} from "@/lib/app/pattern-playground";
 import { generateRandomPatternNumbers } from "@/lib/app/pattern-random-examples";
 import type { AnalyticsReadModel, NumberStat } from "@/schema/app/analytics.schema";
 import type { AnalysisPatternReadModel, PatternsApiReadModel } from "@/schema/app/patterns.schema";
@@ -47,7 +57,8 @@ export const patternMonthOptions = [
 ].map((label, index) => ({ label, value: index + 1 }));
 
 type PatternPrizeValue = (typeof patternPrizeOptions)[number]["value"];
-export type PatternTone = "cold" | "hot" | "neutral" | "overdue" | "success" | "warning";
+
+export type { PatternTone };
 
 export type PatternOverviewCard = {
   examples: string[];
@@ -96,89 +107,9 @@ export type PatternReadModel = {
   sampleLabel: string;
 };
 
-type PatternDefinition = {
-  flag: NumberShapeFlag;
-  id: string;
-  label: string;
-  matches: (number: string) => boolean;
-  tone: PatternTone;
-};
-
 function matchesShape(flag: NumberShapeFlag) {
   return (number: string) => hasNumberShapeFlag(number, flag);
 }
-
-function definePattern(
-  flag: NumberShapeFlag,
-  id: string,
-  label: string,
-  tone: PatternTone
-): PatternDefinition {
-  return { flag, id, label, matches: matchesShape(flag), tone };
-}
-
-const patternDefinitions: PatternDefinition[] = [
-  definePattern("odd", "odd_last_digit", "Odd last digit", "neutral"),
-  definePattern("even", "even_last_digit", "Even last digit", "neutral"),
-  definePattern("high", "high_last_digit", "High last digit", "hot"),
-  definePattern("low", "low_last_digit", "Low last digit", "cold"),
-  definePattern("double", "double", "Double", "overdue"),
-  definePattern("has_repeat", "has_repeat", "Has repeat", "overdue"),
-  definePattern("all_unique", "all_unique", "All unique", "success"),
-  definePattern("double_pair", "double_pair", "Double pair", "overdue"),
-  definePattern("triple", "triple", "Triple", "warning"),
-  definePattern("quad_or_more", "quad_or_more", "Quad or more", "warning"),
-  definePattern("ascending", "ascending", "Ascending", "success"),
-  definePattern("descending", "descending", "Descending", "warning"),
-  definePattern("ascending_run", "ascending_run", "Ascending run", "success"),
-  definePattern("descending_run", "descending_run", "Descending run", "warning"),
-  definePattern("mirror", "mirror", "Mirror / reverse", "neutral"),
-  definePattern("palindrome", "palindrome", "Palindrome", "neutral"),
-  definePattern("balanced_odd_even", "balanced_odd_even", "Odd/even balance", "success"),
-  definePattern("balanced_high_low", "balanced_high_low", "High/low balance", "success"),
-  definePattern("low_sum", "low_sum", "Low digit sum", "cold"),
-  definePattern("mid_sum", "mid_sum", "Mid digit sum", "neutral"),
-  definePattern("high_sum", "high_sum", "High digit sum", "hot")
-];
-
-const definitionIdsByLength = {
-  2: [
-    "odd_last_digit",
-    "even_last_digit",
-    "high_last_digit",
-    "low_last_digit",
-    "double",
-    "ascending",
-    "descending",
-    "mirror"
-  ],
-  3: [
-    "has_repeat",
-    "all_unique",
-    "triple",
-    "ascending",
-    "descending",
-    "palindrome",
-    "low_sum",
-    "mid_sum",
-    "high_sum",
-    "balanced_odd_even",
-    "balanced_high_low"
-  ],
-  6: [
-    "has_repeat",
-    "all_unique",
-    "double_pair",
-    "triple",
-    "quad_or_more",
-    "palindrome",
-    "balanced_odd_even",
-    "balanced_high_low",
-    "low_sum",
-    "mid_sum",
-    "high_sum"
-  ]
-} as const;
 
 export function parsePatternSearchParams(
   searchParams?: Record<string, string | string[] | undefined> | URLSearchParams
@@ -224,8 +155,7 @@ export function sanitizePatternQuery(query: PatternPageQuery): PatternPageQuery 
 }
 
 export function hasSequencePatternCards(prizeType: PatternPrizeValue) {
-  const length = getPrizeNumberLength(prizeType);
-  return length === 2 || length === 3;
+  return hasSequencePatternCardsForPrize(prizeType);
 }
 
 export function toPatternsAnalyticsQuery(query: PatternPageQuery): FilterContext {
@@ -315,9 +245,9 @@ export function buildPatternReadModelFromSnapshot(
   const overviewByPattern = getSnapshotOverviewByPattern(snapshot.pattern);
   const totalHits = snapshot.pattern.sampleSize;
   const overviewCards = definitions.map((definition) => {
+    const value = resolvePatternOverviewHitCount(overviewByPattern, definition);
+    const percent = totalHits > 0 ? roundPatternPercent((value / totalHits) * 100) : 0;
     const overview = overviewByPattern.get(definition.flag) ?? overviewByPattern.get(definition.id);
-    const value = overview?.hitCount ?? 0;
-    const percent = totalHits > 0 ? round((value / totalHits) * 100) : 0;
     const examples = overview?.examples.slice(0, 3) ?? [];
 
     return {
@@ -383,12 +313,7 @@ function getPatternStats(analytics: AnalyticsReadModel, query: PatternPageQuery)
 }
 
 function getDefinitionsForStats(query: PatternPageQuery) {
-  const lengths = [getPrizeNumberLength(query.prizeType)];
-  const ids = new Set<string>(
-    lengths.flatMap((length) => definitionIdsByLength[length as 2 | 3 | 6] ?? [])
-  );
-
-  return patternDefinitions.filter((definition) => ids.has(definition.id));
+  return getPatternDefinitionsForPrizeType(query.prizeType);
 }
 
 function toOverviewCard(
@@ -399,7 +324,7 @@ function toOverviewCard(
 ): PatternOverviewCard {
   const matches = stats.filter((stat) => definition.matches(stat.number));
   const value = getTotalHits(matches);
-  const percent = totalHits > 0 ? round((value / totalHits) * 100) : 0;
+  const percent = totalHits > 0 ? roundPatternPercent((value / totalHits) * 100) : 0;
   const examples = matches.slice(0, 3).map((stat) => stat.number);
 
   return {
@@ -498,16 +423,6 @@ function getDistribution(
   );
 }
 
-function getSnapshotOverviewByPattern(snapshot: AnalysisPatternReadModel) {
-  const overviewByPattern = new Map<string, AnalysisPatternReadModel["overview"][number]>();
-
-  for (const overview of snapshot.overview) {
-    overviewByPattern.set(normalizeSnapshotPatternId(overview.pattern ?? overview.id), overview);
-  }
-
-  return overviewByPattern;
-}
-
 function getSnapshotExamples(
   snapshot: AnalysisPatternReadModel,
   definitions: readonly PatternDefinition[],
@@ -584,10 +499,6 @@ function uniquePatternExamples(examples: readonly PatternExample[]) {
   });
 }
 
-function normalizeSnapshotPatternId(value: string) {
-  return value.startsWith("pattern-") ? value.slice("pattern-".length) : value;
-}
-
 function getHumanSummary(
   label: string,
   value: number,
@@ -612,22 +523,7 @@ function getTotalHits(stats: readonly NumberStat[]) {
 }
 
 function getPrizeNumberLength(prizeType: PatternPrizeValue): 2 | 3 | 6 {
-  switch (prizeType) {
-    case "TWO_DIGIT":
-      return 2;
-    case "THREE_DIGIT":
-    case "THREE_FRONT":
-    case "THREE_BACK":
-      return 3;
-    case "FIRST":
-    case "NEAR_FIRST":
-    case "PRIZE2":
-    case "PRIZE3":
-    case "PRIZE4":
-    case "PRIZE5":
-    case "SIX_DIGIT_ALL":
-      return 6;
-  }
+  return getPatternPrizeNumberLength(prizeType);
 }
 
 function getPrizeLabel(prizeType: PatternPrizeValue) {
@@ -673,8 +569,4 @@ function toSearchParamRecord(
 
 function getSingleValue(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
-}
-
-function round(value: number) {
-  return Math.round(value * 100) / 100;
 }

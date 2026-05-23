@@ -61,9 +61,8 @@ export function runWalkForwardBacktest({
     const sourceTargetIndex = sortedDraws.length - targetDraws.length + targetIndex;
     const historyDraws = sortedDraws.slice(0, sourceTargetIndex).slice(-windowSize);
     const historyPrizes = historyDraws.flatMap(withDrawContext).filter(matchesPrizeContext);
-    const actualNumbers = targetDraw.prizes
-      .filter(matchesPrizeContext)
-      .map((prize) => prize.number);
+    const actualPrizes = targetDraw.prizes.filter(matchesPrizeContext);
+    const actualNumbers = actualPrizes.map((prize) => prize.number);
 
     if (historyPrizes.length === 0 || actualNumbers.length === 0) {
       return [];
@@ -80,6 +79,7 @@ export function runWalkForwardBacktest({
       digitStats,
       inputWindow: windowSize,
       numberLength: numberLength ?? actualNumbers[0]?.length ?? 2,
+      prizeType: prizeType ?? historyPrizes[0]?.type ?? actualPrizes[0]?.type ?? "TWO_DIGIT",
       strategy
     });
     const generatedNumbers = generatedCandidates.map((result) => result.number);

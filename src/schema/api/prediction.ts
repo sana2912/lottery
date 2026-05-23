@@ -41,6 +41,7 @@ export interface ApiPredictionRequest {
   count?: number;
   lotteryType?: ApiLotteryType;
   numberLength?: ApiNumberLength;
+  patternIds?: string[];
   prizeType?: ApiPredictionPrizeType;
   strategyId?: ApiPredictionStrategyId;
   windowSize?: number;

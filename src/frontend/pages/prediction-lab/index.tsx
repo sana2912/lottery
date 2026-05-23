@@ -7,16 +7,21 @@ import { EmptyState, MetricCard } from "@/frontend/components";
 import { predictionLabContent } from "@/frontend/pages/prediction-lab/prediction-lab.content";
 import {
   generatePredictionRun,
-  getLatestPredictionRun
+  getLatestPredictionRun,
+  getPatternPlaygroundOptions,
+  type PatternPlaygroundOption
 } from "@/frontend/pages/prediction-lab/prediction-lab.data";
 import {
   defaultPredictionFormState,
+  getPatternFlagLabelsForNumber,
+  getPredictionNumberDna,
   getPredictionPositionLabel,
   getPredictionScoreLabel,
   getTopPredictionScore,
   toPredictionPayload,
   toPredictionWatchlistPayload
 } from "@/frontend/pages/prediction-lab/prediction-lab.mappers";
+import { PredictionPatternPlayground } from "@/frontend/pages/prediction-lab/prediction-lab.pattern-playground";
 import {
   Badge,
   Button,
@@ -42,6 +47,11 @@ import { createWatchlistItemSchema } from "@/schema/app/watchlist.schema";
 
 export function PredictionLabPage() {
   const [formState, setFormState] = useState(defaultPredictionFormState);
+  const [selectedPatternIds, setSelectedPatternIds] = useState<string[]>([]);
+  const [patternOptions, setPatternOptions] = useState<PatternPlaygroundOption[]>([]);
+  const [patternsLoadState, setPatternsLoadState] = useState<"error" | "loading" | "ready">(
+    "loading"
+  );
   const [runState, setRunState] = useState<
     "empty" | "error" | "loading" | "noCandidates" | "ready"
   >("loading");
@@ -57,6 +67,39 @@ export function PredictionLabPage() {
       predictionLabContent.prizeOptions[0],
     [formState.prizeType]
   );
+  const controlsDisabled = patternsLoadState !== "ready" || isPending;
+
+  useEffect(() => {
+    let isActive = true;
+
+    async function loadPatternOptions() {
+      setPatternsLoadState("loading");
+
+      try {
+        const options = await getPatternPlaygroundOptions(formState.prizeType);
+
+        if (!isActive) {
+          return;
+        }
+
+        setPatternOptions(options);
+        setPatternsLoadState("ready");
+      } catch {
+        if (!isActive) {
+          return;
+        }
+
+        setPatternOptions([]);
+        setPatternsLoadState("error");
+      }
+    }
+
+    void loadPatternOptions();
+
+    return () => {
+      isActive = false;
+    };
+  }, [formState.prizeType]);
 
   useEffect(() => {
     let isActive = true;
@@ -93,11 +136,29 @@ export function PredictionLabPage() {
     };
   }, []);
 
+  function handlePrizeTypeChange(prizeType: PredictionRequest["prizeType"]) {
+    setFormState({
+      ...defaultPredictionFormState,
+      prizeType
+    });
+    setSelectedPatternIds([]);
+  }
+
+  function handlePatternToggle(patternId: string) {
+    setSelectedPatternIds((current) =>
+      current.includes(patternId)
+        ? current.filter((id) => id !== patternId)
+        : [...current, patternId]
+    );
+  }
+
   async function handleGenerate() {
     setIsPending(true);
     setError(null);
 
-    const payload = predictionRequestSchema.parse(toPredictionPayload(formState));
+    const payload = predictionRequestSchema.parse(
+      toPredictionPayload(formState, selectedPatternIds)
+    );
 
     try {
       const response = await generatePredictionRun(payload);
@@ -171,94 +232,112 @@ export function PredictionLabPage() {
           eyebrow={predictionLabContent.sections.generationSettings.eyebrow}
           title={predictionLabContent.sections.generationSettings.title}
         />
-        <div className="mt-5 grid gap-4 md:grid-cols-4">
-          <div className="space-y-2">
-            <Label htmlFor="strategyId">Strategy</Label>
-            <Select
-              value={formState.strategyId}
-              onValueChange={(strategyId) =>
-                setFormState((current) => ({
-                  ...current,
-                  strategyId: strategyId as PredictionRequest["strategyId"]
-                }))
-              }
-            >
-              <SelectTrigger id="strategyId">
-                <SelectValue placeholder={predictionLabContent.selectPlaceholders.strategy} />
-              </SelectTrigger>
-              <SelectContent>
-                {predictionLabContent.strategyOptions.map((strategy) => (
-                  <SelectItem key={strategy.value} value={strategy.value}>
-                    {strategy.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        <div className="mt-5 space-y-5">
+          <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_160px]">
+            <div className="space-y-2">
+              <Label htmlFor="prizeType">1. Prize type</Label>
+              <Select
+                disabled={isPending}
+                value={formState.prizeType}
+                onValueChange={(prizeType) =>
+                  handlePrizeTypeChange(prizeType as PredictionRequest["prizeType"])
+                }
+              >
+                <SelectTrigger id="prizeType">
+                  <SelectValue placeholder={predictionLabContent.selectPlaceholders.prizeType} />
+                </SelectTrigger>
+                <SelectContent>
+                  {predictionLabContent.prizeOptions.map((prize) => (
+                    <SelectItem key={prize.value} value={prize.value}>
+                      {prize.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Derived length</Label>
+              <div className="flex h-10 items-center border border-[var(--color-border-default)] bg-white px-3 text-sm text-[var(--color-text-secondary)]">
+                {selectedPrize.numberLength} digits
+              </div>
+            </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="prizeType">Prize type</Label>
-            <Select
-              value={formState.prizeType}
-              onValueChange={(prizeType) =>
-                setFormState((current) => ({
-                  ...current,
-                  prizeType: prizeType as PredictionRequest["prizeType"]
-                }))
-              }
-            >
-              <SelectTrigger id="prizeType">
-                <SelectValue placeholder={predictionLabContent.selectPlaceholders.prizeType} />
-              </SelectTrigger>
-              <SelectContent>
-                {predictionLabContent.prizeOptions.map((prize) => (
-                  <SelectItem key={prize.value} value={prize.value}>
-                    {prize.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="windowSize">Window size</Label>
-            <Input
-              id="windowSize"
-              inputMode="numeric"
-              min={1}
-              onChange={(event) =>
-                setFormState((current) => ({ ...current, windowSize: event.target.value }))
-              }
-              type="number"
-              value={formState.windowSize}
+            <Label>2. Patterns</Label>
+            <PredictionPatternPlayground
+              disabled={isPending}
+              loadState={patternsLoadState}
+              onClear={() => setSelectedPatternIds([])}
+              onToggle={handlePatternToggle}
+              options={patternOptions}
+              prizeType={formState.prizeType}
+              selectedPatternIds={selectedPatternIds}
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="count">Candidates</Label>
-            <Input
-              id="count"
-              inputMode="numeric"
-              max={20}
-              min={1}
-              onChange={(event) =>
-                setFormState((current) => ({ ...current, count: event.target.value }))
-              }
-              type="number"
-              value={formState.count}
-            />
-          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="strategyId">3. Strategy</Label>
+              <Select
+                disabled={controlsDisabled}
+                value={formState.strategyId}
+                onValueChange={(strategyId) =>
+                  setFormState((current) => ({
+                    ...current,
+                    strategyId: strategyId as PredictionRequest["strategyId"]
+                  }))
+                }
+              >
+                <SelectTrigger id="strategyId">
+                  <SelectValue placeholder={predictionLabContent.selectPlaceholders.strategy} />
+                </SelectTrigger>
+                <SelectContent>
+                  {predictionLabContent.strategyOptions.map((strategy) => (
+                    <SelectItem key={strategy.value} value={strategy.value}>
+                      {strategy.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          <div className="space-y-2">
-            <Label>Derived length</Label>
-            <div className="flex h-10 items-center border border-[var(--color-border-default)] bg-white px-3 text-sm text-[var(--color-text-secondary)]">
-              {selectedPrize.numberLength} digits
+            <div className="space-y-2">
+              <Label htmlFor="count">4. Candidates</Label>
+              <Input
+                disabled={controlsDisabled}
+                id="count"
+                inputMode="numeric"
+                max={20}
+                min={1}
+                onChange={(event) =>
+                  setFormState((current) => ({ ...current, count: event.target.value }))
+                }
+                type="number"
+                value={formState.count}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="windowSize">5. Window size</Label>
+              <Input
+                disabled={controlsDisabled}
+                id="windowSize"
+                inputMode="numeric"
+                min={1}
+                onChange={(event) =>
+                  setFormState((current) => ({ ...current, windowSize: event.target.value }))
+                }
+                type="number"
+                value={formState.windowSize}
+              />
             </div>
           </div>
         </div>
 
         <div className="mt-5 flex flex-wrap items-center gap-3">
-          <Button disabled={isPending} onClick={handleGenerate} type="button">
+          <Button disabled={controlsDisabled} onClick={handleGenerate} type="button">
             {isPending ? <Loader2 className="animate-spin" /> : <FlaskConical />}
             {predictionLabContent.actions.generate}
           </Button>
@@ -315,9 +394,17 @@ export function PredictionLabPage() {
 
       {runState === "noCandidates" && prediction && !error ? (
         <EmptyState
-          description={predictionLabContent.emptyStates.noCandidates.description}
+          description={
+            (prediction.input.patternIds?.length ?? 0) > 0
+              ? predictionLabContent.emptyStates.noPatternMatches.description
+              : predictionLabContent.emptyStates.noCandidates.description
+          }
           icon={<FlaskConical />}
-          title={predictionLabContent.emptyStates.noCandidates.title}
+          title={
+            (prediction.input.patternIds?.length ?? 0) > 0
+              ? predictionLabContent.emptyStates.noPatternMatches.title
+              : predictionLabContent.emptyStates.noCandidates.title
+          }
         />
       ) : null}
 
@@ -340,6 +427,18 @@ export function PredictionLabPage() {
                     {result.version} / {predictionLabContent.results.versionWindowLabel}{" "}
                     {result.inputWindow}
                   </p>
+                  <p className="mt-2 font-mono text-xs text-[var(--color-text-secondary)]">
+                    {getPredictionNumberDna(result.number)}
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {getPatternFlagLabelsForNumber(result.number, formState.prizeType).map(
+                      (flag) => (
+                        <Badge key={`${result.id}-${flag}`} variant="brand">
+                          {flag}
+                        </Badge>
+                      )
+                    )}
+                  </div>
                 </div>
 
                 <MetricCard

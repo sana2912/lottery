@@ -54,6 +54,7 @@ describe("prediction.dto", () => {
         count: 5,
         lotteryType: "THAI_GOVERNMENT",
         numberLength: 2,
+        patternIds: [],
         prizeType: "TWO_DIGIT",
         strategyId: "balanced",
         windowSize: 120
