@@ -1,3 +1,5 @@
+import { getMiniDna } from "@/lib/app/number-shape";
+import { getPatternDefinitionsForPrizeType } from "@/lib/app/pattern-playground";
 import { getPredictionNumberLength } from "@/lib/app/prediction";
 import type {
   PredictionRequest,
@@ -19,15 +21,33 @@ export const defaultPredictionFormState: PredictionFormState = {
   windowSize: "120"
 };
 
-export function toPredictionPayload(formState: PredictionFormState) {
+export function toPredictionPayload(
+  formState: PredictionFormState,
+  selectedPatternIds: readonly string[] = []
+) {
   return {
     count: formState.count,
     lotteryType: "THAI_GOVERNMENT" as const,
     numberLength: getPredictionNumberLength(formState.prizeType),
+    ...(selectedPatternIds.length > 0 ? { patternIds: [...selectedPatternIds] } : {}),
     prizeType: formState.prizeType,
     strategyId: formState.strategyId,
     windowSize: formState.windowSize
   };
+}
+
+export function getPatternFlagLabelsForNumber(
+  number: string,
+  prizeType: PredictionRequest["prizeType"]
+) {
+  return getPatternDefinitionsForPrizeType(prizeType)
+    .filter((definition) => definition.matches(number))
+    .slice(0, 4)
+    .map((definition) => definition.label);
+}
+
+export function getPredictionNumberDna(number: string) {
+  return getMiniDna(number);
 }
 
 export function toPredictionWatchlistPayload(result: PredictionResult) {

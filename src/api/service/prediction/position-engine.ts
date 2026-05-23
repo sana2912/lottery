@@ -4,6 +4,7 @@ import {
   getShapePatternScore,
   getShapeReasons
 } from "@/lib/app/number-shape";
+import { matchesAllPatternIds } from "@/lib/app/pattern-playground";
 import type { ApiDigitStat } from "@/schema/api/analytics";
 import type {
   ApiPredictionPositionBreakdown,
@@ -16,6 +17,8 @@ type PositionCandidateInput = {
   digitStats: readonly ApiDigitStat[];
   inputWindow: number;
   numberLength: number;
+  patternIds?: readonly string[];
+  prizeType: string;
   strategy: PredictionStrategy;
 };
 
@@ -32,6 +35,8 @@ export function buildPositionPredictionResults({
   digitStats,
   inputWindow,
   numberLength,
+  patternIds,
+  prizeType,
   strategy
 }: PositionCandidateInput): GeneratedPredictionResult[] {
   if (digitStats.length === 0) {
@@ -42,7 +47,11 @@ export function buildPositionPredictionResults({
   const optionsByPosition = Array.from({ length: resolvedLength }, (_, index) =>
     buildDigitOptionsForPosition(index + 1, digitStats, strategy)
   );
-  const candidates = enumerateCandidates(optionsByPosition, strategy, inputWindow);
+  const candidates = filterCandidatesByPatterns(
+    enumerateCandidates(optionsByPosition, strategy, inputWindow),
+    patternIds,
+    prizeType
+  );
 
   return selectDiverseCandidates(
     [...candidates.values()].sort(
@@ -50,6 +59,26 @@ export function buildPositionPredictionResults({
     ),
     count
   );
+}
+
+function filterCandidatesByPatterns(
+  candidates: Map<string, GeneratedPredictionResult>,
+  patternIds: readonly string[] | undefined,
+  prizeType: string
+) {
+  if (!patternIds?.length) {
+    return candidates;
+  }
+
+  const filtered = new Map<string, GeneratedPredictionResult>();
+
+  for (const [number, candidate] of candidates) {
+    if (matchesAllPatternIds(number, patternIds, prizeType)) {
+      filtered.set(number, candidate);
+    }
+  }
+
+  return filtered;
 }
 
 function selectDiverseCandidates(

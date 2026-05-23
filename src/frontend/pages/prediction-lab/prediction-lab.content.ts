@@ -21,6 +21,11 @@ export const predictionLabContent = {
         "The latest prediction run completed, but no candidates met the current historical criteria.",
       title: "No candidates in latest run"
     },
+    noPatternMatches: {
+      description:
+        "No generated candidates matched every selected pattern. Clear one or more patterns, or choose a different prize type.",
+      title: "No candidates matched selected patterns"
+    },
     noRun: {
       description:
         "No persisted prediction run is available yet. Generate candidates to inspect score breakdowns and reasons.",
@@ -34,6 +39,8 @@ export const predictionLabContent = {
     }
   },
   errorMessages: {
+    patternStatsUnavailable:
+      "Pattern statistics could not be loaded for the selected prize type. Check analytics snapshots and API runtime.",
     predictionUnavailable:
       "Prediction API is unavailable or returned an invalid response. Check database seed data and API runtime.",
     watchlistSaveFailed: "Unable to save this number to the global watchlist."
@@ -73,8 +80,18 @@ export const predictionLabContent = {
       title: "Current result"
     },
     generationSettings: {
-      eyebrow: "Strategy input",
-      title: "Generation settings"
+      eyebrow: "Generation flow",
+      title: "Prediction settings"
+    },
+    patternPlayground: {
+      clearAll: "Clear patterns",
+      description:
+        "Percentages use the same full eligible sample as the Patterns page. Selected patterns filter candidates before strategy ranking.",
+      descriptionTh:
+        "เปอร์เซ็นต์มาจาก sample เดียวกับหน้า Patterns เลือกหลาย pattern ได้ — ระบบจะกรองให้ตรงทุก pattern ก่อนจัด rank ด้วย strategy",
+      eyebrow: "Pattern playground",
+      patternsLink: "Open full Patterns page",
+      title: "Pattern playground for prediction"
     }
   },
   selectPlaceholders: {

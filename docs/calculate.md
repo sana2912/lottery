@@ -592,17 +592,30 @@ generate เลขจาก digitStats รายตำแหน่ง ไม่�
 flow:
 
 ```text
+Prediction Lab UI
+  1. prizeType
+  2. patternIds (optional, multiselect — percentages from GET /api/patterns, same sample as /patterns)
+  3. strategyId
+  4. count
+  5. windowSize
+
 Prediction input
   -> normalize numberLength จาก prizeType
+  -> normalize patternIds ให้เหลือเฉพาะ pattern ที่ valid ต่อรางวัล
   -> analyticsService.getDigitStats
   -> buildPositionPredictionResults
+       -> enumerate digit combinations
+       -> filter candidates ด้วย AND ของ patternIds (ถ้าไม่ส่ง patternIds = ไม่กรอง)
+       -> strategy score + diverse select
   -> persist prediction run
   -> return ranked results
 ```
 
+Pattern playground options ใช้ shared lib `src/lib/app/pattern-playground/` และดึง overview จาก `GET /api/patterns` (snapshot ก่อน, on-demand fallback) ด้วย scope `ALL_TIME` + `windowPreset: ALL` — **ไม่ใช้** `windowSize` ของ prediction เป็นตัวคำนวณเปอร์เซ็นต์ pattern
+
 code:
 
-`src/api/service/prediction.service.ts:54`, `src/api/service/prediction.service.ts:64`
+`src/api/service/prediction.service.ts:54`, `src/api/service/prediction/position-engine.ts:30`, `src/lib/app/pattern-playground/`
 
 ### Step 1: เลือก digit ที่ดีในแต่ละตำแหน่ง
 
@@ -1439,6 +1452,7 @@ calendar.service
 
 ```text
 prizeType = FIRST
+patternIds = ["all_unique", "balanced_odd_even"]   # optional; UI shows % from /patterns sample
 windowSize = 120
 count = 5
 strategy = Balanced
@@ -1448,16 +1462,17 @@ strategy = Balanced
 
 ```text
 1. FIRST -> numberLength 6
-2. ดึง digitStats ของ FIRST ย้อนหลัง 120 งวด
+2. ดึง digitStats ของ FIRST (analytics scope ALL_TIME สำหรับ digit; windowSize บันทึกเป็น inputWindow ในผลลัพธ์)
 3. position 1 เลือก digit ที่คะแนนดี
 4. position 2 เลือก digit ที่คะแนนดี
 5. ทำครบ 6 position
 6. ประกอบเลข candidate
-7. คำนวณ hot/overdue/trend เฉลี่ย
-8. คำนวณ shape naturalness และ shape pattern
-9. รวมคะแนนด้วย Balanced weights
-10. sort score มากไปน้อย
-11. return top 5
+7. กรอง candidate ที่ไม่ตรงทุก pattern ใน patternIds (ถ้ามี)
+8. คำนวณ hot/overdue/trend เฉลี่ย
+9. คำนวณ shape naturalness และ shape pattern
+10. รวมคะแนนด้วย Balanced weights
+11. sort score มากไปน้อย
+12. return top 5
 ```
 
 ถ้าได้เลข:

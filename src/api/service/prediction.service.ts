@@ -6,10 +6,13 @@ import { PREDICTION_ENGINE_VERSION } from "@/api/service/prediction/scoring-engi
 import { getPredictionStrategy } from "@/api/service/prediction/strategy-registry";
 import { getPrisma } from "@/api/service/prisma";
 import type { Prisma } from "@/generated/prisma/client";
+import { normalizePatternIdsForPrize } from "@/lib/app/pattern-playground";
 import { getPredictionNumberLength } from "@/lib/app/prediction";
 import {
   type PredictionRequest,
+  type PredictionRequestInput,
   type PredictionResponse,
+  predictionRequestSchema,
   predictionResponseSchema
 } from "@/schema/app/prediction.schema";
 
@@ -42,14 +45,16 @@ type PredictionResultRecord = {
   version: string | null;
 };
 
-export async function generate(input: PredictionRequest) {
+export async function generate(input: PredictionRequestInput) {
   const prisma = getPrisma();
   const generatedAt = new Date();
+  const parsedInput = predictionRequestSchema.parse(input);
   const normalizedInput: PredictionRequest = {
-    ...input,
-    numberLength: getPredictionNumberLength(input.prizeType)
+    ...parsedInput,
+    numberLength: getPredictionNumberLength(parsedInput.prizeType),
+    patternIds: normalizePatternIdsForPrize(parsedInput.patternIds ?? [], parsedInput.prizeType)
   };
-  const strategy = getPredictionStrategy(input.strategyId);
+  const strategy = getPredictionStrategy(normalizedInput.strategyId);
   const digitStats = await timeAsync("prediction.generate analytics digits", () =>
     analyticsService.getDigitStats({
       lotteryType: normalizedInput.lotteryType,
@@ -67,6 +72,8 @@ export async function generate(input: PredictionRequest) {
       digitStats,
       inputWindow: normalizedInput.windowSize,
       numberLength: normalizedInput.numberLength,
+      patternIds: normalizedInput.patternIds,
+      prizeType: normalizedInput.prizeType,
       strategy
     }).map((result, index) => ({
       ...result,
@@ -107,8 +114,8 @@ export async function generate(input: PredictionRequest) {
       await transaction.$executeRaw`
         UPDATE "prediction_runs"
         SET
-          "lotteryType" = ${input.lotteryType}::"LotteryType",
-          "prizeType" = ${input.prizeType}::"LotteryPrizeType",
+          "lotteryType" = ${normalizedInput.lotteryType}::"LotteryType",
+          "prizeType" = ${normalizedInput.prizeType}::"LotteryPrizeType",
           "numberLength" = ${normalizedInput.numberLength},
           "windowSize" = ${normalizedInput.windowSize},
           "count" = ${normalizedInput.count},

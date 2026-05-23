@@ -31,6 +31,7 @@ export const predictionRequestSchema = z.object({
   count: z.coerce.number().int().min(1).max(20).optional().default(5),
   lotteryType: lotteryTypeSchema.optional().default("THAI_GOVERNMENT"),
   numberLength: z.coerce.number().pipe(numberLengthSchema).optional().default(2),
+  patternIds: z.array(z.string().min(1)).max(12).optional().default([]),
   prizeType: predictionPrizeTypeSchema.optional().default("TWO_DIGIT"),
   strategyId: predictionStrategyIdSchema.optional().default("balanced"),
   windowSize: z.coerce.number().int().min(1).max(2000).optional().default(120)
@@ -58,7 +59,8 @@ export const predictionResponseSchema = z.object({
   source: z.literal("api")
 });
 
-export type PredictionRequest = z.infer<typeof predictionRequestSchema>;
+export type PredictionRequestInput = z.input<typeof predictionRequestSchema>;
+export type PredictionRequest = z.output<typeof predictionRequestSchema>;
 export type PredictionResponse = z.infer<typeof predictionResponseSchema>;
 export type PredictionResult = z.infer<typeof predictionResultSchema>;
 export type PredictionPositionBreakdown = z.infer<typeof predictionPositionBreakdownSchema>;

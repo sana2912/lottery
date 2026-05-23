@@ -18,7 +18,7 @@ import { calendarReadModelSchema } from "@/schema/app/calendar.schema";
 import { compareReadModelSchema } from "@/schema/app/compare.schema";
 import { dashboardReadModelSchema } from "@/schema/app/dashboard.schema";
 import { drawDetailResponseSchema, drawListResponseSchema } from "@/schema/app/draw.schema";
-import { predictionResponseSchema } from "@/schema/app/prediction.schema";
+import { predictionRequestSchema, predictionResponseSchema } from "@/schema/app/prediction.schema";
 import { searchReadModelSchema } from "@/schema/app/search.schema";
 import {
   deleteWatchlistItemResponseSchema,
@@ -205,6 +205,7 @@ describe("api router", () => {
           count: 3,
           lotteryType: "THAI_GOVERNMENT",
           numberLength: 2,
+          patternIds: [],
           prizeType: "TWO_DIGIT",
           strategyId: "balanced",
           windowSize: 120
@@ -218,6 +219,7 @@ describe("api router", () => {
               count: 3,
               lotteryType: "THAI_GOVERNMENT",
               numberLength: 2,
+              patternIds: [],
               prizeType: "TWO_DIGIT",
               strategyId: "balanced",
               windowSize: 120
@@ -225,7 +227,9 @@ describe("api router", () => {
           );
     mutablePredictionService.generate = async (input) => {
       receivedBody = input;
-      return predictionResponseSchema.parse(predictionResponse(input));
+      return predictionResponseSchema.parse(
+        predictionResponse(predictionRequestSchema.parse(input))
+      );
     };
 
     const [getResponse, detailResponse, missingResponse, postResponse] = await Promise.all([
@@ -259,6 +263,7 @@ describe("api router", () => {
       count: 3,
       lotteryType: "THAI_GOVERNMENT",
       numberLength: 2,
+      patternIds: [],
       prizeType: "TWO_DIGIT",
       strategyId: "balanced",
       windowSize: 120
@@ -588,6 +593,7 @@ function predictionResponse(input: {
   count: number;
   lotteryType: "THAI_GOVERNMENT";
   numberLength: 2 | 3 | 6;
+  patternIds: string[];
   prizeType:
     | "FIRST"
     | "THREE_DIGIT"
@@ -598,8 +604,7 @@ function predictionResponse(input: {
     | "PRIZE2"
     | "PRIZE3"
     | "PRIZE4"
-    | "PRIZE5"
-    | "OTHER";
+    | "PRIZE5";
   strategyId: "balanced" | "coldRebound" | "hotTrend";
   windowSize: number;
 }) {

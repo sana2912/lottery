@@ -345,6 +345,25 @@ describe("frontend logic helpers", () => {
       strategyId: "coldRebound",
       windowSize: "180"
     });
+    expect(
+      toPredictionPayload(
+        {
+          count: "5",
+          prizeType: "TWO_DIGIT",
+          strategyId: "balanced",
+          windowSize: "120"
+        },
+        ["all_unique", "ascending"]
+      )
+    ).toEqual({
+      count: "5",
+      lotteryType: "THAI_GOVERNMENT",
+      numberLength: 2,
+      patternIds: ["all_unique", "ascending"],
+      prizeType: "TWO_DIGIT",
+      strategyId: "balanced",
+      windowSize: "120"
+    });
     expect(getPredictionNumberLength("TWO_DIGIT")).toBe(2);
 
     expect(
@@ -383,6 +402,7 @@ describe("frontend logic helpers", () => {
           count: 5,
           lotteryType: "THAI_GOVERNMENT",
           numberLength: 2,
+          patternIds: [],
           prizeType: "TWO_DIGIT",
           strategyId: "balanced",
           windowSize: 120
