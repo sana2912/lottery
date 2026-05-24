@@ -8,5 +8,6 @@ export const apiRoutes = {
   patterns: "/api/patterns",
   predictions: "/api/predictions",
   search: "/api/search",
+  timeMachineSimulations: "/api/time-machine/simulations",
   watchlist: "/api/watchlist"
 } as const;

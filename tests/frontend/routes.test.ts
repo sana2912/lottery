@@ -4,6 +4,7 @@ import SearchRoute from "@/app/(user)/search/page";
 import AnalyticsRoute from "@/frontend/pages/analytics/route";
 import CompareRoute from "@/frontend/pages/compare/route";
 import ResultsRoute from "@/frontend/pages/results/route";
+import TimeMachineRoute from "@/frontend/pages/time-machine/route";
 
 function assertReactElement(value: unknown) {
   expect(value).toBeTruthy();
@@ -55,6 +56,11 @@ describe("route wrappers", () => {
 
   test("SearchRoute supports optional searchParams", async () => {
     const element = await SearchRoute({});
+    assertReactElement(element);
+  });
+
+  test("TimeMachineRoute renders the page wrapper", async () => {
+    const element = await TimeMachineRoute();
     assertReactElement(element);
   });
 });

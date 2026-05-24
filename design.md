@@ -394,6 +394,16 @@ Badges should be square soft labels with readable contrast. Avoid loud casino-li
 - Monthly insights use teal and orange soft colors.
 - Always show sample-size or uncertainty copy for monthly insights.
 
+### Time Machine
+
+- Full-bleed static CSS starfield is ambiance only; the center draw board is the source of truth.
+- The board shell stays mounted; prize numbers and metadata update instantly per draw (no digit transitions until the UI redesign).
+- Prize numbers are grouped by type in sections; รางวัลที่ 1 (FIRST) is the hero block; all eligible types are visible without hiding rows in a scroll-only table.
+- Compare highlights exact hits across all prize types; near miss applies only to รางวัลที่ 1 (FIRST) at distance 1 (highlight only, no popup).
+- Exact hits enqueue a static reward banner one at a time (draw label, year, prize type, ticket, research points).
+- HUD stays minimal: tickets, score, speed, pause/replay, and a link to the draw detail page.
+- Copy stays research and educational; label points as research score only, never money.
+
 ### Methodology
 
 - Prioritize readability.

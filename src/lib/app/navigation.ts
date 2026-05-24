@@ -7,6 +7,7 @@ export const userNavigation = [
   { href: "/backtest", label: "ทดสอบย้อนหลัง" },
   { href: "/watchlist", label: "รายการเฝ้าดู" },
   { href: "/compare", label: "เปรียบเทียบ" },
+  { href: "/time-machine", label: "เครื่องเวลา" },
   { href: "/calendar", label: "ปฏิทิน" },
   { href: "/methodology", label: "วิธีคำนวณ" }
 ] as const;

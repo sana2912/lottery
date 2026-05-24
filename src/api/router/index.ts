@@ -8,6 +8,7 @@ import { drawRouter } from "@/api/router/draw.router";
 import { patternsRouter } from "@/api/router/patterns.router";
 import { predictionRouter } from "@/api/router/prediction.router";
 import { searchRouter } from "@/api/router/search.router";
+import { timeMachineRouter } from "@/api/router/time-machine.router";
 import { watchlistRouter } from "@/api/router/watchlist.router";
 import { ANALYSIS_ENGINE_VERSION } from "@/api/service/analysis-snapshot/analysis-context";
 
@@ -27,5 +28,6 @@ export function createApiRouter() {
     .use(calendarRouter)
     .use(dashboardRouter)
     .use(searchRouter)
+    .use(timeMachineRouter)
     .use(watchlistRouter);
 }
