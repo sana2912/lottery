@@ -97,6 +97,143 @@ describe("analytics.service", () => {
     expect(model.numberStats[0]?.number).toBe("09");
   });
 
+  test("reads digit stats from derived snapshot rows without loading analytics JSON", async () => {
+    const queryCalls: string[] = [];
+
+    (globalThis as { prisma?: unknown }).prisma = {
+      $queryRaw: async (...args: unknown[]) => {
+        const sql = getSqlText(args[0]);
+        queryCalls.push(sql);
+
+        if (sql.includes('FROM "analysis_snapshot_runs"')) {
+          return [
+            {
+              runId: "00000000-0000-7000-8000-000000000001",
+              sampleDrawCount: 50,
+              samplePrizeCount: 4,
+              windowSize: 50
+            }
+          ];
+        }
+
+        if (sql.includes('FROM "analysis_digit_stats"')) {
+          return [
+            {
+              computedAt: new Date("2026-04-29T00:00:00.000Z"),
+              digit: "0",
+              drawCount: 50,
+              frequencyPercent: 20,
+              hitCount: 10,
+              lastSeenDrawDate: new Date("2026-04-16T00:00:00.000Z"),
+              lotteryType: "THAI_GOVERNMENT",
+              missingDrawCount: 1,
+              position: 1,
+              prizeType: "TWO_DIGIT",
+              trendDirection: "up"
+            }
+          ];
+        }
+
+        return [];
+      }
+    };
+
+    const stats = await getDigitStats({
+      lotteryType: "THAI_GOVERNMENT",
+      numberLength: 2,
+      page: 1,
+      pageSize: 20,
+      prizeType: "TWO_DIGIT",
+      windowPreset: "ALL"
+    });
+
+    expect(queryCalls.some((sql) => sql.includes('"analyticsReadModel"'))).toBe(false);
+    expect(queryCalls.some((sql) => sql.includes('FROM "analysis_digit_stats"'))).toBe(true);
+    expect(stats).toEqual([
+      {
+        computedAt: "2026-04-29T00:00:00.000Z",
+        digit: "0",
+        drawCount: 50,
+        expectedFrequencyPercent: 10,
+        frequencyPercent: 20,
+        hitCount: 10,
+        lastSeenDrawDate: "2026-04-16T00:00:00.000Z",
+        lift: 2,
+        lotteryType: "THAI_GOVERNMENT",
+        missingDrawCount: 1,
+        position: 1,
+        prizeType: "TWO_DIGIT",
+        sampleEventCount: 50,
+        trendDirection: "up",
+        windowSize: 50
+      }
+    ]);
+  });
+
+  test("reads number stats from derived snapshot rows without loading analytics JSON", async () => {
+    const queryCalls: string[] = [];
+
+    (globalThis as { prisma?: unknown }).prisma = {
+      $queryRaw: async (...args: unknown[]) => {
+        const sql = getSqlText(args[0]);
+        queryCalls.push(sql);
+
+        if (sql.includes('FROM "analysis_snapshot_runs"')) {
+          return [
+            {
+              runId: "00000000-0000-7000-8000-000000000001",
+              sampleDrawCount: 50,
+              samplePrizeCount: 4,
+              windowSize: 50
+            }
+          ];
+        }
+
+        if (sql.includes('FROM "analysis_number_stats"')) {
+          return [
+            {
+              averageGap: 15,
+              computedAt: new Date("2026-04-29T00:00:00.000Z"),
+              drawCount: 50,
+              frequencyPercent: 8,
+              hitCount: 4,
+              lastSeenDrawDate: new Date("2026-04-16T00:00:00.000Z"),
+              lotteryType: "THAI_GOVERNMENT",
+              maxGap: 21,
+              missingDrawCount: 1,
+              number: "09",
+              numberLength: 2,
+              patternFlags: ["odd", "high"],
+              prizeType: "TWO_DIGIT",
+              trendScore: 39.33
+            }
+          ];
+        }
+
+        return [];
+      }
+    };
+
+    const stats = await getNumberStats({
+      lotteryType: "THAI_GOVERNMENT",
+      numberLength: 2,
+      page: 1,
+      pageSize: 20,
+      prizeType: "TWO_DIGIT",
+      windowPreset: "ALL"
+    });
+
+    expect(queryCalls.some((sql) => sql.includes('"analyticsReadModel"'))).toBe(false);
+    expect(queryCalls.some((sql) => sql.includes('FROM "analysis_number_stats"'))).toBe(true);
+    expect(stats[0]).toMatchObject({
+      frequencyPerDrawPercent: 8,
+      frequencyPerPrizeRowPercent: 8,
+      number: "09",
+      samplePrizeCount: 4,
+      windowSize: 50
+    });
+  });
+
   test("falls back on-demand when snapshot metadata is stale", async () => {
     const queryCalls: string[] = [];
     const staleAnalyticsReadModel = {

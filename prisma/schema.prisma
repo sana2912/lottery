@@ -166,6 +166,7 @@ model AnalysisDigitStat {
   updatedAt        DateTime            @updatedAt
 
   @@index([runId])
+  @@index([runId, hitCount(sort: Desc)], map: "analysis_digit_run_rank_idx")
   @@index([lotteryType, prizeType, windowPreset, position, digit], map: "analysis_digit_position_idx")
   @@map("analysis_digit_stats")
 }
@@ -193,6 +194,8 @@ model AnalysisNumberStat {
   updatedAt        DateTime            @updatedAt
 
   @@index([runId])
+  @@index([runId, trendScore(sort: Desc), hitCount(sort: Desc)], map: "analysis_number_run_rank_idx")
+  @@index([runId, missingDrawCount(sort: Desc)], map: "analysis_number_run_missing_idx")
   @@index([lotteryType, prizeType, windowPreset, number], map: "analysis_number_value_idx")
   @@index([lotteryType, prizeType, windowPreset, numberLength], map: "analysis_number_length_idx")
   @@map("analysis_number_stats")

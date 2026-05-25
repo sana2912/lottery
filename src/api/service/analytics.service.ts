@@ -1,7 +1,9 @@
 import { buildOnDemandAnalysisReadModel } from "@/api/service/analysis-snapshot/on-demand-read-model";
 import {
   getAnalysisContextForFilterQuery,
-  getAnalysisSnapshotAnalyticsReadModel
+  getAnalysisSnapshotAnalyticsReadModel,
+  getAnalysisSnapshotDigitStats,
+  getAnalysisSnapshotNumberStats
 } from "@/api/service/analysis-snapshot/snapshot-reader";
 import {
   type AnalyticsQuery,
@@ -21,6 +23,34 @@ export async function getAnalyticsReadModel(query: AnalyticsQuery): Promise<ApiA
     };
   }
 
+  return getOnDemandOrEmptyReadModel(query);
+}
+
+export async function getDigitStats(query: AnalyticsQuery) {
+  const snapshotStats = await timeAsync("analytics.digits snapshot lookup", () =>
+    getAnalysisSnapshotDigitStats(query)
+  );
+
+  if (snapshotStats) {
+    return snapshotStats;
+  }
+
+  return (await getOnDemandOrEmptyReadModel(query)).digitStats;
+}
+
+export async function getNumberStats(query: AnalyticsQuery) {
+  const snapshotStats = await timeAsync("analytics.numbers snapshot lookup", () =>
+    getAnalysisSnapshotNumberStats(query)
+  );
+
+  if (snapshotStats) {
+    return snapshotStats;
+  }
+
+  return (await getOnDemandOrEmptyReadModel(query)).numberStats;
+}
+
+async function getOnDemandOrEmptyReadModel(query: AnalyticsQuery): Promise<ApiAnalyticsReadModel> {
   const analysisContext = getAnalysisContextForFilterQuery(query);
 
   if (analysisContext) {
@@ -42,14 +72,6 @@ export async function getAnalyticsReadModel(query: AnalyticsQuery): Promise<ApiA
     ...buildEmptyAnalyticsReadModel(query),
     source: "empty" as const
   };
-}
-
-export async function getDigitStats(query: AnalyticsQuery) {
-  return (await getAnalyticsReadModel(query)).digitStats;
-}
-
-export async function getNumberStats(query: AnalyticsQuery) {
-  return (await getAnalyticsReadModel(query)).numberStats;
 }
 
 export const analyticsService = {

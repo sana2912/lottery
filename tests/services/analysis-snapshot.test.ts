@@ -5,7 +5,11 @@ import { recomputeAnalysisSnapshot } from "@/api/service/analysis-snapshot/compu
 import { buildOnDemandAnalysisReadModel } from "@/api/service/analysis-snapshot/on-demand-read-model";
 import { buildAnalysisPatternReadModel } from "@/api/service/analysis-snapshot/pattern-read-model";
 import { resolveAnalysisSample } from "@/api/service/analysis-snapshot/sample-resolver";
-import { getAnalysisSnapshotPatternReadModel } from "@/api/service/analysis-snapshot/snapshot-reader";
+import {
+  getAnalysisSnapshotDigitStats,
+  getAnalysisSnapshotNumberStats,
+  getAnalysisSnapshotPatternReadModel
+} from "@/api/service/analysis-snapshot/snapshot-reader";
 import type { ApiAnalyticsReadModel } from "@/schema/api/analytics";
 
 afterEach(() => {
@@ -276,6 +280,97 @@ describe("analysis snapshot engine", () => {
       windowPreset: "ALL"
     });
     expect(model?.pattern.sampleSize).toBe(3);
+  });
+
+  test("reads derived digit and number snapshots without loading analytics payload", async () => {
+    const queryCalls: string[] = [];
+
+    (globalThis as { prisma?: unknown }).prisma = {
+      $queryRaw: async (...args: unknown[]) => {
+        const sql = getSqlText(args[0]);
+        queryCalls.push(sql);
+
+        if (sql.includes('FROM "analysis_snapshot_runs"')) {
+          return [
+            {
+              runId: "00000000-0000-7000-8000-000000000001",
+              sampleDrawCount: 2,
+              samplePrizeCount: 3,
+              windowSize: 2
+            }
+          ];
+        }
+
+        if (sql.includes('FROM "analysis_digit_stats"')) {
+          return [
+            {
+              computedAt: new Date("2026-04-29T00:00:00.000Z"),
+              digit: "1",
+              drawCount: 2,
+              frequencyPercent: 50,
+              hitCount: 1,
+              lastSeenDrawDate: new Date("2026-04-16T00:00:00.000Z"),
+              lotteryType: "THAI_GOVERNMENT",
+              missingDrawCount: 0,
+              position: 1,
+              prizeType: "TWO_DIGIT",
+              trendDirection: "flat"
+            }
+          ];
+        }
+
+        if (sql.includes('FROM "analysis_number_stats"')) {
+          return [
+            {
+              averageGap: null,
+              computedAt: new Date("2026-04-29T00:00:00.000Z"),
+              drawCount: 2,
+              frequencyPercent: 33.33,
+              hitCount: 1,
+              lastSeenDrawDate: new Date("2026-04-16T00:00:00.000Z"),
+              lotteryType: "THAI_GOVERNMENT",
+              maxGap: null,
+              missingDrawCount: 0,
+              number: "11",
+              numberLength: 2,
+              patternFlags: ["double", "has_repeat"],
+              prizeType: "TWO_DIGIT",
+              trendScore: 67.5
+            }
+          ];
+        }
+
+        return [];
+      }
+    };
+
+    const query = {
+      lotteryType: "THAI_GOVERNMENT",
+      numberLength: 2,
+      page: 1,
+      pageSize: 20,
+      prizeType: "TWO_DIGIT",
+      scope: "ALL_TIME",
+      windowPreset: "ALL"
+    } as const;
+    const digitStats = await getAnalysisSnapshotDigitStats(query);
+    const numberStats = await getAnalysisSnapshotNumberStats(query);
+
+    expect(queryCalls.some((sql) => sql.includes('"analyticsReadModel"'))).toBe(false);
+    expect(queryCalls.some((sql) => sql.includes('FROM "analysis_digit_stats"'))).toBe(true);
+    expect(queryCalls.some((sql) => sql.includes('FROM "analysis_number_stats"'))).toBe(true);
+    expect(digitStats?.[0]).toMatchObject({
+      digit: "1",
+      sampleEventCount: 2,
+      windowSize: 2
+    });
+    expect(numberStats?.[0]).toMatchObject({
+      frequencyPerDrawPercent: 50,
+      frequencyPerPrizeRowPercent: 33.33,
+      number: "11",
+      samplePrizeCount: 3,
+      windowSize: 2
+    });
   });
 });
 
