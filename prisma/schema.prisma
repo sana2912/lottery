@@ -88,6 +88,7 @@ model PredictionRun {
   @@index([strategy])
   @@index([lotteryType, prizeType])
   @@index([generatedAt])
+  @@index([generatedAt(sort: Desc), updatedAt(sort: Desc)], map: "prediction_runs_latest_idx")
   @@map("prediction_runs")
 }
 
@@ -110,6 +111,7 @@ model PredictionResult {
 
   @@index([runId])
   @@index([runId, rank])
+  @@index([runId, rank(sort: Asc), createdAt(sort: Asc)], map: "prediction_results_run_rank_created_idx")
   @@index([number])
   @@map("prediction_results")
 }
@@ -194,6 +196,7 @@ model AnalysisNumberStat {
   updatedAt        DateTime            @updatedAt
 
   @@index([runId])
+  @@index([runId, number], map: "analysis_number_run_number_idx")
   @@index([runId, trendScore(sort: Desc), hitCount(sort: Desc)], map: "analysis_number_run_rank_idx")
   @@index([runId, missingDrawCount(sort: Desc)], map: "analysis_number_run_missing_idx")
   @@index([lotteryType, prizeType, windowPreset, number], map: "analysis_number_value_idx")

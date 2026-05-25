@@ -8,6 +8,7 @@ import { resolveAnalysisSample } from "@/api/service/analysis-snapshot/sample-re
 import {
   getAnalysisSnapshotDigitStats,
   getAnalysisSnapshotNumberStats,
+  getAnalysisSnapshotNumberStatsForNumbers,
   getAnalysisSnapshotPatternReadModel
 } from "@/api/service/analysis-snapshot/snapshot-reader";
 import type { ApiAnalyticsReadModel } from "@/schema/api/analytics";
@@ -370,6 +371,78 @@ describe("analysis snapshot engine", () => {
       number: "11",
       samplePrizeCount: 3,
       windowSize: 2
+    });
+  });
+
+  test("reads filtered number snapshots by run id and requested numbers only", async () => {
+    const queryCalls: string[] = [];
+
+    (globalThis as { prisma?: unknown }).prisma = {
+      $queryRaw: async (...args: unknown[]) => {
+        const sql = getSqlText(args[0]);
+        queryCalls.push(sql);
+
+        if (sql.includes('FROM "analysis_snapshot_runs"')) {
+          return [
+            {
+              runId: "00000000-0000-7000-8000-000000000001",
+              sampleDrawCount: 50,
+              samplePrizeCount: 120,
+              windowSize: 50
+            }
+          ];
+        }
+
+        if (sql.includes('FROM "analysis_number_stats"')) {
+          return [
+            {
+              averageGap: null,
+              computedAt: new Date("2026-04-29T00:00:00.000Z"),
+              drawCount: 50,
+              frequencyPercent: 2.5,
+              hitCount: 3,
+              lastSeenDrawDate: new Date("2026-04-16T00:00:00.000Z"),
+              lotteryType: "THAI_GOVERNMENT",
+              maxGap: null,
+              missingDrawCount: 4,
+              number: "09",
+              numberLength: 2,
+              patternFlags: ["odd", "high"],
+              prizeType: "TWO_DIGIT",
+              trendScore: 42
+            }
+          ];
+        }
+
+        return [];
+      }
+    };
+
+    const result = await getAnalysisSnapshotNumberStatsForNumbers(
+      {
+        lotteryType: "THAI_GOVERNMENT",
+        numberLength: 2,
+        page: 1,
+        pageSize: 20,
+        prizeType: "TWO_DIGIT",
+        scope: "ALL_TIME",
+        windowPreset: "ALL"
+      },
+      ["09", "22", "09"]
+    );
+
+    expect(queryCalls.some((sql) => sql.includes('"analyticsReadModel"'))).toBe(false);
+    expect(queryCalls.some((sql) => sql.includes('FROM "analysis_number_stats"'))).toBe(true);
+    expect(queryCalls.some((sql) => sql.includes('"number" IN'))).toBe(true);
+    expect(result?.sampleDrawCount).toBe(50);
+    expect(result?.samplePrizeCount).toBe(120);
+    expect(result?.stats).toHaveLength(1);
+    expect(result?.stats[0]).toMatchObject({
+      frequencyPerDrawPercent: 6,
+      frequencyPerPrizeRowPercent: 2.5,
+      number: "09",
+      samplePrizeCount: 120,
+      windowSize: 50
     });
   });
 });

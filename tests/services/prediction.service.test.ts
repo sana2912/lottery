@@ -149,6 +149,10 @@ describe("prediction.service", () => {
 
     expect(predictionResponseSchema.parse(generated)).toEqual(generated);
     expect(latest && predictionResponseSchema.parse(latest)).toEqual(latest);
+    expect(
+      store.queryCalls.some((sql) => sql.includes('ORDER BY "generatedAt" DESC NULLS LAST'))
+    ).toBe(true);
+    expect(store.queryCalls.some((sql) => sql.includes('FROM "prediction_results"'))).toBe(false);
     expect(latest?.results[0]?.number).toBe(generated.results[0]?.number);
     expect(summary?.candidates[0]?.number).toBe(generated.results[0]?.number);
   });
@@ -188,6 +192,7 @@ describe("prediction.service", () => {
     const response = await getPredictionById("legacy-run");
 
     expect(response).toEqual(legacyResponse);
+    expect(store.queryCalls.some((sql) => sql.includes('FROM "prediction_results"'))).toBe(false);
   });
 });
 
@@ -306,12 +311,14 @@ function createPredictionStore(initial?: {
 }) {
   return {
     items: (initial?.items ?? []) as Array<Record<string, unknown>>,
+    queryCalls: [] as string[],
     run: (initial?.run ?? null) as Record<string, unknown> | null
   };
 }
 
 function createPredictionPrismaStub(store: {
   items: Array<Record<string, unknown>>;
+  queryCalls?: string[];
   run: Record<string, unknown> | null;
 }) {
   return {
@@ -369,6 +376,7 @@ function createPredictionPrismaStub(store: {
 function executePredictionRaw(
   store: {
     items: Array<Record<string, unknown>>;
+    queryCalls?: string[];
     run: Record<string, unknown> | null;
   },
   args: unknown[]
@@ -425,12 +433,15 @@ function executePredictionRaw(
 function queryPredictionRaw(
   store: {
     items: Array<Record<string, unknown>>;
+    queryCalls?: string[];
     run: Record<string, unknown> | null;
   },
   args: unknown[]
 ) {
   const sql = getSqlText(args[0]);
   const values = args.slice(1);
+
+  store.queryCalls?.push(sql);
 
   if (sql.includes('FROM "prediction_runs"')) {
     if (!store.run) {

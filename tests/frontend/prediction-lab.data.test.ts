@@ -25,10 +25,26 @@ describe("prediction-lab.data", () => {
   });
 
   test("getPatternPlaygroundOptions loads patterns snapshot for prize type", async () => {
+    let requestCount = 0;
+
+    globalThis.fetch = createFetcher(async () => {
+      requestCount += 1;
+
+      return new Response(JSON.stringify(createPatternsSnapshot()), {
+        headers: {
+          "content-type": "application/json"
+        },
+        status: 200
+      });
+    });
+
     const options = await getPatternPlaygroundOptions("TWO_DIGIT");
+    const cachedOptions = await getPatternPlaygroundOptions("TWO_DIGIT");
 
     expect(options.some((option) => option.id === "ascending")).toBe(true);
+    expect(cachedOptions).toEqual(options);
     expect(options[0]?.percent).toBeGreaterThanOrEqual(0);
+    expect(requestCount).toBe(1);
   });
 
   test("getLatestPredictionRun returns null on 404", async () => {

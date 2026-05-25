@@ -8,6 +8,8 @@ afterEach(() => {
 
 describe("calendar.service", () => {
   test("maps recent draws, uses future persisted draws as next draw, and includes monthly insights", async () => {
+    const drawQueryArgs: { findFirst?: unknown; findMany?: unknown } = {};
+
     (globalThis as { prisma?: unknown }).prisma = {
       $queryRaw: async (...args: unknown[]) => {
         const sql = getSqlText(args[0]);
@@ -67,18 +69,26 @@ describe("calendar.service", () => {
         ];
       },
       lotteryDraw: {
-        findFirst: async () => ({
-          drawDate: new Date("2026-05-02T00:00:00.000Z"),
-          drawNo: "09/2026",
-          id: "draw-3"
-        }),
-        findMany: async () => [
-          {
-            drawDate: new Date("2026-04-16T00:00:00.000Z"),
-            drawNo: "08/2026",
-            id: "draw-2"
-          }
-        ]
+        findFirst: async (args: unknown) => {
+          drawQueryArgs.findFirst = args;
+
+          return {
+            drawDate: new Date("2026-05-02T00:00:00.000Z"),
+            drawNo: "09/2026",
+            id: "draw-3"
+          };
+        },
+        findMany: async (args: unknown) => {
+          drawQueryArgs.findMany = args;
+
+          return [
+            {
+              drawDate: new Date("2026-04-16T00:00:00.000Z"),
+              drawNo: "08/2026",
+              id: "draw-2"
+            }
+          ];
+        }
       }
     };
 
@@ -97,6 +107,27 @@ describe("calendar.service", () => {
     expect(response.draws.some((draw) => draw.id === "draw-3" && draw.status === "past")).toBe(
       false
     );
+    expect(drawQueryArgs.findFirst).toMatchObject({
+      select: {
+        drawDate: true,
+        drawNo: true,
+        id: true
+      },
+      where: {
+        lotteryType: "THAI_GOVERNMENT"
+      }
+    });
+    expect(drawQueryArgs.findMany).toMatchObject({
+      select: {
+        drawDate: true,
+        drawNo: true,
+        id: true
+      },
+      take: 10,
+      where: {
+        lotteryType: "THAI_GOVERNMENT"
+      }
+    });
     expect(response.monthlyInsights.length).toBeGreaterThan(0);
     expect(response.monthlyInsights[0]?.drawCount).toBe(2);
     expect(response.monthlyInsights[0]?.heatmapRows).toHaveLength(6);

@@ -45,6 +45,8 @@ type PredictionResultRecord = {
   version: string | null;
 };
 
+const SLOW_QUERY_MS = 500;
+
 export async function generate(input: PredictionRequestInput) {
   const prisma = getPrisma();
   const generatedAt = new Date();
@@ -165,7 +167,7 @@ export async function getLatestPrediction() {
           "params",
           "updatedAt"
         FROM "prediction_runs"
-        ORDER BY COALESCE("generatedAt", "updatedAt") DESC, "updatedAt" DESC
+        ORDER BY "generatedAt" DESC NULLS LAST, "updatedAt" DESC
         LIMIT 1
       `
   );
@@ -238,6 +240,12 @@ export const predictionService = {
 async function getPredictionResponseForRun(
   run: PredictionRunRecord
 ): Promise<PredictionResponse | null> {
+  const legacy = toLegacyPredictionResponse(run.params);
+
+  if (legacy) {
+    return legacy;
+  }
+
   const prisma = getPrisma();
   const items = await timeAsync(
     "prediction.run items query",
@@ -258,16 +266,11 @@ async function getPredictionResponseForRun(
           "version"
         FROM "prediction_results"
         WHERE "runId" = ${run.id}::uuid
-        ORDER BY COALESCE("rank", 2147483647) ASC, "createdAt" ASC
+        ORDER BY "rank" ASC NULLS LAST, "createdAt" ASC
       `
   );
-  const parsed = toStructuredPredictionResponse(run, items);
 
-  if (parsed) {
-    return parsed;
-  }
-
-  return toLegacyPredictionResponse(run.params);
+  return toStructuredPredictionResponse(run, items);
 }
 
 function toPredictionRunParams(
@@ -327,21 +330,31 @@ function toJson(value: unknown) {
 }
 
 async function timeAsync<T>(label: string, operation: () => Promise<T>) {
-  console.time(label);
+  const startedAt = Date.now();
 
   try {
     return await operation();
   } finally {
-    console.timeEnd(label);
+    const durationMs = Date.now() - startedAt;
+
+    console.info(`[${formatDuration(durationMs)}] ${label}`);
+
+    if (durationMs > SLOW_QUERY_MS) {
+      console.warn(`${label} slow (${formatDuration(durationMs)})`);
+    }
   }
 }
 
 function timeSync<T>(label: string, operation: () => T) {
-  console.time(label);
+  const startedAt = Date.now();
 
   try {
     return operation();
   } finally {
-    console.timeEnd(label);
+    console.info(`[${formatDuration(Date.now() - startedAt)}] ${label}`);
   }
+}
+
+function formatDuration(durationMs: number) {
+  return durationMs >= 1000 ? `${(durationMs / 1000).toFixed(2)}s` : `${durationMs.toFixed(2)}ms`;
 }

@@ -11,6 +11,8 @@ import {
 import { getPrisma } from "@/api/service/prisma";
 import type { CalendarHeatmapQuery } from "@/schema/app/calendar.schema";
 
+const SLOW_QUERY_MS = 500;
+
 export async function getCalendarReadModel(query: CalendarHeatmapQuery = {}) {
   const prisma = getPrisma();
   const computedAt = new Date();
@@ -22,10 +24,16 @@ export async function getCalendarReadModel(query: CalendarHeatmapQuery = {}) {
         orderBy: {
           drawDate: "asc"
         },
+        select: {
+          drawDate: true,
+          drawNo: true,
+          id: true
+        },
         where: {
           drawDate: {
             gt: computedAt
-          }
+          },
+          lotteryType: "THAI_GOVERNMENT"
         }
       })
     ),
@@ -34,11 +42,17 @@ export async function getCalendarReadModel(query: CalendarHeatmapQuery = {}) {
         orderBy: {
           drawDate: "desc"
         },
+        select: {
+          drawDate: true,
+          drawNo: true,
+          id: true
+        },
         take: 10,
         where: {
           drawDate: {
             lte: computedAt
-          }
+          },
+          lotteryType: "THAI_GOVERNMENT"
         }
       })
     ),
@@ -152,21 +166,31 @@ function formatCalendarDate(value: Date) {
 }
 
 async function timeAsync<T>(label: string, operation: () => Promise<T>) {
-  console.time(label);
+  const startedAt = Date.now();
 
   try {
     return await operation();
   } finally {
-    console.timeEnd(label);
+    const durationMs = Date.now() - startedAt;
+
+    console.info(`[${formatDuration(durationMs)}] ${label}`);
+
+    if (durationMs > SLOW_QUERY_MS) {
+      console.warn(`${label} slow (${formatDuration(durationMs)})`);
+    }
   }
 }
 
 function timeSync<T>(label: string, operation: () => T) {
-  console.time(label);
+  const startedAt = Date.now();
 
   try {
     return operation();
   } finally {
-    console.timeEnd(label);
+    console.info(`[${formatDuration(Date.now() - startedAt)}] ${label}`);
   }
+}
+
+function formatDuration(durationMs: number) {
+  return durationMs >= 1000 ? `${(durationMs / 1000).toFixed(2)}s` : `${durationMs.toFixed(2)}ms`;
 }

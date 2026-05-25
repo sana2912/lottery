@@ -6,6 +6,26 @@ import { buildDrawDateFilter } from "@/util/api/draw-date-filter";
 
 export type GetDrawsQuery = SearchQuery;
 
+const SLOW_QUERY_MS = 500;
+const drawSelect = {
+  drawDate: true,
+  drawNo: true,
+  id: true,
+  lotteryType: true,
+  metadata: true,
+  prizes: {
+    select: {
+      id: true,
+      number: true,
+      position: true,
+      type: true
+    }
+  },
+  publishedAt: true,
+  sourceStatus: true,
+  sourceUrl: true
+} as const;
+
 export async function getDraws(query: GetDrawsQuery) {
   const prisma = getPrisma();
   const where = buildDrawWhere(query);
@@ -14,18 +34,18 @@ export async function getDraws(query: GetDrawsQuery) {
   const skip = (page - 1) * pageSize;
 
   const [draws, total] = await Promise.all([
-    prisma.lotteryDraw.findMany({
-      include: {
-        prizes: true
-      },
-      orderBy: {
-        drawDate: "desc"
-      },
-      skip,
-      take: pageSize,
-      where
-    }),
-    prisma.lotteryDraw.count({ where })
+    timeAsync("draws.list query", () =>
+      prisma.lotteryDraw.findMany({
+        orderBy: {
+          drawDate: "desc"
+        },
+        select: drawSelect,
+        skip,
+        take: pageSize,
+        where
+      })
+    ),
+    timeAsync("draws.count query", () => prisma.lotteryDraw.count({ where }))
   ]);
 
   return toApiDrawListResponse({
@@ -50,14 +70,14 @@ export async function getDraws(query: GetDrawsQuery) {
 
 export async function getDrawById(id: string) {
   const prisma = getPrisma();
-  const draw = await prisma.lotteryDraw.findUnique({
-    include: {
-      prizes: true
-    },
-    where: {
-      id
-    }
-  });
+  const draw = await timeAsync("draws.detail query", () =>
+    prisma.lotteryDraw.findUnique({
+      select: drawSelect,
+      where: {
+        id
+      }
+    })
+  );
 
   return draw ? toApiDrawDetailResponse(draw) : null;
 }
@@ -114,4 +134,24 @@ function buildDrawDateFilterForQuery(query: GetDrawsQuery) {
     startDate: query.startDate,
     year: query.year
   });
+}
+
+async function timeAsync<T>(label: string, operation: () => Promise<T>) {
+  const startedAt = Date.now();
+
+  try {
+    return await operation();
+  } finally {
+    const durationMs = Date.now() - startedAt;
+
+    console.info(`[${formatDuration(durationMs)}] ${label}`);
+
+    if (durationMs > SLOW_QUERY_MS) {
+      console.warn(`${label} slow (${formatDuration(durationMs)})`);
+    }
+  }
+}
+
+function formatDuration(durationMs: number) {
+  return durationMs >= 1000 ? `${(durationMs / 1000).toFixed(2)}s` : `${durationMs.toFixed(2)}ms`;
 }

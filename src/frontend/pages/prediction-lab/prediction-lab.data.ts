@@ -15,7 +15,29 @@ import {
 
 export type { PatternPlaygroundOption };
 
+const patternOptionsCache = new Map<
+  PredictionRequest["prizeType"],
+  Promise<PatternPlaygroundOption[]>
+>();
+
 export async function getPatternPlaygroundOptions(prizeType: PredictionRequest["prizeType"]) {
+  const cached = patternOptionsCache.get(prizeType);
+
+  if (cached) {
+    return cached;
+  }
+
+  const promise = loadPatternPlaygroundOptions(prizeType).catch((error) => {
+    patternOptionsCache.delete(prizeType);
+    throw error;
+  });
+
+  patternOptionsCache.set(prizeType, promise);
+
+  return promise;
+}
+
+async function loadPatternPlaygroundOptions(prizeType: PredictionRequest["prizeType"]) {
   const snapshot = await apiGet(apiRoutes.patterns, {
     cache: "no-store",
     query: toPatternStatsQueryForPrize(prizeType),

@@ -11,6 +11,7 @@ import {
 } from "@/api/service/analysis-snapshot/analysis-context";
 import type { AnalysisCalendarHeatmapReadModel } from "@/api/service/analysis-snapshot/calendar-heatmap-read-model";
 import { getPrisma } from "@/api/service/prisma";
+import { Prisma } from "@/generated/prisma/client";
 import { normalizeProductAnalysisQuery } from "@/lib/app/analysis-product-scope";
 import type {
   ApiAnalyticsReadModel,
@@ -25,6 +26,7 @@ import { analysisPatternReadModelSchema } from "@/schema/app/patterns.schema";
 import type { FilterContext } from "@/schema/app/query.schema";
 
 type AnalysisSnapshotRow = {
+  calendarReadModelBytes: number | null;
   calendarReadModel: unknown;
   invalidPrizeCount: number;
   sampleDrawCount: number;
@@ -80,10 +82,18 @@ type AnalysisSnapshotNumberRow = {
 
 type AnalysisSnapshotPatternRow = {
   computedAt: Date;
+  patternReadModelBytes: number | null;
   patternReadModel: unknown;
   sampleDrawCount: number;
   samplePrizeCount: number;
   windowSize: number | null;
+};
+
+export type AnalysisSnapshotNumberStatsLookup = {
+  sampleDrawCount: number;
+  samplePrizeCount: number;
+  stats: ApiNumberStat[];
+  windowSize: number;
 };
 
 const SLOW_SNAPSHOT_LOOKUP_MS = 500;
@@ -195,6 +205,39 @@ export async function getAnalysisSnapshotNumberStats(
   return rows.map((row) => toApiNumberStat(row, snapshot));
 }
 
+export async function getAnalysisSnapshotNumberStatsForNumbers(
+  query: FilterContext,
+  numbers: readonly string[]
+): Promise<AnalysisSnapshotNumberStatsLookup | null> {
+  const context = getAnalysisContextForFilterQuery(query);
+  const uniqueNumbers = [...new Set(numbers.map((number) => number.trim()).filter(Boolean))];
+
+  if (!context || uniqueNumbers.length === 0) {
+    return null;
+  }
+
+  const snapshot = await getAnalysisSnapshotStatRunRow(context);
+
+  if (!isStatSnapshotCurrent(snapshot)) {
+    return null;
+  }
+
+  const rows = await timeAsync("analytics.numbers snapshot filtered rows query", () =>
+    getAnalysisSnapshotNumberRowsForNumbers(snapshot.runId, uniqueNumbers)
+  );
+
+  if (!rows || !areFilteredRowsCurrent(rows, snapshot)) {
+    return null;
+  }
+
+  return {
+    sampleDrawCount: snapshot.sampleDrawCount,
+    samplePrizeCount: snapshot.samplePrizeCount,
+    stats: rows.map((row) => toApiNumberStat(row, snapshot)),
+    windowSize: snapshot.windowSize ?? snapshot.sampleDrawCount
+  };
+}
+
 export async function getAnalysisSnapshotPatternReadModel(
   query: FilterContext
 ): Promise<ApiPatternsReadModel | null> {
@@ -204,22 +247,54 @@ export async function getAnalysisSnapshotPatternReadModel(
     return null;
   }
 
-  const snapshot = await getAnalysisSnapshotPatternRow(context);
-  const parsed = analysisPatternReadModelSchema.safeParse(snapshot?.patternReadModel);
+  const contextKey = getAnalysisContextKey(context);
+  const startedAt = Date.now();
+  let dbQueryMs = 0;
+  let parseMs = 0;
+  let metadataMs = 0;
+  const snapshot = await timeAsync(
+    "patterns.snapshot db query",
+    () => dedupeInFlight(`patterns:${contextKey}`, () => getAnalysisSnapshotPatternRow(context)),
+    (durationMs) => {
+      dbQueryMs = durationMs;
+    }
+  );
+  const parsed = timeSync(
+    "patterns.snapshot zod parse",
+    () => analysisPatternReadModelSchema.safeParse(snapshot?.patternReadModel),
+    (durationMs) => {
+      parseMs = durationMs;
+    }
+  );
+  const patternReadModel = parsed.success ? parsed.data : null;
+  const isCurrent = timeSync(
+    "patterns.snapshot metadata check",
+    () =>
+      Boolean(
+        snapshot && patternReadModel && isPatternSnapshotMetadataCurrent(patternReadModel, snapshot)
+      ),
+    (durationMs) => {
+      metadataMs = durationMs;
+    }
+  );
+  const totalMs = Date.now() - startedAt;
 
-  if (!snapshot || !parsed.success) {
+  warnSlowPayloadSnapshotLookup({
+    contextKey,
+    dbQueryMs,
+    label: "patterns.snapshot lookup slow",
+    metadataMs,
+    parseMs,
+    payloadBytes: snapshot?.patternReadModelBytes,
+    payloadName: "patternReadModelBytes",
+    totalMs
+  });
+
+  if (!snapshot || !patternReadModel || !isCurrent) {
     return null;
   }
 
   const expectedWindowSize = snapshot.windowSize ?? snapshot.sampleDrawCount;
-
-  if (
-    parsed.data.sampleSize !== snapshot.samplePrizeCount ||
-    snapshot.windowSize !== snapshot.sampleDrawCount
-  ) {
-    return null;
-  }
-
   const generatedAt = snapshot.computedAt.toISOString();
 
   return {
@@ -234,7 +309,7 @@ export async function getAnalysisSnapshotPatternReadModel(
       windowSize: expectedWindowSize
     },
     generatedAt,
-    pattern: parsed.data,
+    pattern: patternReadModel,
     source: "snapshot",
     summary: {
       drawCount: snapshot.sampleDrawCount,
@@ -250,15 +325,42 @@ export async function getAnalysisSnapshotCalendarReadModel(query: CalendarHeatma
     return null;
   }
 
-  const snapshot = await getAnalysisSnapshot(context);
+  const contextKey = getAnalysisContextKey(context);
+  const startedAt = Date.now();
+  let dbQueryMs = 0;
+  let metadataMs = 0;
+  const snapshot = await timeAsync(
+    "calendar.snapshot db query",
+    () => dedupeInFlight(`calendar:${contextKey}`, () => getAnalysisSnapshot(context)),
+    (durationMs) => {
+      dbQueryMs = durationMs;
+    }
+  );
+  const model =
+    snapshot && isAnalysisCalendarHeatmapReadModel(snapshot.calendarReadModel)
+      ? snapshot.calendarReadModel
+      : null;
+  const isCurrent = timeSync(
+    "calendar.snapshot metadata check",
+    () => Boolean(snapshot && model && isCalendarSnapshotMetadataCurrent(model, snapshot)),
+    (durationMs) => {
+      metadataMs = durationMs;
+    }
+  );
+  const totalMs = Date.now() - startedAt;
 
-  if (!snapshot || !isAnalysisCalendarHeatmapReadModel(snapshot.calendarReadModel)) {
-    return null;
-  }
+  warnSlowPayloadSnapshotLookup({
+    contextKey,
+    dbQueryMs,
+    label: "calendar.snapshot lookup slow",
+    metadataMs,
+    parseMs: 0,
+    payloadBytes: snapshot?.calendarReadModelBytes,
+    payloadName: "calendarReadModelBytes",
+    totalMs
+  });
 
-  return isCalendarSnapshotMetadataCurrent(snapshot.calendarReadModel, snapshot)
-    ? snapshot.calendarReadModel
-    : null;
+  return model && isCurrent ? model : null;
 }
 
 export function getAnalysisContextForFilterQuery(query: FilterContext): AnalysisContext | null {
@@ -443,6 +545,38 @@ async function getAnalysisSnapshotNumberRows(runId: string) {
   }
 }
 
+async function getAnalysisSnapshotNumberRowsForNumbers(runId: string, numbers: readonly string[]) {
+  const prisma = getPrisma();
+  const numberSql = Prisma.join(numbers.map((number) => Prisma.sql`${number}`));
+
+  try {
+    return await prisma.$queryRaw<AnalysisSnapshotNumberRow[]>`
+      SELECT
+        "lotteryType"::text AS "lotteryType",
+        "prizeType",
+        "number",
+        "numberLength",
+        "drawCount",
+        "hitCount",
+        "frequencyPercent",
+        "lastSeenDrawDate",
+        "missingDrawCount",
+        "averageGap",
+        "maxGap",
+        "trendScore",
+        "patternFlags",
+        "computedAt"
+      FROM "analysis_number_stats"
+      WHERE
+        "runId" = ${runId}::uuid
+        AND "number" IN (${numberSql})
+      ORDER BY "trendScore" DESC, "hitCount" DESC
+    `;
+  } catch {
+    return null;
+  }
+}
+
 async function getAnalysisSnapshotPatternRow(
   context: AnalysisContext
 ): Promise<AnalysisSnapshotPatternRow | null> {
@@ -453,6 +587,7 @@ async function getAnalysisSnapshotPatternRow(
     const [snapshot] = await prisma.$queryRaw<AnalysisSnapshotPatternRow[]>`
       SELECT
         "patternReadModel",
+        pg_column_size("patternReadModel")::int AS "patternReadModelBytes",
         "sampleDrawCount",
         "samplePrizeCount",
         "windowSize",
@@ -478,6 +613,7 @@ async function getAnalysisSnapshot(context: AnalysisContext): Promise<AnalysisSn
     const [snapshot] = await prisma.$queryRaw<AnalysisSnapshotRow[]>`
       SELECT
         "calendarReadModel",
+        pg_column_size("calendarReadModel")::int AS "calendarReadModelBytes",
         "sampleDrawCount",
         "samplePrizeCount",
         "invalidPrizeCount",
@@ -547,6 +683,13 @@ function isDerivedRowsCurrent(
   );
 }
 
+function areFilteredRowsCurrent(
+  rows: readonly { drawCount: number }[],
+  snapshot: AnalysisSnapshotStatRunRow
+) {
+  return rows.every((row) => row.drawCount === snapshot.sampleDrawCount);
+}
+
 function toApiDigitStat(
   row: AnalysisSnapshotDigitRow,
   snapshot: AnalysisSnapshotStatRunRow
@@ -609,6 +752,16 @@ function isCalendarSnapshotMetadataCurrent(
   );
 }
 
+function isPatternSnapshotMetadataCurrent(
+  model: ApiPatternsReadModel["pattern"],
+  snapshot: AnalysisSnapshotPatternRow
+) {
+  return (
+    snapshot.windowSize === snapshot.sampleDrawCount &&
+    model.sampleSize === snapshot.samplePrizeCount
+  );
+}
+
 async function dedupeInFlight<T>(key: string, operation: () => Promise<T>): Promise<T> {
   const existing = inFlightSnapshotLoads.get(key) as Promise<T> | undefined;
 
@@ -641,6 +794,10 @@ async function timeAsync<T>(
 
     onDuration?.(durationMs);
     console.info(`[${formatDuration(durationMs)}] ${label}`);
+
+    if (durationMs > SLOW_SNAPSHOT_LOOKUP_MS) {
+      console.warn(`${label} slow (${formatDuration(durationMs)})`);
+    }
   }
 }
 
@@ -654,6 +811,10 @@ function timeSync<T>(label: string, operation: () => T, onDuration?: (durationMs
 
     onDuration?.(durationMs);
     console.info(`[${formatDuration(durationMs)}] ${label}`);
+
+    if (durationMs > SLOW_SNAPSHOT_LOOKUP_MS) {
+      console.warn(`${label} slow (${formatDuration(durationMs)})`);
+    }
   }
 }
 
@@ -686,6 +847,44 @@ function warnSlowSnapshotLookup({
       `metadataCheck=${formatDuration(metadataMs)}`
     ].join(" ")
   );
+}
+
+function warnSlowPayloadSnapshotLookup({
+  contextKey,
+  dbQueryMs,
+  label,
+  metadataMs,
+  parseMs,
+  payloadBytes,
+  payloadName,
+  totalMs
+}: {
+  contextKey: string;
+  dbQueryMs: number;
+  label: string;
+  metadataMs: number;
+  parseMs: number;
+  payloadBytes?: number | null;
+  payloadName: string;
+  totalMs: number;
+}) {
+  if (totalMs <= SLOW_SNAPSHOT_LOOKUP_MS) {
+    return;
+  }
+
+  const parts = [
+    `${label} (${formatDuration(totalMs)})`,
+    `contextKey=${contextKey}`,
+    `${payloadName}=${payloadBytes ?? "unknown"}`,
+    `dbQuery=${formatDuration(dbQueryMs)}`
+  ];
+
+  if (parseMs > 0) {
+    parts.push(`zodParse=${formatDuration(parseMs)}`);
+  }
+
+  parts.push(`metadataCheck=${formatDuration(metadataMs)}`);
+  console.warn(parts.join(" "));
 }
 
 function normalizeDateString(value: Date | string) {

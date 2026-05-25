@@ -1,4 +1,8 @@
 import { toApiCompareReadModel } from "@/api/model/dto/compare.dto";
+import {
+  type AnalysisSnapshotNumberStatsLookup,
+  getAnalysisSnapshotNumberStatsForNumbers
+} from "@/api/service/analysis-snapshot/snapshot-reader";
 import { analyticsService } from "@/api/service/analytics.service";
 import { scoreNumber } from "@/api/service/prediction/scoring-engine";
 import { getPredictionStrategy } from "@/api/service/prediction/strategy-registry";
@@ -7,11 +11,13 @@ import type { ApiNumberStat, ApiPatternFlag } from "@/schema/api/analytics";
 import type { ApiScoreBreakdown } from "@/schema/api/compare";
 import type { CompareRequest } from "@/schema/app/compare.schema";
 
+type CompareSampleStat = Pick<ApiNumberStat, "drawCount" | "samplePrizeCount">;
+
 export async function compareNumbers(input: CompareRequest) {
   const strategy = getPredictionStrategy(input.strategyId);
   const numbers = getUniqueNumbers(input.numbers);
   const numberLength = input.numberLength ?? numbers[0]?.length ?? 2;
-  const numberStats = await analyticsService.getNumberStats({
+  const statsQuery = {
     endDate: input.endDate,
     lotteryType: input.lotteryType,
     numberLength,
@@ -22,7 +28,13 @@ export async function compareNumbers(input: CompareRequest) {
     scope: "ALL_TIME",
     startDate: input.startDate,
     windowPreset: "ALL"
-  });
+  } as const;
+  const snapshotStats = await getAnalysisSnapshotNumberStatsForNumbers(
+    statsQuery,
+    numbers.filter((number) => number.length === numberLength)
+  );
+  const numberStats = snapshotStats?.stats ?? (await analyticsService.getNumberStats(statsQuery));
+  const sampleStat = getSampleStat(numberStats, snapshotStats);
   const statsByNumber = new Map(numberStats.map((stat) => [stat.number, stat]));
   const computedAt = new Date();
   const candidates = numbers
@@ -38,7 +50,7 @@ export async function compareNumbers(input: CompareRequest) {
             input,
             number,
             numberLength,
-            sampleStat: numberStats[0]
+            sampleStat
           }),
         strategy
       })
@@ -56,7 +68,7 @@ export async function compareNumbers(input: CompareRequest) {
   return toApiCompareReadModel({
     candidates,
     generatedAt: computedAt,
-    sampleSize: getSampleSize(numberStats),
+    sampleSize: getSampleSize(numberStats, snapshotStats),
     source: "api",
     strategyId: strategy.id,
     strongestSignal: getStrongestSignal(candidates.map((candidate) => candidate.scoreBreakdown))
@@ -82,7 +94,7 @@ function createEmptyNumberStat({
   input: CompareRequest;
   number: string;
   numberLength: number;
-  sampleStat?: ApiNumberStat;
+  sampleStat?: CompareSampleStat;
 }): ApiNumberStat {
   return {
     computedAt: computedAt.toISOString(),
@@ -108,7 +120,32 @@ function getPatternFlags(number: string): ApiPatternFlag[] {
   return getNumberShapeFlags(number);
 }
 
-function getSampleSize(numberStats: readonly ApiNumberStat[]) {
+function getSampleStat(
+  numberStats: readonly ApiNumberStat[],
+  snapshotStats: AnalysisSnapshotNumberStatsLookup | null
+): CompareSampleStat | undefined {
+  if (numberStats[0]) {
+    return numberStats[0];
+  }
+
+  if (!snapshotStats) {
+    return undefined;
+  }
+
+  return {
+    drawCount: snapshotStats.sampleDrawCount,
+    samplePrizeCount: snapshotStats.samplePrizeCount
+  };
+}
+
+function getSampleSize(
+  numberStats: readonly ApiNumberStat[],
+  snapshotStats: AnalysisSnapshotNumberStatsLookup | null
+) {
+  if (snapshotStats) {
+    return snapshotStats.samplePrizeCount;
+  }
+
   return Math.max(0, ...numberStats.map((stat) => stat.samplePrizeCount ?? stat.drawCount));
 }
 

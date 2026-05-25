@@ -41,8 +41,8 @@ describe("draw.service", () => {
     });
 
     expect(calls.findManyArgs).toMatchObject({
-      include: { prizes: true },
       orderBy: { drawDate: "desc" },
+      select: drawSelectMatcher(),
       skip: 2,
       take: 2,
       where: {
@@ -71,10 +71,13 @@ describe("draw.service", () => {
 
   test("returns draw detail by id and null when missing", async () => {
     let receivedId = "";
+    let receivedArgs: unknown;
 
     (globalThis as { prisma?: unknown }).prisma = {
       lotteryDraw: {
-        findUnique: async ({ where }: { where: { id: string } }) => {
+        findUnique: async (args: { where: { id: string } }) => {
+          receivedArgs = args;
+          const { where } = args;
           receivedId = where.id;
 
           if (where.id === "missing") {
@@ -92,6 +95,12 @@ describe("draw.service", () => {
     const missing = await getDrawById("missing");
 
     expect(receivedId).toBe("missing");
+    expect(receivedArgs).toMatchObject({
+      select: drawSelectMatcher(),
+      where: {
+        id: "missing"
+      }
+    });
     expect(detail && drawDetailResponseSchema.parse(detail)).toEqual(detail);
     expect(missing).toBeNull();
   });
@@ -148,5 +157,26 @@ function prizeRecord(id: string, number: string, type: string) {
     number,
     position: undefined,
     type
+  };
+}
+
+function drawSelectMatcher() {
+  return {
+    drawDate: true,
+    drawNo: true,
+    id: true,
+    lotteryType: true,
+    metadata: true,
+    prizes: {
+      select: {
+        id: true,
+        number: true,
+        position: true,
+        type: true
+      }
+    },
+    publishedAt: true,
+    sourceStatus: true,
+    sourceUrl: true
   };
 }
