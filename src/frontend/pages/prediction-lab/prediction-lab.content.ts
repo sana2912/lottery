@@ -3,13 +3,7 @@ import type { PredictionRequest } from "@/schema/app/prediction.schema";
 
 export const predictionLabContent = {
   actions: {
-    breakdownHref: "/methodology#score-breakdown",
-    breakdownLabel: "Review score breakdown fields",
-    generate: "Generate",
-    methodologyHref: "/methodology#prediction-score",
-    methodologyLabel: "Read how prediction scores are derived",
-    saveToWatchlist: "Save to watchlist",
-    savedToWatchlist: "Saved to global watchlist"
+    generate: "Generate"
   },
   emptyStates: {
     loading: {
@@ -33,17 +27,13 @@ export const predictionLabContent = {
     },
     predictionError: {
       title: "Unable to generate predictions"
-    },
-    watchlistError: {
-      title: "Watchlist save failed"
     }
   },
   errorMessages: {
     patternStatsUnavailable:
       "Pattern statistics could not be loaded for the selected prize type. Check analytics snapshots and API runtime.",
     predictionUnavailable:
-      "Prediction API is unavailable or returned an invalid response. Check database seed data and API runtime.",
-    watchlistSaveFailed: "Unable to save this number to the global watchlist."
+      "Prediction API is unavailable or returned an invalid response. Check database seed data and API runtime."
   },
   hero: {
     description:

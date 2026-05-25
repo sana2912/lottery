@@ -133,7 +133,7 @@ describe("apiRequest", () => {
   });
 
   test("returns null for 204 responses", async () => {
-    const response = await apiRequest("/api/watchlist/123", {
+    const response = await apiRequest("/api/predictions/123", {
       fetcher: createFetcher(
         async () =>
           new Response(null, {

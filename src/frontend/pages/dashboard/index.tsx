@@ -133,11 +133,6 @@ export async function DashboardPage({ pageData }: Readonly<{ pageData?: Dashboar
                     {dashboardContent.signals.actions.detailLabel}
                   </Link>
                 </Button>
-                <Button asChild size="sm" variant="link">
-                  <Link href={dashboardContent.signals.actions.methodologyHref}>
-                    {dashboardContent.signals.actions.methodologyLabel}
-                  </Link>
-                </Button>
               </div>
             }
             eyebrow={dashboardContent.signals.eyebrow}
@@ -201,11 +196,6 @@ export async function DashboardPage({ pageData }: Readonly<{ pageData?: Dashboar
                 <Button asChild size="sm" variant="outline">
                   <Link href={dashboardContent.predictionSummary.actions.detailHref}>
                     {dashboardContent.predictionSummary.actions.detailLabel}
-                  </Link>
-                </Button>
-                <Button asChild size="sm" variant="link">
-                  <Link href={dashboardContent.predictionSummary.actions.methodologyHref}>
-                    {dashboardContent.predictionSummary.actions.methodologyLabel}
                   </Link>
                 </Button>
               </div>

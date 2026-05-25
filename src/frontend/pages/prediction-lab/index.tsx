@@ -1,7 +1,6 @@
 "use client";
 
 import { AlertCircle, FlaskConical, Loader2 } from "lucide-react";
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { EmptyState, MetricCard } from "@/frontend/components";
 import { predictionLabContent } from "@/frontend/pages/prediction-lab/prediction-lab.content";
@@ -18,8 +17,7 @@ import {
   getPredictionPositionLabel,
   getPredictionScoreLabel,
   getTopPredictionScore,
-  toPredictionPayload,
-  toPredictionWatchlistPayload
+  toPredictionPayload
 } from "@/frontend/pages/prediction-lab/prediction-lab.mappers";
 import { PredictionPatternPlayground } from "@/frontend/pages/prediction-lab/prediction-lab.pattern-playground";
 import {
@@ -35,15 +33,11 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/frontend/primitives";
-import { apiPost } from "@/lib/api/http";
-import { apiRoutes } from "@/lib/api/routes";
 import {
   type PredictionRequest,
   type PredictionResponse,
-  type PredictionResult,
   predictionRequestSchema
 } from "@/schema/app/prediction.schema";
-import { createWatchlistItemSchema } from "@/schema/app/watchlist.schema";
 
 export function PredictionLabPage() {
   const [formState, setFormState] = useState(defaultPredictionFormState);
@@ -58,8 +52,6 @@ export function PredictionLabPage() {
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [prediction, setPrediction] = useState<PredictionResponse | null>(null);
-  const [savedNumbers, setSavedNumbers] = useState<Set<string>>(() => new Set());
-  const [saveError, setSaveError] = useState<string | null>(null);
   const topScore = useMemo(() => getTopPredictionScore(prediction), [prediction]);
   const selectedPrize = useMemo(
     () =>
@@ -171,19 +163,6 @@ export function PredictionLabPage() {
     }
   }
 
-  async function handleSaveToWatchlist(result: PredictionResult) {
-    setSaveError(null);
-
-    const payload = createWatchlistItemSchema.parse(toPredictionWatchlistPayload(result));
-
-    try {
-      await apiPost(apiRoutes.watchlist, payload);
-      setSavedNumbers((current) => new Set([...current, result.number]));
-    } catch {
-      setSaveError(predictionLabContent.errorMessages.watchlistSaveFailed);
-    }
-  }
-
   return (
     <main className="space-y-6">
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
@@ -197,13 +176,6 @@ export function PredictionLabPage() {
           <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--color-text-secondary)]">
             {predictionLabContent.hero.description}
           </p>
-          <div className="mt-4">
-            <Button asChild className="px-0" variant="link">
-              <Link href={predictionLabContent.actions.methodologyHref}>
-                {predictionLabContent.actions.methodologyLabel}
-              </Link>
-            </Button>
-          </div>
         </Card>
 
         <Card className="p-6">
@@ -341,11 +313,6 @@ export function PredictionLabPage() {
             {isPending ? <Loader2 className="animate-spin" /> : <FlaskConical />}
             {predictionLabContent.actions.generate}
           </Button>
-          <Button asChild className="px-0" variant="link">
-            <Link href={predictionLabContent.actions.breakdownHref}>
-              {predictionLabContent.actions.breakdownLabel}
-            </Link>
-          </Button>
           <p className="text-sm leading-6 text-[var(--color-text-muted)]">
             {predictionLabContent.notes.resultSummary}
           </p>
@@ -365,14 +332,6 @@ export function PredictionLabPage() {
           description={error}
           icon={<AlertCircle />}
           title={predictionLabContent.emptyStates.predictionError.title}
-        />
-      ) : null}
-
-      {saveError ? (
-        <EmptyState
-          description={saveError}
-          icon={<AlertCircle />}
-          title={predictionLabContent.emptyStates.watchlistError.title}
         />
       ) : null}
 
@@ -447,19 +406,6 @@ export function PredictionLabPage() {
                   tone="prediction"
                   value={String(result.score)}
                 />
-              </div>
-
-              <div className="mt-5">
-                <Button
-                  disabled={savedNumbers.has(result.number)}
-                  onClick={() => handleSaveToWatchlist(result)}
-                  type="button"
-                  variant="outline"
-                >
-                  {savedNumbers.has(result.number)
-                    ? predictionLabContent.actions.savedToWatchlist
-                    : predictionLabContent.actions.saveToWatchlist}
-                </Button>
               </div>
 
               <div className="mt-5 grid gap-3 md:grid-cols-5">

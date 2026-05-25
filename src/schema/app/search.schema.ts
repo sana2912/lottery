@@ -29,22 +29,12 @@ export const searchStatHitSchema = z.object({
   windowSize: z.number().int().positive()
 });
 
-export const searchWatchlistHitSchema = z.object({
-  id: z.string(),
-  note: z.string().optional(),
-  number: z.string(),
-  source: z.enum(["MANUAL", "NOTEBOOK", "PREDICTION"]),
-  tags: z.array(z.string()),
-  updatedAt: z.string()
-});
-
 export const searchReadModelSchema = z.object({
   generatedAt: z.string(),
   groups: z.object({
     draws: z.array(searchDrawHitSchema),
     prizes: z.array(searchPrizeHitSchema),
-    stats: z.array(searchStatHitSchema),
-    watchlist: z.array(searchWatchlistHitSchema)
+    stats: z.array(searchStatHitSchema)
   }),
   q: z.string(),
   source: z.literal("api")

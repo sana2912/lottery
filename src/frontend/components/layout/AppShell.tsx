@@ -40,7 +40,7 @@ export function AppShell({ children }: AppShellProps) {
                 {appConfig.name}
               </p>
               <p className="truncate text-sm text-[var(--color-text-secondary)]">
-                สถิติและสัญญาณจากงวดย้อนหลัง — อ่านคู่กับ Methodology ก่อนตีความคะแนน
+                สถิติและสัญญาณจากงวดย้อนหลัง — ตีความคะแนนเป็นสัญญาณเชิงประวัติศาสตร์
               </p>
             </div>
 

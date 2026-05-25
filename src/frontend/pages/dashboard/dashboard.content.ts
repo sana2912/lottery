@@ -33,16 +33,14 @@ export const dashboardContent = {
       label: "Open Analytics"
     },
     "Overdue number": {
-      href: "/methodology#score-breakdown",
-      label: "Read Methodology"
+      href: "/analytics",
+      label: "Open Analytics"
     }
   },
   predictionSummary: {
     actions: {
       detailHref: "/prediction-lab",
-      detailLabel: "Open Prediction Lab",
-      methodologyHref: "/methodology#prediction-score",
-      methodologyLabel: "How to read the score"
+      detailLabel: "Open Prediction Lab"
     },
     emptyDescription:
       "No persisted prediction summary is available through the dashboard read model yet.",
@@ -60,9 +58,7 @@ export const dashboardContent = {
   signals: {
     actions: {
       detailHref: "/analytics",
-      detailLabel: "Open Analytics",
-      methodologyHref: "/methodology#score-breakdown",
-      methodologyLabel: "How signals are scored"
+      detailLabel: "Open Analytics"
     },
     eyebrow: "signal board",
     title: "Signals surfaced from the current analytics model"

@@ -4,7 +4,7 @@ export type MetricCardProps = Readonly<{
   label: string;
   value: string;
   hint?: string;
-  tone?: "default" | "hot" | "cold" | "overdue" | "prediction" | "backtest" | "watchlist";
+  tone?: "default" | "hot" | "cold" | "overdue" | "prediction" | "backtest";
   trend?: string;
 }>;
 
@@ -14,8 +14,7 @@ const toneClasses = {
   cold: "border-[var(--cold)]/35 bg-[var(--cold-soft)]/55",
   overdue: "border-[var(--overdue)]/35 bg-[var(--overdue-soft)]/55",
   prediction: "border-[var(--prediction)]/25 bg-[var(--prediction-soft)]/45",
-  backtest: "border-[var(--backtest)]/25 bg-[var(--backtest-soft)]/45",
-  watchlist: "border-[var(--watchlist)]/25 bg-[var(--watchlist-soft)]/45"
+  backtest: "border-[var(--backtest)]/25 bg-[var(--backtest-soft)]/45"
 } as const;
 
 export function MetricCard({ label, value, hint, tone = "default", trend }: MetricCardProps) {

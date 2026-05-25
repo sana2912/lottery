@@ -154,41 +154,6 @@ export async function SearchPage({
               ))}
             </div>
           </SearchGroupCard>
-
-          <SearchGroupCard
-            eyebrow={searchContent.groups.watchlist.eyebrow}
-            title={searchContent.groups.watchlist.title}
-          >
-            <div className="space-y-3">
-              {model.groups.watchlist.map((item) => (
-                <article
-                  className="border border-[var(--color-border-soft)] bg-[var(--color-bg-canvas)] p-4"
-                  key={item.id}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-mono text-xl font-bold text-[var(--color-text-primary)]">
-                        {item.number}
-                      </p>
-                      <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-                        {item.source}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {item.tags.map((tag) => (
-                        <Badge key={`${item.id}-${tag}`} variant="brand">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                  {item.note ? (
-                    <p className="mt-3 text-sm text-[var(--color-text-secondary)]">{item.note}</p>
-                  ) : null}
-                </article>
-              ))}
-            </div>
-          </SearchGroupCard>
         </section>
       ) : null}
     </main>

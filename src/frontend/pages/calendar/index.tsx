@@ -1,5 +1,4 @@
 import { CalendarDays, Clock3, Sparkles } from "lucide-react";
-import Link from "next/link";
 import { EmptyState, MetricCard } from "@/frontend/components";
 import { CalendarHeatmapFilters } from "@/frontend/pages/calendar/calendar.components";
 import { calendarContent } from "@/frontend/pages/calendar/calendar.content";
@@ -10,7 +9,6 @@ import {
 import { getDaysUntilNextDraw } from "@/frontend/pages/calendar/calendar.mappers";
 import {
   Badge,
-  Button,
   Card,
   SectionHeading,
   Table,
@@ -44,13 +42,6 @@ export async function CalendarPage({
           <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--color-text-secondary)]">
             {calendarContent.hero.description}
           </p>
-          <div className="mt-4">
-            <Button asChild className="px-0" variant="link">
-              <Link href={calendarContent.actions.methodologyHref}>
-                {calendarContent.actions.methodologyLabel}
-              </Link>
-            </Button>
-          </div>
         </Card>
 
         <Card className="p-6">
@@ -205,14 +196,6 @@ export async function CalendarPage({
           title={calendarContent.monthlyInsights.title}
           description={calendarContent.monthlyInsights.description}
         />
-        <div className="mt-4">
-          <Button asChild className="px-0" variant="link">
-            <Link href={calendarContent.actions.methodologyHref}>
-              {calendarContent.actions.monthlyMethodologyLabel}
-            </Link>
-          </Button>
-        </div>
-
         <div className="mt-5 rounded-none border border-[var(--color-border-soft)] bg-[var(--color-bg-subtle)] p-4">
           <div className="mb-4">
             <p className="text-xs font-bold uppercase tracking-normal text-[var(--color-text-muted)]">

@@ -1,7 +1,6 @@
 "use client";
 
 import { AlertCircle, Loader2, Scale3d } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { TimeSeriesChart } from "@/frontend/chart-primitives";
@@ -85,13 +84,6 @@ export function ComparePage({
           <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--color-text-secondary)]">
             {compareContent.hero.description}
           </p>
-          <div className="mt-4">
-            <Button asChild className="px-0" variant="link">
-              <Link href={compareContent.actions.methodologyHref}>
-                {compareContent.actions.methodologyLabel}
-              </Link>
-            </Button>
-          </div>
         </Card>
 
         <Card className="p-6">
@@ -338,13 +330,6 @@ export function ComparePage({
               eyebrow={compareContent.sections.explainableRanking.eyebrow}
               title={compareContent.sections.explainableRanking.title}
             />
-            <div className="mt-4">
-              <Button asChild className="px-0" variant="link">
-                <Link href={compareContent.actions.methodologyHref}>
-                  {compareContent.actions.rankingMethodologyLabel}
-                </Link>
-              </Button>
-            </div>
             <div className="mt-5 space-y-3">
               {compare.candidates.map((candidate) => (
                 <div

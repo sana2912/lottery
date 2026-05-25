@@ -577,7 +577,7 @@ has_repeat = 68%
 
 ใช้ที่:
 
-analytics API, patterns page, methodology display
+analytics API, patterns page, product explanation display
 
 ## 7. Prediction Lab
 
@@ -1328,7 +1328,7 @@ code:
 
 หน้าที่:
 
-ค้นหาข้อมูล draw, prize, stats, watchlist
+ค้นหาข้อมูล draw, prize, stats
 
 stats window คงที่:
 
@@ -1350,39 +1350,7 @@ search stats:
 
 ถ้าค้นเลข 6 หลัก จะไปดู stats ของ FIRST / PRIZE2 / PRIZE3 / PRIZE4 / PRIZE5
 
-## 17. Watchlist
-
-ไฟล์หลัก:
-
-`src/api/service/watchlist.service.ts:98`
-
-หน้าที่:
-
-เอาเลขที่ user save ไว้ไป enrich ด้วย stats
-
-flow:
-
-```text
-watchlist numbers
-  -> group ตามความยาวเลข
-  -> ดึง analytics numberStats window 120
-  -> ถ้าเลขเดียวกันเจอหลาย prizeType เลือก stat ที่ hitCount สูงกว่า
-```
-
-code enrich:
-
-`src/api/service/watchlist.service.ts:122`
-
-ผลลัพธ์ที่ user เห็น:
-
-```text
-hitCount
-frequencyPercent
-missingDrawCount
-trendScore
-```
-
-## 18. Dependency Map
+## 17. Dependency Map
 
 ภาพรวม dependency:
 
@@ -1404,7 +1372,6 @@ lib/app/number-shape
 analytics.service
   -> prediction.service
   -> compare.service
-  -> watchlist.service
   -> search.service
   -> dashboard.service
   -> patterns page data
@@ -1424,7 +1391,7 @@ calendar.service
   -> calendar page
 ```
 
-## 19. ข้อควรระวังในการอ่านผล
+## 18. ข้อควรระวังในการอ่านผล
 
 `frequencyPercent` ไม่ใช่ probability ที่งวดหน้าจะออก
 
@@ -1446,7 +1413,7 @@ calendar.service
 
 เพราะ universe ใหญ่มาก เช่น 000000-999999 มี 1,000,000 แบบ การซ้ำตรง ๆ จึงน้อยมากเมื่อเทียบกับเลข 2 หลักที่มีแค่ 100 แบบ
 
-## 20. ตัวอย่าง end-to-end
+## 19. ตัวอย่าง end-to-end
 
 สมมุติ user เปิด Prediction Lab:
 

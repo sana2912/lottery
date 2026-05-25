@@ -8,7 +8,6 @@ import { dashboardService } from "@/api/service/dashboard.service";
 import { drawService } from "@/api/service/draw.service";
 import { predictionService } from "@/api/service/prediction.service";
 import { searchService } from "@/api/service/search.service";
-import { watchlistService } from "@/api/service/watchlist.service";
 import { analyticsReadModelSchema } from "@/schema/app/analytics.schema";
 import {
   backtestHistoryResponseSchema,
@@ -20,11 +19,6 @@ import { dashboardReadModelSchema } from "@/schema/app/dashboard.schema";
 import { drawDetailResponseSchema, drawListResponseSchema } from "@/schema/app/draw.schema";
 import { predictionRequestSchema, predictionResponseSchema } from "@/schema/app/prediction.schema";
 import { searchReadModelSchema } from "@/schema/app/search.schema";
-import {
-  deleteWatchlistItemResponseSchema,
-  watchlistItemSchema,
-  watchlistReadModelSchema
-} from "@/schema/app/watchlist.schema";
 
 const mutableDrawService = drawService as {
   getDrawById: typeof drawService.getDrawById;
@@ -39,12 +33,6 @@ const mutablePredictionService = predictionService as {
   generate: typeof predictionService.generate;
   getLatestPrediction: typeof predictionService.getLatestPrediction;
   getPredictionById: typeof predictionService.getPredictionById;
-};
-const mutableWatchlistService = watchlistService as {
-  createWatchlistItem: typeof watchlistService.createWatchlistItem;
-  deleteWatchlistItem: typeof watchlistService.deleteWatchlistItem;
-  getWatchlist: typeof watchlistService.getWatchlist;
-  updateWatchlistItem: typeof watchlistService.updateWatchlistItem;
 };
 const mutableSearchService = searchService as {
   search: typeof searchService.search;
@@ -70,7 +58,6 @@ const originalServices = {
   calendarReadModel: calendarService.getCalendarReadModel,
   compareNumbers: compareService.compareNumbers,
   dashboardReadModel: dashboardService.getDashboardReadModel,
-  deleteWatchlistItem: watchlistService.deleteWatchlistItem,
   digitStats: analyticsService.getDigitStats,
   drawById: drawService.getDrawById,
   draws: drawService.getDraws,
@@ -80,10 +67,7 @@ const originalServices = {
   predictionById: predictionService.getPredictionById,
   predictionLatest: predictionService.getLatestPrediction,
   runBacktest: backtestService.runBacktest,
-  search: searchService.search,
-  updateWatchlistItem: watchlistService.updateWatchlistItem,
-  watchlistCreate: watchlistService.createWatchlistItem,
-  watchlistGet: watchlistService.getWatchlist
+  search: searchService.search
 } as const;
 
 afterEach(() => {
@@ -95,10 +79,6 @@ afterEach(() => {
   mutablePredictionService.generate = originalServices.predictionGenerate;
   mutablePredictionService.getLatestPrediction = originalServices.predictionLatest;
   mutablePredictionService.getPredictionById = originalServices.predictionById;
-  mutableWatchlistService.createWatchlistItem = originalServices.watchlistCreate;
-  mutableWatchlistService.deleteWatchlistItem = originalServices.deleteWatchlistItem;
-  mutableWatchlistService.getWatchlist = originalServices.watchlistGet;
-  mutableWatchlistService.updateWatchlistItem = originalServices.updateWatchlistItem;
   mutableSearchService.search = originalServices.search;
   mutableBacktestService.getBacktestById = originalServices.backtestById;
   mutableBacktestService.listBacktests = originalServices.listBacktests;
@@ -269,72 +249,6 @@ describe("api router", () => {
       windowSize: 120
     });
     expect(predictionResponseSchema.parse(await postResponse.json())).toBeTruthy();
-  });
-
-  test("watchlist routes validate body, pass params, and return schema-valid responses", async () => {
-    let createdBody: unknown;
-    let updatedBody: unknown;
-    let updatedId = "";
-    let deletedId = "";
-
-    mutableWatchlistService.getWatchlist = async () =>
-      watchlistReadModelSchema.parse(watchlistReadModel());
-    mutableWatchlistService.createWatchlistItem = async (input) => {
-      createdBody = input;
-      return watchlistItemSchema.parse(watchlistItem());
-    };
-    mutableWatchlistService.updateWatchlistItem = async (id, input) => {
-      updatedId = id;
-      updatedBody = input;
-      return watchlistItemSchema.parse({
-        ...watchlistItem(),
-        note: "updated",
-        source: "PREDICTION"
-      });
-    };
-    mutableWatchlistService.deleteWatchlistItem = async (id) => {
-      deletedId = id;
-      return deleteWatchlistItemResponseSchema.parse({
-        deleted: true,
-        id,
-        scope: "global"
-      });
-    };
-
-    const [getResponse, postResponse, patchResponse, deleteResponse] = await Promise.all([
-      request("/api/watchlist"),
-      request("/api/watchlist", {
-        body: JSON.stringify({ number: "09", note: "keep", tags: ["hot"] }),
-        headers: { "content-type": "application/json" },
-        method: "POST"
-      }),
-      request("/api/watchlist/watch-1", {
-        body: JSON.stringify({ note: "updated", source: "PREDICTION", tags: ["pair"] }),
-        headers: { "content-type": "application/json" },
-        method: "PATCH"
-      }),
-      request("/api/watchlist/watch-1", {
-        method: "DELETE"
-      })
-    ]);
-
-    expect(createdBody).toEqual({
-      note: "keep",
-      number: "09",
-      source: "MANUAL",
-      tags: ["hot"]
-    });
-    expect(updatedId).toBe("watch-1");
-    expect(updatedBody).toEqual({
-      note: "updated",
-      source: "PREDICTION",
-      tags: ["pair"]
-    });
-    expect(deletedId).toBe("watch-1");
-    expect(watchlistReadModelSchema.parse(await getResponse.json())).toBeTruthy();
-    expect(watchlistItemSchema.parse(await postResponse.json())).toBeTruthy();
-    expect(watchlistItemSchema.parse(await patchResponse.json())).toBeTruthy();
-    expect(deleteWatchlistItemResponseSchema.parse(await deleteResponse.json())).toBeTruthy();
   });
 
   test("search route validates query and returns grouped results", async () => {
@@ -648,35 +562,6 @@ function predictionResponse(input: {
   };
 }
 
-function watchlistItem() {
-  return {
-    createdAt: "2026-04-01T00:00:00.000Z",
-    id: "watch-1",
-    note: "keep",
-    number: "09",
-    scope: "global" as const,
-    source: "MANUAL" as const,
-    stats: {
-      frequencyPercent: 12.5,
-      hitCount: 3,
-      lastSeenDrawDate: "2026-04-16T00:00:00.000Z",
-      missingDrawCount: 2,
-      prizeType: "TWO_DIGIT" as const
-    },
-    tags: ["hot"],
-    updatedAt: "2026-04-29T00:00:00.000Z"
-  };
-}
-
-function watchlistReadModel() {
-  return {
-    generatedAt: "2026-04-29T00:00:00.000Z",
-    items: [watchlistItem()],
-    scope: "global" as const,
-    source: "api" as const
-  };
-}
-
 function backtestReadModel(id: string) {
   return {
     generatedAt: "2026-04-29T00:00:00.000Z",
@@ -928,16 +813,6 @@ function searchReadModel() {
           prizeType: "TWO_DIGIT" as const,
           trendScore: 50,
           windowSize: 120
-        }
-      ],
-      watchlist: [
-        {
-          id: "watch-1",
-          note: "keep",
-          number: "09",
-          source: "MANUAL" as const,
-          tags: ["hot"],
-          updatedAt: "2026-04-29T00:00:00.000Z"
         }
       ]
     },

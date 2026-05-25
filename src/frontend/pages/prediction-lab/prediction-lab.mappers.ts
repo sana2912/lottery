@@ -1,11 +1,7 @@
 import { getMiniDna } from "@/lib/app/number-shape";
 import { getPatternDefinitionsForPrizeType } from "@/lib/app/pattern-playground";
 import { getPredictionNumberLength } from "@/lib/app/prediction";
-import type {
-  PredictionRequest,
-  PredictionResponse,
-  PredictionResult
-} from "@/schema/app/prediction.schema";
+import type { PredictionRequest, PredictionResponse } from "@/schema/app/prediction.schema";
 
 export type PredictionFormState = {
   count: string;
@@ -48,15 +44,6 @@ export function getPatternFlagLabelsForNumber(
 
 export function getPredictionNumberDna(number: string) {
   return getMiniDna(number);
-}
-
-export function toPredictionWatchlistPayload(result: PredictionResult) {
-  return {
-    note: `Saved from Prediction Lab using ${result.strategyName}. Score: ${result.score}.`,
-    number: result.number,
-    source: "PREDICTION" as const,
-    tags: ["prediction", result.strategyId]
-  };
 }
 
 export function getTopPredictionScore(prediction: null | PredictionResponse) {

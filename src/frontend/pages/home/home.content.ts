@@ -1,7 +1,5 @@
 import {
   BarChart3,
-  BookmarkCheck,
-  BookOpen,
   CalendarDays,
   FlaskConical,
   Gauge,
@@ -20,9 +18,7 @@ export const homeFeatureIconMap = {
   calendar: CalendarDays,
   compare: Scale,
   dashboard: LayoutDashboard,
-  methodology: BookOpen,
   patterns: Shapes,
   prediction: FlaskConical,
-  results: Search,
-  watchlist: BookmarkCheck
+  results: Search
 } as const;

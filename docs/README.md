@@ -23,10 +23,8 @@ Agents working in this repo should read `AGENTS.md`. Any UI or UI feature work m
 - `/patterns`
 - `/prediction-lab`
 - `/backtest`
-- `/watchlist`
 - `/compare`
 - `/calendar`
-- `/methodology`
 
 ## Architecture
 
@@ -84,4 +82,3 @@ API modules:
 - `/api/draws`
 - `/api/analytics`
 - `/api/predictions`
-- `/api/watchlist`

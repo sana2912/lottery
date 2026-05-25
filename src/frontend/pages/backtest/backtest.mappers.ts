@@ -108,7 +108,7 @@ export function getBacktestExplanationSummary(backtest: BacktestReadModel, resul
   };
 }
 
-export function getBacktestMethodologyLines(result: BacktestResult) {
+export function getBacktestCalculationLines(result: BacktestResult) {
   const explanation = result.explanation;
 
   if (!explanation) {

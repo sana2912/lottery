@@ -12,8 +12,7 @@ export type BadgeProps = React.HTMLAttributes<HTMLSpanElement> & {
     | "cold"
     | "overdue"
     | "prediction"
-    | "backtest"
-    | "watchlist";
+    | "backtest";
 };
 
 export function Badge({ className, variant = "neutral", ...props }: BadgeProps) {
@@ -32,7 +31,6 @@ export function Badge({ className, variant = "neutral", ...props }: BadgeProps) 
         variant === "overdue" && "bg-[var(--overdue-soft)] text-[var(--overdue)]",
         variant === "prediction" && "bg-[var(--prediction-soft)] text-[var(--prediction)]",
         variant === "backtest" && "bg-[var(--backtest-soft)] text-[var(--backtest)]",
-        variant === "watchlist" && "bg-[var(--watchlist-soft)] text-[var(--watchlist)]",
         className
       )}
       {...props}

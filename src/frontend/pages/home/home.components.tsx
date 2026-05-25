@@ -57,14 +57,6 @@ export function ProductPreview() {
               />
             ))}
           </div>
-          <div className="mt-5 flex items-center justify-between border-t border-[var(--color-border-soft)] pt-4">
-            <span className="text-sm text-[var(--color-text-secondary)]">
-              {preview.watchlistLabel}
-            </span>
-            <span className="text-xl font-bold tracking-normal text-[var(--color-text-primary)]">
-              {preview.watchlistCount}
-            </span>
-          </div>
         </div>
       </div>
     </div>

@@ -1,7 +1,6 @@
 "use client";
 
 import { AlertCircle, Loader2, Scale3d, X } from "lucide-react";
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { TimeSeriesChart } from "@/frontend/chart-primitives";
 import { EmptyState, FilterToolbar, LoadingSkeleton, MetricCard } from "@/frontend/components";
@@ -16,9 +15,9 @@ import {
 import {
   type BacktestFormState,
   defaultBacktestFormState,
+  getBacktestCalculationLines,
   getBacktestExplanationSummary,
   getBacktestHumanReasonLines,
-  getBacktestMethodologyLines,
   hasBacktestRowExplanation,
   mergeBacktestHistory,
   toBacktestChartPoints,
@@ -75,8 +74,8 @@ export function BacktestPage() {
         : null,
     [backtest, selectedExplanationResult]
   );
-  const explanationMethodologyLines = useMemo(
-    () => (selectedExplanationResult ? getBacktestMethodologyLines(selectedExplanationResult) : []),
+  const explanationCalculationLines = useMemo(
+    () => (selectedExplanationResult ? getBacktestCalculationLines(selectedExplanationResult) : []),
     [selectedExplanationResult]
   );
   const explanationHumanLines = useMemo(
@@ -186,13 +185,6 @@ export function BacktestPage() {
           <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--color-text-secondary)]">
             {backtestContent.hero.description}
           </p>
-          <div className="mt-4">
-            <Button asChild className="px-0" variant="link">
-              <Link href={backtestContent.actions.methodologyHref}>
-                {backtestContent.actions.methodologyLabel}
-              </Link>
-            </Button>
-          </div>
         </Card>
 
         <Card className="p-6">
@@ -447,13 +439,6 @@ export function BacktestPage() {
               eyebrow={backtestContent.sections.runDetails.eyebrow}
               title={backtestContent.sections.runDetails.title}
             />
-            <div className="mt-4">
-              <Button asChild className="px-0" variant="link">
-                <Link href={backtestContent.actions.methodologyHref}>
-                  {backtestContent.actions.resultsMethodologyLabel}
-                </Link>
-              </Button>
-            </div>
             <div className="mt-5 space-y-3">
               <MetricCard
                 hint={backtestContent.metrics.strategy.hint}
@@ -721,10 +706,10 @@ export function BacktestPage() {
               <div className="space-y-6">
                 <section>
                   <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
-                    {backtestContent.results.explanation.methodologySectionTitle}
+                    {backtestContent.results.explanation.calculationSectionTitle}
                   </h3>
                   <ul className="mt-3 space-y-2 text-sm leading-6 text-[var(--color-text-secondary)]">
-                    {explanationMethodologyLines.map((line) => (
+                    {explanationCalculationLines.map((line) => (
                       <li key={line}>{line}</li>
                     ))}
                   </ul>

@@ -28,15 +28,14 @@ export async function search(query: SearchQuery): Promise<ApiSearchReadModel> {
       groups: {
         draws: [],
         prizes: [],
-        stats: [],
-        watchlist: []
+        stats: []
       },
       q,
       source: "api"
     };
   }
 
-  const [draws, prizes, stats, watchlist] = await Promise.all([
+  const [draws, prizes, stats] = await Promise.all([
     prisma.lotteryDraw.findMany({
       orderBy: {
         drawDate: "desc"
@@ -90,33 +89,7 @@ export async function search(query: SearchQuery): Promise<ApiSearchReadModel> {
         }
       }
     }),
-    getSearchStats(query),
-    prisma.userWatchlistItem.findMany({
-      orderBy: {
-        updatedAt: "desc"
-      },
-      take: 20,
-      where: {
-        OR: [
-          {
-            number: {
-              contains: q
-            }
-          },
-          {
-            note: {
-              contains: q,
-              mode: "insensitive"
-            }
-          },
-          {
-            tags: {
-              has: q
-            }
-          }
-        ]
-      }
-    })
+    getSearchStats(query)
   ]);
 
   return {
@@ -136,15 +109,7 @@ export async function search(query: SearchQuery): Promise<ApiSearchReadModel> {
         number: prize.number,
         prizeType: prize.type as ApiSearchPrizeHitPrizeType
       })),
-      stats,
-      watchlist: watchlist.map((item) => ({
-        id: item.id,
-        note: item.note ?? undefined,
-        number: item.number,
-        source: item.source,
-        tags: [...item.tags],
-        updatedAt: item.updatedAt.toISOString()
-      }))
+      stats
     },
     q,
     source: "api"

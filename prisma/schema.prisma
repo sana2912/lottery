@@ -28,12 +28,6 @@ enum LotteryPrizeType {
   OTHER
 }
 
-enum WatchlistSource {
-  MANUAL
-  PREDICTION
-  NOTEBOOK
-}
-
 enum SourceStatus {
   IMPORTED
   PARTIAL
@@ -74,20 +68,6 @@ model LotteryPrize {
   @@index([drawId])
   @@index([type, number])
   @@map("lottery_prizes")
-}
-
-model UserWatchlistItem {
-  id        String          @id @default(uuid(7)) @map("_id") @db.Uuid
-  number    String
-  source    WatchlistSource @default(MANUAL)
-  tags      String[]
-  note      String?
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
-
-  @@index([number])
-  @@index([updatedAt])
-  @@map("user_watchlist_items")
 }
 
 model PredictionRun {

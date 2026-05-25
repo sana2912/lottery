@@ -1,6 +1,6 @@
 export const searchContent = {
   emptyState: {
-    description: "The current search query returned no draw, prize, stat, or watchlist hits.",
+    description: "The current search query returned no draw, prize, or stat hits.",
     title: "No search matches"
   },
   errorState: {
@@ -20,21 +20,17 @@ export const searchContent = {
     stats: {
       eyebrow: "stat hits",
       title: "Matching analytics groups"
-    },
-    watchlist: {
-      eyebrow: "watchlist hits",
-      title: "Matching watchlist items"
     }
   },
   hero: {
     description:
-      "Search across persisted draws, prize rows, analytics snapshots, and watchlist notes from one grouped API read model.",
+      "Search across persisted draws, prize rows, and analytics snapshots from one grouped API read model.",
     eyebrow: "Search contract",
     title: "Cross-source search for historical lottery signals"
   },
   searchForm: {
     buttonLabel: "Search",
-    placeholder: "Search by number, draw number, or note"
+    placeholder: "Search by number or draw number"
   }
 } as const;
 

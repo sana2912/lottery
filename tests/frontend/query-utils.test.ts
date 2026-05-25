@@ -14,11 +14,6 @@ import {
   getResultsFilterPills,
   parseResultsSearchParams
 } from "@/frontend/pages/results/results.query";
-import {
-  defaultWatchlistFormState,
-  parseWatchlistTags,
-  toCreateWatchlistPayload
-} from "@/frontend/pages/watchlist/watchlist.mappers";
 
 describe("frontend query/mappers", () => {
   test("parseCompareNumbers splits by comma/newline and trims", () => {
@@ -132,25 +127,5 @@ describe("frontend query/mappers", () => {
       "Year: 2026",
       "Month: 4"
     ]);
-  });
-
-  test("parseWatchlistTags trims and drops empty values", () => {
-    expect(parseWatchlistTags("hot, ,  cold")).toEqual(["hot", "cold"]);
-  });
-
-  test("toCreateWatchlistPayload keeps note optional", () => {
-    expect(
-      toCreateWatchlistPayload({
-        ...defaultWatchlistFormState,
-        number: "12",
-        note: "",
-        tags: "a, b"
-      })
-    ).toEqual({
-      note: undefined,
-      number: "12",
-      source: "MANUAL",
-      tags: ["a", "b"]
-    });
   });
 });

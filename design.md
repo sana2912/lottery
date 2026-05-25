@@ -94,12 +94,6 @@ For glass treatment:
 
 --backtest: #0f766e;
 --backtest-soft: #ccfbf1;
-
---watchlist: #f97316;
---watchlist-soft: #ffedd5;
-
---methodology: #57534e;
---methodology-soft: #f5f5f4;
 ```
 
 ### App Alias Tokens
@@ -240,12 +234,6 @@ Use the app aliases in composed UI when they improve readability or match an exi
 
   --backtest: #2dd4bf;
   --backtest-soft: #134e4a;
-
-  --watchlist: #fb923c;
-  --watchlist-soft: #431407;
-
-  --methodology: #a8a29e;
-  --methodology-soft: #1c1917;
 }
 ```
 
@@ -284,7 +272,7 @@ Use the app aliases in composed UI when they improve readability or match an exi
 Support semantic variants:
 
 - `hot`, `cold`, `overdue`
-- `prediction`, `backtest`, `watchlist`
+- `prediction`, `backtest`
 - `success`, `warning`, `danger`, `muted`
 
 Badges should be square soft labels with readable contrast. Avoid loud casino-like colors.
@@ -372,13 +360,6 @@ Badges should be square soft labels with readable contrast. Avoid loud casino-li
 - Longest miss streak uses warning.
 - Layout should feel serious and audit-friendly.
 
-### Watchlist
-
-- Use watchlist orange as accent.
-- Tags use soft chips.
-- Notes use muted-soft backgrounds.
-- Archived items should appear muted and low-emphasis.
-
 ### Compare
 
 - Use neutral table/card bases.
@@ -403,14 +384,6 @@ Badges should be square soft labels with readable contrast. Avoid loud casino-li
 - Exact hits enqueue a static reward banner one at a time (draw label, year, prize type, ticket, research points).
 - HUD stays minimal: tickets, score, speed, pause/replay, and a link to the draw detail page.
 - Copy stays research and educational; label points as research score only, never money.
-
-### Methodology
-
-- Prioritize readability.
-- Use warning-soft callouts for "not a guarantee".
-- Use muted-soft formula and example blocks.
-- Links use primary.
-- Prefer solid or lightly frosted reading blocks over decorative glass if long-form readability would suffer.
 
 ## Copywriting Rules
 

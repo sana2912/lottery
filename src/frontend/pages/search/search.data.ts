@@ -18,8 +18,7 @@ const searchShell = searchReadModelSchema.parse({
   groups: {
     draws: [],
     prizes: [],
-    stats: [],
-    watchlist: []
+    stats: []
   },
   q: "",
   source: "api"
@@ -76,10 +75,7 @@ export async function getSearchPageData(searchParams?: SearchParamsInput): Promi
 
 function hasAnyResults(model: SearchReadModel) {
   return (
-    model.groups.draws.length > 0 ||
-    model.groups.prizes.length > 0 ||
-    model.groups.stats.length > 0 ||
-    model.groups.watchlist.length > 0
+    model.groups.draws.length > 0 || model.groups.prizes.length > 0 || model.groups.stats.length > 0
   );
 }
 

@@ -5,10 +5,7 @@ export const backtestContent = {
     closeExplanation: "ปิด",
     historyButton: "Refresh history",
     loadLabel: "Load",
-    methodologyHref: "/methodology#backtest-reading",
-    methodologyLabel: "Read how walk-forward backtest is interpreted",
     openHitExplanation: "ดูเหตุผลที่ hit",
-    resultsMethodologyLabel: "Review hit rate, miss streak, and rank guidance",
     runButton: "Run backtest",
     viewingLabel: "Viewing"
   },
@@ -103,8 +100,8 @@ export const backtestContent = {
     description: "Each row reflects one target draw evaluated from the earlier window only.",
     explanation: {
       candidateSectionTitle: "เลขที่ระบบ generate",
+      calculationSectionTitle: "ระบบคำนวณงวดนี้อย่างไร",
       humanSectionTitle: "เหตุผลแบบภาษาคน",
-      methodologySectionTitle: "ระบบคำนวณงวดนี้อย่างไร",
       title: "คำอธิบายการ hit"
     },
     eyebrow: "Results",

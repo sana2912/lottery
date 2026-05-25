@@ -1,9 +1,4 @@
 export const calendarContent = {
-  actions: {
-    methodologyHref: "/methodology#monthly-insights",
-    methodologyLabel: "Read how the calendar heatmap should be interpreted",
-    monthlyMethodologyLabel: "Review sample-size and uncertainty guidance"
-  },
   badges: {
     liveApi: "Live API",
     unavailable: "Unavailable",

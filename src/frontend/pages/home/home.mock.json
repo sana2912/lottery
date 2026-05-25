@@ -4,8 +4,7 @@
     "links": [
       { "label": "Dashboard", "href": "/dashboard" },
       { "label": "Results", "href": "/results" },
-      { "label": "Prediction Lab", "href": "/prediction-lab" },
-      { "label": "Methodology", "href": "/methodology" }
+      { "label": "Prediction Lab", "href": "/prediction-lab" }
     ],
     "cta": { "label": "Open Dashboard", "href": "/dashboard" }
   },
@@ -25,15 +24,13 @@
       "scoreLabel": "Score",
       "score": "82",
       "trendLabel": "Hot trend",
-      "trendValues": [42, 58, 63, 71, 82],
-      "watchlistLabel": "Watchlist",
-      "watchlistCount": "12"
+      "trendValues": [42, 58, 63, 71, 82]
     }
   },
   "metrics": [
     {
       "label": "Product feature pages",
-      "value": "10",
+      "value": "8",
       "hint": "One route per primary product surface."
     },
     {
@@ -43,15 +40,15 @@
     },
     {
       "label": "API-ready modules",
-      "value": "4",
-      "hint": "draws, analytics, predictions, watchlist"
+      "value": "3",
+      "hint": "draws, analytics, predictions"
     }
   ],
   "featureSection": {
     "eyebrow": "Feature routes",
     "title": "One route per primary user workflow",
-    "actionLabel": "Review methodology",
-    "actionHref": "/methodology",
+    "actionLabel": "Open analytics",
+    "actionHref": "/analytics",
     "itemActionLabel": "Open page"
   },
   "features": [
@@ -91,7 +88,7 @@
       "id": "prediction",
       "title": "Prediction Lab",
       "href": "/prediction-lab",
-      "description": "Generate candidate numbers with score breakdowns, reasons, and save-to-watchlist flow.",
+      "description": "Generate candidate numbers with score breakdowns, reasons, and result inspection flow.",
       "status": "Scoring",
       "icon": "prediction"
     },
@@ -102,14 +99,6 @@
       "description": "Test strategy performance with hit rate, miss streak, and persisted run history.",
       "status": "Compare",
       "icon": "backtest"
-    },
-    {
-      "id": "watchlist",
-      "title": "Watchlist",
-      "href": "/watchlist",
-      "description": "Track interesting numbers with tags, notes, and current global-scope saved state.",
-      "status": "Saved",
-      "icon": "watchlist"
     },
     {
       "id": "compare",
@@ -126,14 +115,6 @@
       "description": "Draw calendar, next-draw countdown, and monthly insight summaries with uncertainty framing.",
       "status": "Schedule",
       "icon": "calendar"
-    },
-    {
-      "id": "methodology",
-      "title": "Methodology",
-      "href": "/methodology",
-      "description": "Explain hot/cold signals, backtest reading, prediction score fields, and product limitations.",
-      "status": "Trust",
-      "icon": "methodology"
     }
   ],
   "workflow": [
@@ -150,7 +131,7 @@
     {
       "step": "03",
       "title": "API contracts can slot in later",
-      "description": "Entity names and module boundaries already align to draws, analytics, predictions, and watchlist so Elysia and Prisma wiring can replace the fixtures cleanly."
+      "description": "Entity names and module boundaries already align to draws, analytics, and predictions so Elysia and Prisma wiring can replace the fixtures cleanly."
     }
   ],
   "trustPanel": {

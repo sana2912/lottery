@@ -8,9 +8,9 @@ import {
 } from "@/frontend/pages/analytics/analytics.mappers";
 import {
   defaultBacktestFormState,
+  getBacktestCalculationLines,
   getBacktestExplanationSummary,
   getBacktestHumanReasonLines,
-  getBacktestMethodologyLines,
   hasBacktestRowExplanation,
   mergeBacktestHistory,
   toBacktestChartPoints,
@@ -30,18 +30,11 @@ import {
 import {
   getPredictionNumberLength,
   getTopPredictionScore,
-  toPredictionPayload,
-  toPredictionWatchlistPayload
+  toPredictionPayload
 } from "@/frontend/pages/prediction-lab/prediction-lab.mappers";
 import { resultsContent } from "@/frontend/pages/results/results.content";
 import { toResultsModel, toResultsShellModel } from "@/frontend/pages/results/results.mappers";
 import { toResultsApiQuery } from "@/frontend/pages/results/results.query";
-import {
-  defaultWatchlistFormState,
-  parseWatchlistTags,
-  toCreateWatchlistPayload,
-  toUpdateWatchlistPayload
-} from "@/frontend/pages/watchlist/watchlist.mappers";
 import { hasNumberShapeFlag } from "@/lib/app/number-shape";
 import type { AnalyticsReadModel } from "@/schema/app/analytics.schema";
 import type { BacktestReadModel } from "@/schema/app/backtest.schema";
@@ -325,11 +318,11 @@ describe("frontend logic helpers", () => {
       strongestSignal: "digit ที่ออกบ่อยในตำแหน่งนี้",
       strategyLabel: "Balanced"
     });
-    expect(getBacktestMethodologyLines(explanationBacktest.results[0])[0]).toContain("30");
+    expect(getBacktestCalculationLines(explanationBacktest.results[0])[0]).toContain("30");
     expect(getBacktestHumanReasonLines(explanationBacktest.results[0])[0]).toContain("11");
   });
 
-  test("prediction lab and watchlist helpers keep text-only payloads stable", () => {
+  test("prediction lab helpers keep text-only payloads stable", () => {
     expect(
       toPredictionPayload({
         count: "12",
@@ -365,34 +358,6 @@ describe("frontend logic helpers", () => {
       windowSize: "120"
     });
     expect(getPredictionNumberLength("TWO_DIGIT")).toBe(2);
-
-    expect(
-      toPredictionWatchlistPayload({
-        id: "result-1",
-        inputWindow: 120,
-        number: "11",
-        numberLength: 2,
-        positionBreakdown: [],
-        rank: 1,
-        reasons: ["hot"],
-        score: 91.5,
-        scoreBreakdown: {
-          hot: 30,
-          overdue: 20,
-          pair: 10,
-          pattern: 20,
-          position: 11.5
-        },
-        strategyId: "balanced",
-        strategyName: "Balanced",
-        version: "prediction-engine-v1"
-      })
-    ).toEqual({
-      note: "Saved from Prediction Lab using Balanced. Score: 91.5.",
-      number: "11",
-      source: "PREDICTION",
-      tags: ["prediction", "balanced"]
-    });
 
     expect(getTopPredictionScore(null)).toBe("-");
     expect(
@@ -725,7 +690,7 @@ describe("frontend logic helpers", () => {
     });
   });
 
-  test("calendar and watchlist helpers normalize simple text data", () => {
+  test("calendar helpers normalize simple text data", () => {
     expect(
       parseCalendarPageFilters({
         month: "5",
@@ -787,32 +752,6 @@ describe("frontend logic helpers", () => {
         new Date("2026-04-29T00:00:00.000Z")
       )
     ).toBe(0);
-
-    expect(parseWatchlistTags(" hot, , cold ,  ")).toEqual(["hot", "cold"]);
-    expect(
-      toCreateWatchlistPayload({
-        ...defaultWatchlistFormState,
-        note: "",
-        number: "12",
-        tags: "a, b"
-      })
-    ).toEqual({
-      note: undefined,
-      number: "12",
-      source: "MANUAL",
-      tags: ["a", "b"]
-    });
-    expect(
-      toUpdateWatchlistPayload({
-        note: "",
-        source: "PREDICTION",
-        tags: "x, y"
-      })
-    ).toEqual({
-      note: undefined,
-      source: "PREDICTION",
-      tags: ["x", "y"]
-    });
   });
 });
 

@@ -2,10 +2,7 @@ import type { CompareRequest } from "@/schema/app/compare.schema";
 
 export const compareContent = {
   actions: {
-    button: "Compare numbers",
-    methodologyHref: "/methodology#score-breakdown",
-    methodologyLabel: "Read how compare scores are explained",
-    rankingMethodologyLabel: "Review the shared scoring fields"
+    button: "Compare numbers"
   },
   badges: {
     liveApi: "Live API",

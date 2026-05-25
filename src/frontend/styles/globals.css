@@ -71,12 +71,6 @@
   --backtest: #0f766e;
   --backtest-soft: #ccfbf1;
 
-  --watchlist: #f97316;
-  --watchlist-soft: #ffedd5;
-
-  --methodology: #57534e;
-  --methodology-soft: #f5f5f4;
-
   /* App backgrounds */
   --color-bg-app: var(--background);
   --color-bg-canvas: var(--card);
@@ -266,12 +260,6 @@
 
   --backtest: #2dd4bf;
   --backtest-soft: #134e4a;
-
-  --watchlist: #fb923c;
-  --watchlist-soft: #431407;
-
-  --methodology: #a8a29e;
-  --methodology-soft: #1c1917;
 
   --color-bg-app: var(--background);
   --color-bg-canvas: var(--card);

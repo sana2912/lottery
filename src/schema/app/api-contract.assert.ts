@@ -16,13 +16,6 @@ import type { ApiDrawDetailResponse, ApiDrawListResponse } from "@/schema/api/dr
 import type { ApiPredictionRequest, ApiPredictionResponse } from "@/schema/api/prediction";
 import type { ApiResultsReadModel } from "@/schema/api/results";
 import type {
-  ApiCreateWatchlistItemRequest,
-  ApiDeleteWatchlistItemResponse,
-  ApiUpdateWatchlistItemRequest,
-  ApiWatchlistItem,
-  ApiWatchlistReadModel
-} from "@/schema/api/watchlist";
-import type {
   AnalyticsReadModel,
   DigitStat,
   NumberStat,
@@ -39,13 +32,6 @@ import type { DashboardReadModel } from "@/schema/app/dashboard.schema";
 import type { DrawDetailResponse, DrawListResponse } from "@/schema/app/draw.schema";
 import type { PredictionRequest, PredictionResponse } from "@/schema/app/prediction.schema";
 import type { ResultsReadModel } from "@/schema/app/results.schema";
-import type {
-  CreateWatchlistItem,
-  DeleteWatchlistItemResponse,
-  UpdateWatchlistItem,
-  WatchlistItem,
-  WatchlistReadModel
-} from "@/schema/app/watchlist.schema";
 
 type Assert<T extends true> = T;
 type IsExtends<Actual, Expected> = [Actual] extends [Expected] ? true : false;
@@ -82,15 +68,3 @@ type _PredictionRequestContract = Assert<
 >;
 
 type _ResultsReadModelContract = Assert<IsExact<ResultsReadModel, ApiResultsReadModel>>;
-
-type _WatchlistItemContract = Assert<IsExact<WatchlistItem, ApiWatchlistItem>>;
-type _WatchlistReadModelContract = Assert<IsExact<WatchlistReadModel, ApiWatchlistReadModel>>;
-type _CreateWatchlistItemContract = Assert<
-  IsExtends<CreateWatchlistItem, ApiCreateWatchlistItemRequest>
->;
-type _UpdateWatchlistItemContract = Assert<
-  IsExtends<UpdateWatchlistItem, ApiUpdateWatchlistItemRequest>
->;
-type _DeleteWatchlistItemResponseContract = Assert<
-  IsExact<DeleteWatchlistItemResponse, ApiDeleteWatchlistItemResponse>
->;
