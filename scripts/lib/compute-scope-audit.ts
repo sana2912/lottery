@@ -27,8 +27,6 @@ export type ScopeAuditSnapshot = {
   samplePrizeCount: number;
   scope: string;
   startDrawDate: Date | null;
-  windowPreset: string;
-  windowSize: number | null;
 };
 
 export type ContextAuditStatus =
@@ -43,11 +41,9 @@ export type ContextAuditStatus =
   | "db_resolver_mismatch";
 
 export type ContextAuditRow = {
-  configuredDrawCap: number | null;
   contextKey: string;
   eligibleDrawCount: number;
   expectedSampleDrawCount: number;
-  expectedWindowSizeStored: number | null;
   invalidPrizeCountLive: number;
   issues: string[];
   liveSampleDrawCount: number;
@@ -57,9 +53,7 @@ export type ContextAuditRow = {
   scope: string;
   snapshotSampleDrawCount: number | null;
   snapshotSamplePrizeCount: number | null;
-  snapshotWindowSize: number | null;
   status: ContextAuditStatus;
-  windowPreset: string;
 };
 
 export type PrizeYearProfile = {
@@ -112,7 +106,8 @@ export function buildComputeScopeAuditReport(input: {
       computePipeline:
         "resolveAnalysisSample (full scope, no LIMIT) -> buildAnalysisReadModelsFromSample -> analysis_snapshot_runs",
       scope: ANALYSIS_SCOPE_SEMANTICS,
-      windowPreset: "ALL only; windowSize stored equals sampleDrawCount"
+      sampleContract:
+        "Snapshots store sampleDrawCount and samplePrizeCount only; contextKey has no window dimension."
     },
     summary
   };
@@ -130,7 +125,6 @@ export function auditContext(
   const liveSampleDrawCount = liveSample.drawCount;
   const liveSamplePrizeCount = liveSample.prizeCount;
   const invalidPrizeCountLive = liveSample.invalidPrizeCount;
-  const expectedWindowSizeStored = liveSampleDrawCount;
   const issues: string[] = [];
   let status: ContextAuditStatus = "ok";
 
@@ -182,13 +176,6 @@ export function auditContext(
           `Snapshot samplePrizeCount=${snapshot.samplePrizeCount} vs live=${liveSamplePrizeCount}.`
         );
       }
-
-      if (snapshot.windowSize !== expectedWindowSizeStored) {
-        status = status === "ok" ? "draw_count_mismatch" : status;
-        issues.push(
-          `Snapshot windowSize=${snapshot.windowSize ?? "null"} vs sampleDrawCount=${expectedWindowSizeStored}.`
-        );
-      }
     }
   }
 
@@ -208,11 +195,9 @@ export function auditContext(
   }
 
   return {
-    configuredDrawCap: null,
     contextKey: getAnalysisContextKey(context),
     eligibleDrawCount: eligibleDraws.length,
     expectedSampleDrawCount,
-    expectedWindowSizeStored,
     invalidPrizeCountLive,
     issues,
     liveSampleDrawCount,
@@ -222,9 +207,7 @@ export function auditContext(
     scope: context.scope,
     snapshotSampleDrawCount: snapshot?.sampleDrawCount ?? null,
     snapshotSamplePrizeCount: snapshot?.samplePrizeCount ?? null,
-    snapshotWindowSize: snapshot?.windowSize ?? null,
-    status,
-    windowPreset: context.windowPreset
+    status
   };
 }
 
@@ -276,25 +259,13 @@ function buildPrizeProfilesByYear(draws: readonly ScopeAuditDraw[]): PrizeYearPr
 
 function summarizeContextRows(rows: readonly ContextAuditRow[]) {
   const byStatus = new Map<ContextAuditStatus, number>();
-  const byWindowPreset = new Map<string, { ok: number; fail: number }>();
 
   for (const row of rows) {
     byStatus.set(row.status, (byStatus.get(row.status) ?? 0) + 1);
-
-    const bucket = byWindowPreset.get(row.windowPreset) ?? { fail: 0, ok: 0 };
-
-    if (row.status === "ok" || row.status === "zero_eligible") {
-      bucket.ok += 1;
-    } else {
-      bucket.fail += 1;
-    }
-
-    byWindowPreset.set(row.windowPreset, bucket);
   }
 
   return {
     byStatus: Object.fromEntries(byStatus),
-    byWindowPreset: Object.fromEntries(byWindowPreset),
     failureExamples: rows
       .filter((row) => row.status !== "ok" && row.status !== "zero_eligible")
       .slice(0, 40),
@@ -310,16 +281,15 @@ export function buildComputeScopeMarkdown(report: ReturnType<typeof buildCompute
 
 Generated: ${report.generatedAt}
 
-## Window semantics
+## Sample semantics
 
-${report.semantics.windowPreset}
+${report.semantics.sampleContract}
 
 ## Summary
 
 - Contexts audited: **${summary.totalContexts}**
 - Zero eligible (expected for sparse MONTH cells): **${summary.zeroEligibleCount}**
 - Status counts: ${JSON.stringify(summary.byStatus)}
-- By window: ${JSON.stringify(summary.byWindowPreset)}
 
 ## Failures (sample)
 

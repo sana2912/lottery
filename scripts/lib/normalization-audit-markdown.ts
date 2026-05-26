@@ -9,14 +9,12 @@ export type NormalizationAuditReport = {
     month: number | null;
     prizeType: string;
     scope: string;
-    windowPreset: string;
   }>;
   moduleAudit: Array<{ module: string; risk: string; surfaces: string[] }>;
   numberStatsMatrixDiagnostics: Array<{
     maxDrawDenominatorInflationFactor: number;
     prizeType: string;
     scope: string;
-    windowPreset: string;
   }>;
   snapshotCoverage: {
     currentEngineVersion: string;
@@ -55,26 +53,23 @@ ${report.moduleAudit.map((row) => `| ${row.module} | ${row.risk} | ${row.surface
 
 ## Heatmap matrix (sample)
 
-| Prize | Scope | Month | Window | Event mismatches |
-| --- | --- | --- | --- | --- |
+| Prize | Scope | Month | Event mismatches |
+| --- | --- | --- | --- |
 ${report.heatmapMatrixDiagnostics
   .slice(0, 40)
   .map(
     (row) =>
-      `| ${row.prizeType} | ${row.scope} | ${row.month ?? "ALL"} | ${row.windowPreset} | ${row.eventCountMismatchCount} |`
+      `| ${row.prizeType} | ${row.scope} | ${row.month ?? "ALL"} | ${row.eventCountMismatchCount} |`
   )
   .join("\n")}
 
 ## Number-stats inflation (sample)
 
-| Prize | Scope | Window | Max inflation |
-| --- | --- | --- | --- |
+| Prize | Scope | Max inflation |
+| --- | --- | --- |
 ${report.numberStatsMatrixDiagnostics
   .slice(0, 24)
-  .map(
-    (row) =>
-      `| ${row.prizeType} | ${row.scope} | ${row.windowPreset} | ${row.maxDrawDenominatorInflationFactor}x |`
-  )
+  .map((row) => `| ${row.prizeType} | ${row.scope} | ${row.maxDrawDenominatorInflationFactor}x |`)
   .join("\n")}
 
 ## Warnings

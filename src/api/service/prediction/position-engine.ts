@@ -190,8 +190,7 @@ function buildDigitOptionsForPosition(
         position: positionIndex,
         prizeType: digitStats[0]?.prizeType ?? "TWO_DIGIT",
         sampleEventCount: drawCount,
-        trendDirection: "flat",
-        windowSize: digitStats[0]?.windowSize ?? 0
+        trendDirection: "flat"
       } satisfies ApiDigitStat);
     const breakdown = toPositionBreakdown(stat, positionIndex);
     const score = round(

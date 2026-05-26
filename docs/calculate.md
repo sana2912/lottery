@@ -31,7 +31,8 @@ LotteryPrize rows
 
 `windowSize`
 
-จำนวนงวดย้อนหลังที่ใช้คำนวณ เช่น `120` แปลว่าใช้ 120 งวดล่าสุดเป็นข้อมูลตั้งต้น ไม่ใช่จำนวนเลขที่จะ generate
+จำนวนงวดย้อนหลังที่ใช้คำนวณสำหรับ prediction / compare / backtest เช่น `120` แปลว่าใช้ 120 งวดล่าสุดเป็นข้อมูลตั้งต้น ไม่ใช่จำนวนเลขที่จะ generate  
+analysis snapshot ไม่มี `windowSize` แล้ว และใช้ full eligible sample ตาม context พร้อมเก็บ `sampleDrawCount` / `samplePrizeCount`
 
 `candidateCount`
 
@@ -79,7 +80,7 @@ SIX_DIGIT_ALL =
 scope = ALL_TIME
 prizeType = SIX_DIGIT_ALL
 engineVersion = analysis-engine-v8
-snapshot row metadata matches payload metadata (sampleDrawCount/samplePrizeCount/windowSize)
+snapshot row metadata matches payload metadata (sampleDrawCount/samplePrizeCount)
 ```
 
 แปลว่า:
@@ -163,7 +164,6 @@ position 6 -> digit 0
 | --- | --- |
 | `scope = ALL_TIME` | ทุกงวดที่มีรางวัลตรง `prizeType` จนถึง now (ทุกเดือน ทุกปี) |
 | `scope = MONTH` | งวดที่ `EXTRACT(MONTH FROM drawDate) = month` ทุกปี (ไม่มี year ใน product/compute) |
-| `windowPreset` | ค่าเดียว: `ALL` (= full eligible sample ใน scope) |
 | `engineVersion` | `analysis-engine-v8` — snapshot v8 (MONTH across all years) และเก่ากว่าไม่ใช้ |
 
 วิธีทำ:
@@ -192,7 +192,7 @@ contexts = 11 ALL_TIME + (11 prize types × 12 months) = 143
 MONTH contextKey uses ALL_YEARS (no per-year cells)
 ```
 
-`windowSize` ในแถว `analysis_snapshot_runs` = `sampleDrawCount` (ไม่ใช่ cap) และ analytics payload ภายใน snapshot ต้องมี metadata ตรงกับ row นี้  
+`analysis_snapshot_runs` เก็บ `sampleDrawCount` และ `samplePrizeCount` เป็น metadata ของ sample โดยตรง และ analytics payload ภายใน snapshot ต้องมี metadata ตรงกับ row นี้  
 Query นอก context (`startDate` / `endDate` / `q`) → empty read model (ไม่ silent cap)
 
 ผลลัพธ์:
@@ -611,7 +611,7 @@ Prediction input
   -> return ranked results
 ```
 
-Pattern playground options ใช้ shared lib `src/lib/app/pattern-playground/` และดึง overview จาก `GET /api/patterns` (snapshot ก่อน, on-demand fallback) ด้วย scope `ALL_TIME` + `windowPreset: ALL` — **ไม่ใช้** `windowSize` ของ prediction เป็นตัวคำนวณเปอร์เซ็นต์ pattern
+Pattern playground options ใช้ shared lib `src/lib/app/pattern-playground/` และดึง overview จาก `GET /api/patterns` (snapshot ก่อน, on-demand fallback) ด้วย analysis sample ของ scope ที่เลือก — **ไม่ใช้** `windowSize` ของ prediction เป็นตัวคำนวณเปอร์เซ็นต์ pattern
 
 code:
 

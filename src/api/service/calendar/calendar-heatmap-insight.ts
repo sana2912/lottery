@@ -1,5 +1,4 @@
 import type { AnalysisContext } from "@/api/service/analysis-snapshot/analysis-context";
-import { ANALYSIS_WINDOW_PRESET } from "@/api/service/analysis-snapshot/analysis-context";
 import type { AnalysisCalendarHeatmapReadModel } from "@/api/service/analysis-snapshot/calendar-heatmap-read-model";
 import type {
   AnalysisPrizeSample,
@@ -58,8 +57,6 @@ export type CalendarMonthlyInsight = {
   sampleSize: number;
   scope: AnalysisContext["scope"];
   summary: string;
-  windowPreset: AnalysisContext["windowPreset"];
-  windowSize: number;
 };
 
 export function buildCalendarHeatmapInsight(
@@ -133,9 +130,7 @@ export function buildCalendarHeatmapInsightFromSnapshot(
       "Counts are prize-slot hits over actual opportunities in the sample (draws × prizes per draw).",
       "This insight is served from a precomputed analysis snapshot."
     ],
-    scope: query.scope ?? snapshot.scope,
-    windowPreset: ANALYSIS_WINDOW_PRESET,
-    windowSize: metadata.drawCount
+    scope: query.scope ?? snapshot.scope
   };
 }
 
@@ -180,9 +175,7 @@ function assembleCalendarMonthlyInsight(
     prizesPerDrawExpected: metadata.prizesPerDrawExpected,
     sampleSize: metadata.drawCount,
     scope: context.scope,
-    summary: metadata.summary,
-    windowPreset: context.windowPreset,
-    windowSize: metadata.drawCount
+    summary: metadata.summary
   };
 }
 

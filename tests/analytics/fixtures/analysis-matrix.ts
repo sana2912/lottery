@@ -117,7 +117,7 @@ export function assertNumberStatsDenominator(
 ) {
   const stats = calculateNumberStats(
     prizes,
-    { computedAt: new Date("2026-05-01T00:00:00.000Z"), drawCount, windowSize: drawCount },
+    { computedAt: new Date("2026-05-01T00:00:00.000Z"), drawCount },
     numberLength
   );
   const samplePrizeCount = prizes.length;
@@ -143,8 +143,7 @@ export function assertDigitStatsDenominator(prizes: readonly PrizeLike[], drawCo
   const events = extractDigitEvents(prizes);
   const stats = calculateDigitStats(events, {
     computedAt: new Date("2026-05-01T00:00:00.000Z"),
-    drawCount,
-    windowSize: drawCount
+    drawCount
   });
   const sampleByPosition = new Map<number, number>();
 

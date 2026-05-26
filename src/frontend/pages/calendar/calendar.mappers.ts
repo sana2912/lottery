@@ -74,8 +74,7 @@ export function toCalendarApiQuery(filters: CalendarPageFilters) {
   return {
     month: filters.month,
     prizeType: filters.prizeType,
-    scope: filters.scope,
-    windowPreset: "ALL" as const
+    scope: filters.scope
   };
 }
 

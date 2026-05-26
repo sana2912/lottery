@@ -124,8 +124,6 @@ model AnalysisSnapshotRun {
   numberLength       Int
   scope              String
   month              Int?
-  windowPreset       String
-  windowSize         Int?
   sampleDrawCount    Int
   samplePrizeCount   Int
   invalidPrizeCount  Int                       @default(0)
@@ -143,7 +141,7 @@ model AnalysisSnapshotRun {
   createdAt          DateTime                  @default(now())
   updatedAt          DateTime                  @updatedAt
 
-  @@index([lotteryType, prizeType, scope, month, windowPreset], map: "analysis_runs_context_idx")
+  @@index([lotteryType, prizeType, scope, month], map: "analysis_runs_context_idx")
   @@index([engineVersion, computedAt], map: "analysis_runs_engine_idx")
   @@map("analysis_snapshot_runs")
 }
@@ -154,7 +152,6 @@ model AnalysisDigitStat {
   run              AnalysisSnapshotRun @relation(fields: [runId], references: [id], onDelete: Cascade)
   lotteryType      LotteryType
   prizeType        String
-  windowPreset     String
   digit            String
   position         Int?
   drawCount        Int
@@ -169,7 +166,7 @@ model AnalysisDigitStat {
 
   @@index([runId])
   @@index([runId, hitCount(sort: Desc)], map: "analysis_digit_run_rank_idx")
-  @@index([lotteryType, prizeType, windowPreset, position, digit], map: "analysis_digit_position_idx")
+  @@index([lotteryType, prizeType, position, digit], map: "analysis_digit_position_idx")
   @@map("analysis_digit_stats")
 }
 
@@ -179,7 +176,6 @@ model AnalysisNumberStat {
   run              AnalysisSnapshotRun @relation(fields: [runId], references: [id], onDelete: Cascade)
   lotteryType      LotteryType
   prizeType        String
-  windowPreset     String
   number           String
   numberLength     Int
   drawCount        Int
@@ -199,8 +195,8 @@ model AnalysisNumberStat {
   @@index([runId, number], map: "analysis_number_run_number_idx")
   @@index([runId, trendScore(sort: Desc), hitCount(sort: Desc)], map: "analysis_number_run_rank_idx")
   @@index([runId, missingDrawCount(sort: Desc)], map: "analysis_number_run_missing_idx")
-  @@index([lotteryType, prizeType, windowPreset, number], map: "analysis_number_value_idx")
-  @@index([lotteryType, prizeType, windowPreset, numberLength], map: "analysis_number_length_idx")
+  @@index([lotteryType, prizeType, number], map: "analysis_number_value_idx")
+  @@index([lotteryType, prizeType, numberLength], map: "analysis_number_length_idx")
   @@map("analysis_number_stats")
 }
 
@@ -210,7 +206,6 @@ model AnalysisPatternSummary {
   run              AnalysisSnapshotRun @relation(fields: [runId], references: [id], onDelete: Cascade)
   lotteryType      LotteryType
   prizeType        String
-  windowPreset     String
   pattern          String
   hitCount         Int
   frequencyPercent Float
@@ -221,7 +216,7 @@ model AnalysisPatternSummary {
   updatedAt        DateTime            @updatedAt
 
   @@index([runId])
-  @@index([lotteryType, prizeType, windowPreset, pattern], map: "analysis_pattern_value_idx")
+  @@index([lotteryType, prizeType, pattern], map: "analysis_pattern_value_idx")
   @@map("analysis_pattern_summaries")
 }
 
@@ -233,7 +228,6 @@ model AnalysisCalendarHeatmap {
   prizeType       String
   scope           String
   month           Int?
-  windowPreset    String
   position        Int
   digit           String
   appearanceCount Int
@@ -245,7 +239,7 @@ model AnalysisCalendarHeatmap {
   updatedAt       DateTime            @updatedAt
 
   @@index([runId])
-  @@index([lotteryType, prizeType, scope, month, windowPreset, position, digit], map: "analysis_heatmap_cell_idx")
+  @@index([lotteryType, prizeType, scope, month, position, digit], map: "analysis_heatmap_cell_idx")
   @@map("analysis_calendar_heatmaps")
 }
 

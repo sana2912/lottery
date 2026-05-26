@@ -22,7 +22,7 @@ export function buildAnalyticsReadModelFromPrizes(
   prizes: readonly AnalysisPrizeSample[],
   context: Pick<
     AnalysisContext,
-    "lotteryType" | "numberLength" | "prizeType" | "scope" | "month" | "year" | "windowPreset"
+    "lotteryType" | "numberLength" | "prizeType" | "scope" | "month" | "year"
   >,
   computedAt: Date,
   sampleMetadata?: AnalysisSampleMetadata
@@ -38,8 +38,7 @@ export function buildAnalyticsReadModelFromPrizes(
     normalizedPrizes.filter((prize) => prize.number.length === context.numberLength).length;
   const statsContext = {
     computedAt,
-    drawCount,
-    windowSize: drawCount
+    drawCount
   };
   const digitStats = calculateDigitStats(extractDigitEvents(normalizedPrizes), statsContext);
   const numberStats = calculateNumberStats(normalizedPrizes, statsContext, context.numberLength);

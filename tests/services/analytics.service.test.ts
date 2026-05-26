@@ -26,8 +26,7 @@ describe("analytics.service", () => {
           missingDrawCount: 1,
           position: 1,
           prizeType: "TWO_DIGIT",
-          trendDirection: "up",
-          windowSize: 50
+          trendDirection: "up"
         }
       ],
       generatedAt: "2026-04-29T00:00:00.000Z",
@@ -47,8 +46,7 @@ describe("analytics.service", () => {
           patternFlags: ["odd", "high"],
           prizeType: "TWO_DIGIT",
           samplePrizeCount: 4,
-          trendScore: 39.33,
-          windowSize: 50
+          trendScore: 39.33
         }
       ],
       patternSummaries: [],
@@ -70,8 +68,7 @@ describe("analytics.service", () => {
             {
               analyticsReadModel,
               sampleDrawCount: 50,
-              samplePrizeCount: 4,
-              windowSize: 50
+              samplePrizeCount: 4
             }
           ];
         }
@@ -85,8 +82,7 @@ describe("analytics.service", () => {
       numberLength: 2,
       page: 1,
       pageSize: 20,
-      prizeType: "TWO_DIGIT",
-      windowPreset: "ALL"
+      prizeType: "TWO_DIGIT"
     });
 
     expect(queryCalls.some((sql) => sql.includes('FROM "analysis_snapshot_runs"'))).toBe(true);
@@ -110,8 +106,7 @@ describe("analytics.service", () => {
             {
               runId: "00000000-0000-7000-8000-000000000001",
               sampleDrawCount: 50,
-              samplePrizeCount: 4,
-              windowSize: 50
+              samplePrizeCount: 4
             }
           ];
         }
@@ -143,8 +138,7 @@ describe("analytics.service", () => {
       numberLength: 2,
       page: 1,
       pageSize: 20,
-      prizeType: "TWO_DIGIT",
-      windowPreset: "ALL"
+      prizeType: "TWO_DIGIT"
     });
 
     expect(queryCalls.some((sql) => sql.includes('"analyticsReadModel"'))).toBe(false);
@@ -164,8 +158,7 @@ describe("analytics.service", () => {
         position: 1,
         prizeType: "TWO_DIGIT",
         sampleEventCount: 50,
-        trendDirection: "up",
-        windowSize: 50
+        trendDirection: "up"
       }
     ]);
   });
@@ -183,8 +176,7 @@ describe("analytics.service", () => {
             {
               runId: "00000000-0000-7000-8000-000000000001",
               sampleDrawCount: 50,
-              samplePrizeCount: 4,
-              windowSize: 50
+              samplePrizeCount: 4
             }
           ];
         }
@@ -219,8 +211,7 @@ describe("analytics.service", () => {
       numberLength: 2,
       page: 1,
       pageSize: 20,
-      prizeType: "TWO_DIGIT",
-      windowPreset: "ALL"
+      prizeType: "TWO_DIGIT"
     });
 
     expect(queryCalls.some((sql) => sql.includes('"analyticsReadModel"'))).toBe(false);
@@ -229,8 +220,7 @@ describe("analytics.service", () => {
       frequencyPerDrawPercent: 8,
       frequencyPerPrizeRowPercent: 8,
       number: "09",
-      samplePrizeCount: 4,
-      windowSize: 50
+      samplePrizeCount: 4
     });
   });
 
@@ -259,8 +249,7 @@ describe("analytics.service", () => {
             {
               analyticsReadModel: staleAnalyticsReadModel,
               sampleDrawCount: 2,
-              samplePrizeCount: 2,
-              windowSize: 2
+              samplePrizeCount: 2
             }
           ];
         }
@@ -306,8 +295,7 @@ describe("analytics.service", () => {
       numberLength: 2,
       page: 1,
       pageSize: 20,
-      prizeType: "TWO_DIGIT",
-      windowPreset: "ALL"
+      prizeType: "TWO_DIGIT"
     });
 
     expect(queryCalls.some((sql) => sql.includes("SELECT DISTINCT"))).toBe(true);
@@ -379,8 +367,7 @@ describe("analytics.service", () => {
       numberLength: 2,
       page: 1,
       pageSize: 20,
-      prizeType: "TWO_DIGIT",
-      windowPreset: "ALL"
+      prizeType: "TWO_DIGIT"
     });
 
     expect(queryCalls.some((sql) => sql.includes("SELECT DISTINCT"))).toBe(true);
@@ -394,8 +381,7 @@ describe("analytics.service", () => {
           numberLength: 2,
           page: 1,
           pageSize: 20,
-          prizeType: "TWO_DIGIT",
-          windowPreset: "ALL"
+          prizeType: "TWO_DIGIT"
         })
       ).length
     ).toBeGreaterThan(0);
@@ -406,8 +392,7 @@ describe("analytics.service", () => {
           numberLength: 2,
           page: 1,
           pageSize: 20,
-          prizeType: "TWO_DIGIT",
-          windowPreset: "ALL"
+          prizeType: "TWO_DIGIT"
         })
       )[0]?.number
     ).toBe("09");

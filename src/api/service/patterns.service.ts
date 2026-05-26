@@ -1,4 +1,3 @@
-import { ANALYSIS_WINDOW_PRESET } from "@/api/service/analysis-snapshot/analysis-context";
 import { buildOnDemandAnalysisReadModel } from "@/api/service/analysis-snapshot/on-demand-read-model";
 import { buildAnalysisPatternReadModel } from "@/api/service/analysis-snapshot/pattern-read-model";
 import {
@@ -32,9 +31,7 @@ export async function getPatternsReadModel(query: FilterContext): Promise<ApiPat
         numberLength: context.numberLength,
         prizeType: context.prizeType,
         scope: context.scope,
-        year: context.year,
-        windowPreset: context.windowPreset,
-        windowSize: analytics.summary.drawCount
+        year: context.year
       },
       generatedAt,
       pattern: buildAnalysisPatternReadModel(analytics),
@@ -64,9 +61,7 @@ function getMissingPatternsReadModel(query: FilterContext): ApiPatternsReadModel
       numberLength: context?.numberLength ?? query.numberLength ?? 2,
       prizeType: context?.prizeType ?? query.prizeType ?? "TWO_DIGIT",
       scope: context?.scope ?? query.scope ?? "ALL_TIME",
-      year: context?.year ?? query.year,
-      windowPreset: context?.windowPreset ?? ANALYSIS_WINDOW_PRESET,
-      windowSize: 0
+      year: context?.year ?? query.year
     },
     generatedAt,
     pattern: {

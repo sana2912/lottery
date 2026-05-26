@@ -69,11 +69,7 @@ describe("analysis normalization matrix", () => {
       position: 1,
       type: "FIRST" as const
     }));
-    const stats = calculateNumberStats(
-      twoDigitPrizes,
-      { computedAt: new Date(), drawCount, windowSize: drawCount },
-      6
-    );
+    const stats = calculateNumberStats(twoDigitPrizes, { computedAt: new Date(), drawCount }, 6);
     const hit = stats.find((stat) => stat.number === sharedNumber);
 
     expect(hit?.hitCount).toBe(drawCount);

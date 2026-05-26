@@ -168,8 +168,7 @@ describe("analysis snapshot engine", () => {
       prizeType: "TWO_DIGIT",
       sampleDrawCount: 2,
       samplePrizeCount: 3,
-      scope: "MONTH",
-      windowPreset: "ALL"
+      scope: "MONTH"
     });
     expect(transactionOptions[0]?.timeout).toBeGreaterThanOrEqual(120_000);
     expect(executedSql.some((sql) => sql.includes('DELETE FROM "analysis_snapshot_runs"'))).toBe(
@@ -208,8 +207,7 @@ describe("analysis snapshot engine", () => {
     const model = await buildOnDemandAnalysisReadModel(
       createAnalysisContext({
         prizeType: "TWO_DIGIT",
-        scope: "ALL_TIME",
-        windowPreset: "ALL"
+        scope: "ALL_TIME"
       }),
       new Date("2026-04-29T00:00:00.000Z")
     );
@@ -254,8 +252,7 @@ describe("analysis snapshot engine", () => {
               sampleSize: 3
             },
             sampleDrawCount: 2,
-            samplePrizeCount: 3,
-            windowSize: 2
+            samplePrizeCount: 3
           }
         ];
       }
@@ -267,8 +264,7 @@ describe("analysis snapshot engine", () => {
       page: 1,
       pageSize: 20,
       prizeType: "SIX_DIGIT_ALL",
-      scope: "ALL_TIME",
-      windowPreset: "ALL"
+      scope: "ALL_TIME"
     });
 
     expect(queryCalls[0]).toContain('"patternReadModel"');
@@ -277,8 +273,7 @@ describe("analysis snapshot engine", () => {
     expect(model?.context).toMatchObject({
       numberLength: 6,
       prizeType: "SIX_DIGIT_ALL",
-      scope: "ALL_TIME",
-      windowPreset: "ALL"
+      scope: "ALL_TIME"
     });
     expect(model?.pattern.sampleSize).toBe(3);
   });
@@ -296,8 +291,7 @@ describe("analysis snapshot engine", () => {
             {
               runId: "00000000-0000-7000-8000-000000000001",
               sampleDrawCount: 2,
-              samplePrizeCount: 3,
-              windowSize: 2
+              samplePrizeCount: 3
             }
           ];
         }
@@ -351,8 +345,7 @@ describe("analysis snapshot engine", () => {
       page: 1,
       pageSize: 20,
       prizeType: "TWO_DIGIT",
-      scope: "ALL_TIME",
-      windowPreset: "ALL"
+      scope: "ALL_TIME"
     } as const;
     const digitStats = await getAnalysisSnapshotDigitStats(query);
     const numberStats = await getAnalysisSnapshotNumberStats(query);
@@ -362,15 +355,13 @@ describe("analysis snapshot engine", () => {
     expect(queryCalls.some((sql) => sql.includes('FROM "analysis_number_stats"'))).toBe(true);
     expect(digitStats?.[0]).toMatchObject({
       digit: "1",
-      sampleEventCount: 2,
-      windowSize: 2
+      sampleEventCount: 2
     });
     expect(numberStats?.[0]).toMatchObject({
       frequencyPerDrawPercent: 50,
       frequencyPerPrizeRowPercent: 33.33,
       number: "11",
-      samplePrizeCount: 3,
-      windowSize: 2
+      samplePrizeCount: 3
     });
   });
 
@@ -387,8 +378,7 @@ describe("analysis snapshot engine", () => {
             {
               runId: "00000000-0000-7000-8000-000000000001",
               sampleDrawCount: 50,
-              samplePrizeCount: 120,
-              windowSize: 50
+              samplePrizeCount: 120
             }
           ];
         }
@@ -425,8 +415,7 @@ describe("analysis snapshot engine", () => {
         page: 1,
         pageSize: 20,
         prizeType: "TWO_DIGIT",
-        scope: "ALL_TIME",
-        windowPreset: "ALL"
+        scope: "ALL_TIME"
       },
       ["09", "22", "09"]
     );
@@ -441,8 +430,7 @@ describe("analysis snapshot engine", () => {
       frequencyPerDrawPercent: 6,
       frequencyPerPrizeRowPercent: 2.5,
       number: "09",
-      samplePrizeCount: 120,
-      windowSize: 50
+      samplePrizeCount: 120
     });
   });
 });
@@ -575,7 +563,7 @@ function numberStat(
     patternFlags,
     prizeType: "TWO_DIGIT",
     trendScore: 50,
-    windowSize: 50
+    samplePrizeCount: 7
   };
 }
 

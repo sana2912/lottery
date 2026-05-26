@@ -63,8 +63,7 @@ export async function getDashboardReadModel() {
         page: 1,
         pageSize: 20,
         prizeType: "TWO_DIGIT",
-        scope: "ALL_TIME",
-        windowPreset: "ALL"
+        scope: "ALL_TIME"
       })
     ),
     timeAsync("dashboard.prediction summary", () => predictionService.getLatestPredictionSummary())

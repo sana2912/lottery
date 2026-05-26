@@ -8,9 +8,9 @@ describe("analysis normalization audit script", () => {
 
     expect(contextKeys).toHaveLength(getExpectedAnalysisContextCount());
     expect(new Set(contextKeys).size).toBe(contextKeys.length);
-    expect(contextKeys.every((key) => key.endsWith("|ALL"))).toBe(true);
+    expect(contextKeys.every((key) => !key.endsWith("|ALL"))).toBe(true);
     expect(contextKeys.some((key) => key.endsWith("|50"))).toBe(false);
-    expect(contextKeys.some((key) => key.includes("MONTH|1|ALL_YEARS|ALL"))).toBe(true);
-    expect(contextKeys.some((key) => key.includes("MONTH|1|2026|ALL"))).toBe(false);
+    expect(contextKeys.some((key) => key.includes("MONTH|1|ALL_YEARS"))).toBe(true);
+    expect(contextKeys.some((key) => key.includes("MONTH|1|2026"))).toBe(false);
   });
 });

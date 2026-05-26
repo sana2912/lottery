@@ -19,8 +19,7 @@ describe("scoreNumber", () => {
       numberLength: 2,
       patternFlags: ["odd", "low", "double", "mirror"],
       prizeType: "TWO_DIGIT",
-      trendScore: 80,
-      windowSize: 120
+      trendScore: 80
     };
 
     const result = scoreNumber({
@@ -74,8 +73,7 @@ describe("scoreNumber", () => {
       numberLength: 2,
       patternFlags: ["odd", "high", "ascending"],
       prizeType: "TWO_DIGIT",
-      trendScore: 33.33,
-      windowSize: 120
+      trendScore: 33.33
     };
     const input = {
       inputWindow: 120,

@@ -11,7 +11,6 @@ import type {
 type AnalyticsContext = {
   computedAt: Date;
   drawCount: number;
-  windowSize: number;
 };
 
 type DateWindowContext = {
@@ -61,8 +60,7 @@ export function calculateDigitStats(
         position: group[0]?.position,
         prizeType: group[0]?.prizeType ?? "",
         sampleEventCount,
-        trendDirection: getTrendDirection(group, dateWindow),
-        windowSize: context.windowSize
+        trendDirection: getTrendDirection(group, dateWindow)
       };
     })
     .sort(sortDigitStats);
@@ -121,8 +119,7 @@ export function calculateNumberStats(
           frequencyPercent,
           missingDrawCount,
           context.drawCount
-        ),
-        windowSize: context.windowSize
+        )
       };
     })
     .sort(sortNumberStats);
@@ -173,7 +170,7 @@ export function summarizePatterns(
         frequencyPercent: getFrequencyPercent(hitCount, totalHits),
         hitCount,
         id: `pattern-${flag}`,
-        insight: `Found ${hitCount} of ${totalHits} prize rows with ${flag} (${drawCount} draws in window).`,
+        insight: `Found ${hitCount} of ${totalHits} prize rows with ${flag} (${drawCount} draws in sample).`,
         label: flag,
         pattern: flag,
         sampleSize: totalHits

@@ -79,9 +79,7 @@ function createPatternsSnapshot(): PatternsApiReadModel {
       lotteryType: "THAI_GOVERNMENT",
       numberLength: 2,
       prizeType: "TWO_DIGIT",
-      scope: "ALL_TIME",
-      windowPreset: "ALL",
-      windowSize: 4
+      scope: "ALL_TIME"
     },
     generatedAt: "2026-04-28T00:00:00.000Z",
     pattern: {

@@ -1,0 +1,2027 @@
+diff --git a/package.json b/package.json
+index 225bb7c..5523e64 100644
+--- a/package.json
++++ b/package.json
+@@ -22,6 +22,7 @@
+     "db:migrate": "bun --env-file=.env.development x --bun prisma migrate dev",
+     "db:push": "bun --env-file=.env.development x --bun prisma db push",
+     "db:seed": "bun --env-file=.env.development scripts/seed-draws.ts",
++    "db:cleanup-analysis-snapshots": "bun --env-file=.env.development scripts/cleanup-analysis-snapshots.ts",
+     "db:compute-analysis": "bun --env-file=.env.development scripts/compute-analysis.ts",
+     "db:audit": "bun --env-file=.env.development scripts/db-audit.ts",
+     "db:audit:draw-prizes": "bun --env-file=.env.development scripts/audit-draw-prizes.ts --format=json --out=reports/audit/draw-prizes.json",
+diff --git a/prisma/schema.prisma b/prisma/schema.prisma
+index 7543cd1..8bf8661 100644
+--- a/prisma/schema.prisma
++++ b/prisma/schema.prisma
+@@ -124,8 +124,6 @@ model AnalysisSnapshotRun {
+   numberLength       Int
+   scope              String
+   month              Int?
+-  windowPreset       String
+-  windowSize         Int?
+   sampleDrawCount    Int
+   samplePrizeCount   Int
+   invalidPrizeCount  Int                       @default(0)
+@@ -143,7 +141,7 @@ model AnalysisSnapshotRun {
+   createdAt          DateTime                  @default(now())
+   updatedAt          DateTime                  @updatedAt
+ 
+-  @@index([lotteryType, prizeType, scope, month, windowPreset], map: "analysis_runs_context_idx")
++  @@index([lotteryType, prizeType, scope, month], map: "analysis_runs_context_idx")
+   @@index([engineVersion, computedAt], map: "analysis_runs_engine_idx")
+   @@map("analysis_snapshot_runs")
+ }
+@@ -154,7 +152,6 @@ model AnalysisDigitStat {
+   run              AnalysisSnapshotRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+   lotteryType      LotteryType
+   prizeType        String
+-  windowPreset     String
+   digit            String
+   position         Int?
+   drawCount        Int
+@@ -169,7 +166,7 @@ model AnalysisDigitStat {
+ 
+   @@index([runId])
+   @@index([runId, hitCount(sort: Desc)], map: "analysis_digit_run_rank_idx")
+-  @@index([lotteryType, prizeType, windowPreset, position, digit], map: "analysis_digit_position_idx")
++  @@index([lotteryType, prizeType, position, digit], map: "analysis_digit_position_idx")
+   @@map("analysis_digit_stats")
+ }
+ 
+@@ -179,7 +176,6 @@ model AnalysisNumberStat {
+   run              AnalysisSnapshotRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+   lotteryType      LotteryType
+   prizeType        String
+-  windowPreset     String
+   number           String
+   numberLength     Int
+   drawCount        Int
+@@ -199,8 +195,8 @@ model AnalysisNumberStat {
+   @@index([runId, number], map: "analysis_number_run_number_idx")
+   @@index([runId, trendScore(sort: Desc), hitCount(sort: Desc)], map: "analysis_number_run_rank_idx")
+   @@index([runId, missingDrawCount(sort: Desc)], map: "analysis_number_run_missing_idx")
+-  @@index([lotteryType, prizeType, windowPreset, number], map: "analysis_number_value_idx")
+-  @@index([lotteryType, prizeType, windowPreset, numberLength], map: "analysis_number_length_idx")
++  @@index([lotteryType, prizeType, number], map: "analysis_number_value_idx")
++  @@index([lotteryType, prizeType, numberLength], map: "analysis_number_length_idx")
+   @@map("analysis_number_stats")
+ }
+ 
+@@ -210,7 +206,6 @@ model AnalysisPatternSummary {
+   run              AnalysisSnapshotRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+   lotteryType      LotteryType
+   prizeType        String
+-  windowPreset     String
+   pattern          String
+   hitCount         Int
+   frequencyPercent Float
+@@ -221,7 +216,7 @@ model AnalysisPatternSummary {
+   updatedAt        DateTime            @updatedAt
+ 
+   @@index([runId])
+-  @@index([lotteryType, prizeType, windowPreset, pattern], map: "analysis_pattern_value_idx")
++  @@index([lotteryType, prizeType, pattern], map: "analysis_pattern_value_idx")
+   @@map("analysis_pattern_summaries")
+ }
+ 
+@@ -233,7 +228,6 @@ model AnalysisCalendarHeatmap {
+   prizeType       String
+   scope           String
+   month           Int?
+-  windowPreset    String
+   position        Int
+   digit           String
+   appearanceCount Int
+@@ -245,7 +239,7 @@ model AnalysisCalendarHeatmap {
+   updatedAt       DateTime            @updatedAt
+ 
+   @@index([runId])
+-  @@index([lotteryType, prizeType, scope, month, windowPreset, position, digit], map: "analysis_heatmap_cell_idx")
++  @@index([lotteryType, prizeType, scope, month, position, digit], map: "analysis_heatmap_cell_idx")
+   @@map("analysis_calendar_heatmaps")
+ }
+ 
+diff --git a/scripts/audit-analysis-normalization.ts b/scripts/audit-analysis-normalization.ts
+index 94a50a6..e5ba30e 100644
+--- a/scripts/audit-analysis-normalization.ts
++++ b/scripts/audit-analysis-normalization.ts
+@@ -2,7 +2,6 @@ import {
+   ANALYSIS_ENGINE_VERSION,
+   ANALYSIS_MONTHS,
+   ANALYSIS_PRIZE_TYPES,
+-  ANALYSIS_WINDOW_PRESET,
+   type AnalysisMonth,
+   type AnalysisPrizeType,
+   createAnalysisContext,
+@@ -26,7 +25,6 @@ import {
+ const LOTTERY_TYPE = "THAI_GOVERNMENT";
+ const DEFAULT_OUT = "reports/audit/analysis-normalization.json";
+ const DEFAULT_REPORT_OUT = "reports/audit/normalization-system-audit.md";
+-const WINDOW_PRESETS = [ANALYSIS_WINDOW_PRESET] as const;
+ const MONTHS = ANALYSIS_MONTHS;
+ const PRIZE_TYPES = [
+   "FIRST",
+@@ -67,7 +65,6 @@ const EXPECTED_ROWS_PER_DRAW = {
+ } satisfies Record<PrizeType, number | null>;
+ 
+ type PrizeType = (typeof PRIZE_TYPES)[number];
+-type WindowPreset = (typeof WINDOW_PRESETS)[number];
+ type DrawRow = Awaited<ReturnType<typeof loadDraws>>[number];
+ type PrizeRow = DrawRow["prizes"][number];
+ type SnapshotRow = {
+@@ -82,8 +79,6 @@ type SnapshotRow = {
+   sampleDrawCount: number;
+   samplePrizeCount: number;
+   scope: string;
+-  windowPreset: string;
+-  windowSize: number | null;
+ };
+ 
+ type CliOptions = {
+@@ -174,15 +169,13 @@ async function loadSnapshots(
+         "numberLength",
+         "scope",
+         "month",
+-        "windowPreset",
+-        "windowSize",
+         "sampleDrawCount",
+         "samplePrizeCount",
+         "invalidPrizeCount",
+         "engineVersion",
+         "computedAt"
+       FROM "analysis_snapshot_runs"
+-      ORDER BY "prizeType" ASC, "scope" ASC, "month" ASC NULLS FIRST, "windowPreset" ASC
++      ORDER BY "prizeType" ASC, "scope" ASC, "month" ASC NULLS FIRST
+     `;
+   } catch (error) {
+     warnings.push(`Could not read analysis snapshots: ${getErrorMessage(error)}`);
+@@ -216,7 +209,7 @@ function buildReport(
+     prizeProfiles,
+     lengthProfiles: buildLengthProfiles(draws),
+     sixDigitAllProfile: buildSixDigitAllProfile(draws),
+-    windowSamples: buildWindowSamples(draws),
++    analysisSamples: buildAnalysisSamples(draws),
+     calendarHeatmapDiagnostics,
+     heatmapMatrixDiagnostics,
+     numberStatsDiagnostics: buildNumberStatsDiagnostics(draws),
+@@ -322,29 +315,24 @@ function buildSixDigitAllProfile(draws: readonly DrawRow[]) {
+   };
+ }
+ 
+-function buildWindowSamples(draws: readonly DrawRow[]) {
+-  const allTimeSamples = ANALYSIS_PRIZE_TYPES.flatMap((prizeType) =>
+-    WINDOW_PRESETS.map((windowPreset) =>
+-      buildWindowSample(draws, prizeType, "ALL_TIME", windowPreset)
+-    )
++function buildAnalysisSamples(draws: readonly DrawRow[]) {
++  const allTimeSamples = ANALYSIS_PRIZE_TYPES.map((prizeType) =>
++    buildAnalysisSample(draws, prizeType, "ALL_TIME")
+   );
+   const monthSamples = ANALYSIS_PRIZE_TYPES.flatMap((prizeType) =>
+-    MONTHS.map((month) =>
+-      buildWindowSample(draws, prizeType, "MONTH", ANALYSIS_WINDOW_PRESET, month)
+-    )
++    MONTHS.map((month) => buildAnalysisSample(draws, prizeType, "MONTH", month))
+   );
+ 
+   return [...allTimeSamples, ...monthSamples];
+ }
+ 
+-function buildWindowSample(
++function buildAnalysisSample(
+   draws: readonly DrawRow[],
+   prizeType: AnalysisPrizeType,
+   scope: "ALL_TIME" | "MONTH",
+-  windowPreset: WindowPreset,
+   month?: number
+ ) {
+-  const sampleDraws = selectSampleDraws(draws, prizeType, scope, windowPreset, month);
++  const sampleDraws = selectSampleDraws(draws, prizeType, scope, month);
+   const expectedRowsPerDraw = getExpectedRowsPerDrawForAnalysisPrize(prizeType);
+   const validPrizeCounts = sampleDraws.map(
+     (draw) => filterValidAnalysisPrizes(draw.prizes, prizeType).length
+@@ -361,25 +349,21 @@ function buildWindowSample(
+     prizeType,
+     sampleDrawCount: sampleDraws.length,
+     samplePrizeCount: sum(validPrizeCounts),
+-    scope,
+-    windowPreset,
+-    windowSize: sampleDraws.length
++    scope
+   };
+ }
+ 
+ function buildHeatmapMatrixDiagnostics(draws: readonly DrawRow[]) {
+   return CALENDAR_DIAGNOSTIC_PRIZE_TYPES.flatMap((prizeType) =>
+-    WINDOW_PRESETS.flatMap((windowPreset) =>
+-      MATRIX_DIAGNOSTIC_SCOPES.flatMap((scope) => {
+-        if (scope === "MONTH") {
+-          return MATRIX_DIAGNOSTIC_MONTHS.map((month) =>
+-            buildHeatmapDiagnosticCell(draws, prizeType, scope, windowPreset, month)
+-          );
+-        }
++    MATRIX_DIAGNOSTIC_SCOPES.flatMap((scope) => {
++      if (scope === "MONTH") {
++        return MATRIX_DIAGNOSTIC_MONTHS.map((month) =>
++          buildHeatmapDiagnosticCell(draws, prizeType, scope, month)
++        );
++      }
+ 
+-        return [buildHeatmapDiagnosticCell(draws, prizeType, scope, windowPreset)];
+-      })
+-    )
++      return [buildHeatmapDiagnosticCell(draws, prizeType, scope)];
++    })
+   );
+ }
+ 
+@@ -387,10 +371,9 @@ function buildHeatmapDiagnosticCell(
+   draws: readonly DrawRow[],
+   prizeType: AnalysisPrizeType,
+   scope: "ALL_TIME" | "MONTH",
+-  windowPreset: WindowPreset,
+   month?: number
+ ) {
+-  const sampleDraws = selectSampleDraws(draws, prizeType, scope, windowPreset, month);
++  const sampleDraws = selectSampleDraws(draws, prizeType, scope, month);
+   const numberLength = getAnalysisPrizeNumberLength(prizeType);
+   const heatmapRows = buildHeatmapRows(sampleDraws, prizeType, numberLength);
+ 
+@@ -403,8 +386,7 @@ function buildHeatmapDiagnosticCell(
+     month: month ?? null,
+     prizeType,
+     sampleDrawCount: sampleDraws.length,
+-    scope,
+-    windowPreset
++    scope
+   };
+ }
+ 
+@@ -414,7 +396,7 @@ function buildHeatmapMatrixWarnings(diagnostics: ReturnType<typeof buildHeatmapM
+   for (const diagnostic of diagnostics) {
+     if (diagnostic.eventCountMismatchCount > 0) {
+       warnings.push(
+-        `heatmap matrix ${diagnostic.prizeType} ${diagnostic.scope} month=${diagnostic.month ?? "ALL"} window=${diagnostic.windowPreset}: ${diagnostic.eventCountMismatchCount} position rows with eventCount mismatch.`
++        `heatmap matrix ${diagnostic.prizeType} ${diagnostic.scope} month=${diagnostic.month ?? "ALL"}: ${diagnostic.eventCountMismatchCount} position rows with eventCount mismatch.`
+       );
+     }
+   }
+@@ -426,17 +408,15 @@ function buildNumberStatsMatrixDiagnostics(draws: readonly DrawRow[]) {
+   const prizeTypes = ["TWO_DIGIT", "THREE_DIGIT", "PRIZE5", "SIX_DIGIT_ALL"] as const;
+ 
+   return prizeTypes.flatMap((prizeType) =>
+-    WINDOW_PRESETS.flatMap((windowPreset) =>
+-      MATRIX_DIAGNOSTIC_SCOPES.flatMap((scope) => {
+-        if (scope === "MONTH") {
+-          return MATRIX_DIAGNOSTIC_MONTHS.map((month) =>
+-            buildNumberStatsMatrixCell(draws, prizeType, scope, windowPreset, month)
+-          );
+-        }
++    MATRIX_DIAGNOSTIC_SCOPES.flatMap((scope) => {
++      if (scope === "MONTH") {
++        return MATRIX_DIAGNOSTIC_MONTHS.map((month) =>
++          buildNumberStatsMatrixCell(draws, prizeType, scope, month)
++        );
++      }
+ 
+-        return [buildNumberStatsMatrixCell(draws, prizeType, scope, windowPreset)];
+-      })
+-    )
++      return [buildNumberStatsMatrixCell(draws, prizeType, scope)];
++    })
+   );
+ }
+ 
+@@ -444,10 +424,9 @@ function buildNumberStatsMatrixCell(
+   draws: readonly DrawRow[],
+   prizeType: (typeof ANALYSIS_PRIZE_TYPES)[number],
+   scope: "ALL_TIME" | "MONTH",
+-  windowPreset: WindowPreset,
+   month?: number
+ ) {
+-  const sampleDraws = selectSampleDraws(draws, prizeType, scope, windowPreset, month);
++  const sampleDraws = selectSampleDraws(draws, prizeType, scope, month);
+   const samplePrizes = sampleDraws.flatMap((draw) =>
+     filterValidAnalysisPrizes(draw.prizes, prizeType)
+   );
+@@ -461,8 +440,7 @@ function buildNumberStatsMatrixCell(
+     prizeType,
+     sampleDrawCount,
+     samplePrizeCount,
+-    scope,
+-    windowPreset
++    scope
+   };
+ }
+ 
+@@ -613,7 +591,7 @@ function buildModuleAudit() {
+ 
+ function buildCalendarHeatmapDiagnostics(draws: readonly DrawRow[]) {
+   return CALENDAR_DIAGNOSTIC_PRIZE_TYPES.map((prizeType) => {
+-    const sampleDraws = selectSampleDraws(draws, prizeType, "ALL_TIME", ANALYSIS_WINDOW_PRESET);
++    const sampleDraws = selectSampleDraws(draws, prizeType, "ALL_TIME");
+     const numberLength = getAnalysisPrizeNumberLength(prizeType);
+     const rowsPerDraw = sampleDraws.map(
+       (draw) => filterValidAnalysisPrizes(draw.prizes, prizeType).length
+@@ -629,8 +607,7 @@ function buildCalendarHeatmapDiagnostics(draws: readonly DrawRow[]) {
+       maxRowsPerDraw: Math.max(0, ...rowsPerDraw),
+       minRowsPerDraw: rowsPerDraw.length > 0 ? Math.min(...rowsPerDraw) : 0,
+       prizeType,
+-      sampleDrawCount: sampleDraws.length,
+-      windowPreset: ANALYSIS_WINDOW_PRESET
++      sampleDrawCount: sampleDraws.length
+     };
+   });
+ }
+@@ -655,7 +632,7 @@ function buildCalendarHeatmapWarnings(
+ 
+ function buildNumberStatsDiagnostics(draws: readonly DrawRow[]) {
+   return CALENDAR_DIAGNOSTIC_PRIZE_TYPES.map((prizeType) => {
+-    const sampleDraws = selectSampleDraws(draws, prizeType, "ALL_TIME", ANALYSIS_WINDOW_PRESET);
++    const sampleDraws = selectSampleDraws(draws, prizeType, "ALL_TIME");
+     const samplePrizes = sampleDraws.flatMap((draw) =>
+       filterValidAnalysisPrizes(draw.prizes, prizeType)
+     );
+@@ -695,8 +672,7 @@ function buildNumberStatsDiagnostics(draws: readonly DrawRow[]) {
+       prizeType,
+       sampleDrawCount,
+       samplePrizeCount,
+-      topDrawDenominatorInflationExamples: rows,
+-      windowPreset: ANALYSIS_WINDOW_PRESET
++      topDrawDenominatorInflationExamples: rows
+     };
+   });
+ }
+@@ -743,30 +719,24 @@ function buildSnapshotCoverage(snapshots: readonly SnapshotRow[]) {
+ }
+ 
+ export function buildExpectedSnapshotContextKeys() {
+-  return ANALYSIS_PRIZE_TYPES.flatMap((prizeType) =>
+-    WINDOW_PRESETS.flatMap((windowPreset) => [
+-      getAnalysisContextKey(createAnalysisContext({ prizeType, scope: "ALL_TIME", windowPreset })),
+-      ...MONTHS.map((month) =>
+-        getAnalysisContextKey(
+-          createAnalysisContext({ month, prizeType, scope: "MONTH", windowPreset })
+-        )
+-      )
+-    ])
+-  );
++  return ANALYSIS_PRIZE_TYPES.flatMap((prizeType) => [
++    getAnalysisContextKey(createAnalysisContext({ prizeType, scope: "ALL_TIME" })),
++    ...MONTHS.map((month) =>
++      getAnalysisContextKey(createAnalysisContext({ month, prizeType, scope: "MONTH" }))
++    )
++  ]);
+ }
+ 
+ function selectSampleDraws(
+   draws: readonly DrawRow[],
+   prizeType: AnalysisPrizeType,
+   scope: "ALL_TIME" | "MONTH",
+-  windowPreset: WindowPreset,
+   month?: number
+ ) {
+   const context = createAnalysisContext({
+     month: scope === "MONTH" ? (month as AnalysisMonth) : undefined,
+     prizeType,
+-    scope,
+-    windowPreset
++    scope
+   });
+ 
+   return selectEligibleDraws(draws, context).sort(
+diff --git a/scripts/audit-compute-scope.ts b/scripts/audit-compute-scope.ts
+index ec7958b..aae5882 100644
+--- a/scripts/audit-compute-scope.ts
++++ b/scripts/audit-compute-scope.ts
+@@ -134,8 +134,6 @@ async function loadSnapshots(prisma: ReturnType<typeof getPrisma>): Promise<Scop
+       "prizeType",
+       "scope",
+       "month",
+-      "windowPreset",
+-      "windowSize",
+       "sampleDrawCount",
+       "samplePrizeCount",
+       "invalidPrizeCount",
+@@ -144,7 +142,7 @@ async function loadSnapshots(prisma: ReturnType<typeof getPrisma>): Promise<Scop
+       "endDrawDate",
+       "computedAt"
+     FROM "analysis_snapshot_runs"
+-    ORDER BY "prizeType" ASC, "scope" ASC, "month" ASC NULLS FIRST, "windowPreset" ASC
++    ORDER BY "prizeType" ASC, "scope" ASC, "month" ASC NULLS FIRST
+   `;
+ }
+ 
+diff --git a/scripts/audit-grep-classification.ts b/scripts/audit-grep-classification.ts
+index 86dfd4b..01db822 100644
+--- a/scripts/audit-grep-classification.ts
++++ b/scripts/audit-grep-classification.ts
+@@ -16,8 +16,6 @@ const SYMBOLS = [
+   "trendScore",
+   "score",
+   "Math.min",
+-  "windowSize",
+-  "windowPreset",
+   "SIX_DIGIT_ALL",
+   "THREE_FRONT",
+   "THREE_BACK",
+@@ -133,12 +131,6 @@ function classifyHit(file: string, symbol: (typeof SYMBOLS)[number], line: strin
+     return "needs-formula-fix";
+   }
+ 
+-  if (symbol === "windowPreset" || symbol === "windowSize") {
+-    return file.includes("analysis-context") || file.includes("sample-resolver")
+-      ? "correct"
+-      : "needs-denominator-metadata";
+-  }
+-
+   if (
+     file.includes("number-stats.ts") ||
+     file.includes("position-heatmap.ts") ||
+diff --git a/scripts/compute-analysis.ts b/scripts/compute-analysis.ts
+index 91dddd8..98b8701 100644
+--- a/scripts/compute-analysis.ts
++++ b/scripts/compute-analysis.ts
+@@ -2,7 +2,6 @@ import {
+   ANALYSIS_MONTHS,
+   ANALYSIS_PRIZE_TYPES,
+   ANALYSIS_SCOPES,
+-  ANALYSIS_WINDOW_PRESET,
+   type AnalysisMonth,
+   type AnalysisPrizeType,
+   type AnalysisScope,
+@@ -40,8 +39,7 @@ async function main() {
+       `prizeType=${context.prizeType}`,
+       `scope=${context.scope}`,
+       `month=${context.month ?? "ALL"}`,
+-      `years=ALL_YEARS`,
+-      `window=${context.windowPreset}`
++      `years=ALL_YEARS`
+     ].join(" ");
+     const startedAt = Date.now();
+ 
+@@ -80,7 +78,6 @@ async function parseArgs(args: readonly string[]): Promise<ComputeAnalysisOption
+   );
+   const prizeType = values.prizeType;
+   const scope = values.scope;
+-  const windowPreset = values.windowPreset;
+   const month = values.month ? Number(values.month) : undefined;
+   let parsedPrizeType: AnalysisPrizeType | undefined;
+   let parsedScope: AnalysisScope | undefined;
+@@ -105,10 +102,6 @@ async function parseArgs(args: readonly string[]): Promise<ComputeAnalysisOption
+     throw new Error("Invalid --month. Supported values: 1..12");
+   }
+ 
+-  if (windowPreset !== undefined && windowPreset !== ANALYSIS_WINDOW_PRESET) {
+-    throw new Error(`Invalid --windowPreset. Only "${ANALYSIS_WINDOW_PRESET}" is supported.`);
+-  }
+-
+   if (parsedScope === "MONTH" && month === undefined) {
+     throw new Error("MONTH scope requires --month=1..12");
+   }
+diff --git a/scripts/lib/compute-scope-audit.ts b/scripts/lib/compute-scope-audit.ts
+index 23df78d..9236c4d 100644
+--- a/scripts/lib/compute-scope-audit.ts
++++ b/scripts/lib/compute-scope-audit.ts
+@@ -27,8 +27,6 @@ export type ScopeAuditSnapshot = {
+   samplePrizeCount: number;
+   scope: string;
+   startDrawDate: Date | null;
+-  windowPreset: string;
+-  windowSize: number | null;
+ };
+ 
+ export type ContextAuditStatus =
+@@ -43,11 +41,9 @@ export type ContextAuditStatus =
+   | "db_resolver_mismatch";
+ 
+ export type ContextAuditRow = {
+-  configuredDrawCap: number | null;
+   contextKey: string;
+   eligibleDrawCount: number;
+   expectedSampleDrawCount: number;
+-  expectedWindowSizeStored: number | null;
+   invalidPrizeCountLive: number;
+   issues: string[];
+   liveSampleDrawCount: number;
+@@ -57,9 +53,7 @@ export type ContextAuditRow = {
+   scope: string;
+   snapshotSampleDrawCount: number | null;
+   snapshotSamplePrizeCount: number | null;
+-  snapshotWindowSize: number | null;
+   status: ContextAuditStatus;
+-  windowPreset: string;
+ };
+ 
+ export type PrizeYearProfile = {
+@@ -112,7 +106,7 @@ export function buildComputeScopeAuditReport(input: {
+       computePipeline:
+         "resolveAnalysisSample (full scope, no LIMIT) -> buildAnalysisReadModelsFromSample -> analysis_snapshot_runs",
+       scope: ANALYSIS_SCOPE_SEMANTICS,
+-      windowPreset: "ALL only; windowSize stored equals sampleDrawCount"
++      sampleContract: "Snapshots store sampleDrawCount and samplePrizeCount only; contextKey has no window dimension."
+     },
+     summary
+   };
+@@ -130,7 +124,6 @@ export function auditContext(
+   const liveSampleDrawCount = liveSample.drawCount;
+   const liveSamplePrizeCount = liveSample.prizeCount;
+   const invalidPrizeCountLive = liveSample.invalidPrizeCount;
+-  const expectedWindowSizeStored = liveSampleDrawCount;
+   const issues: string[] = [];
+   let status: ContextAuditStatus = "ok";
+ 
+@@ -182,13 +175,6 @@ export function auditContext(
+           `Snapshot samplePrizeCount=${snapshot.samplePrizeCount} vs live=${liveSamplePrizeCount}.`
+         );
+       }
+-
+-      if (snapshot.windowSize !== expectedWindowSizeStored) {
+-        status = status === "ok" ? "draw_count_mismatch" : status;
+-        issues.push(
+-          `Snapshot windowSize=${snapshot.windowSize ?? "null"} vs sampleDrawCount=${expectedWindowSizeStored}.`
+-        );
+-      }
+     }
+   }
+ 
+@@ -208,11 +194,9 @@ export function auditContext(
+   }
+ 
+   return {
+-    configuredDrawCap: null,
+     contextKey: getAnalysisContextKey(context),
+     eligibleDrawCount: eligibleDraws.length,
+     expectedSampleDrawCount,
+-    expectedWindowSizeStored,
+     invalidPrizeCountLive,
+     issues,
+     liveSampleDrawCount,
+@@ -222,9 +206,7 @@ export function auditContext(
+     scope: context.scope,
+     snapshotSampleDrawCount: snapshot?.sampleDrawCount ?? null,
+     snapshotSamplePrizeCount: snapshot?.samplePrizeCount ?? null,
+-    snapshotWindowSize: snapshot?.windowSize ?? null,
+-    status,
+-    windowPreset: context.windowPreset
++    status
+   };
+ }
+ 
+@@ -276,25 +258,13 @@ function buildPrizeProfilesByYear(draws: readonly ScopeAuditDraw[]): PrizeYearPr
+ 
+ function summarizeContextRows(rows: readonly ContextAuditRow[]) {
+   const byStatus = new Map<ContextAuditStatus, number>();
+-  const byWindowPreset = new Map<string, { ok: number; fail: number }>();
+ 
+   for (const row of rows) {
+     byStatus.set(row.status, (byStatus.get(row.status) ?? 0) + 1);
+-
+-    const bucket = byWindowPreset.get(row.windowPreset) ?? { fail: 0, ok: 0 };
+-
+-    if (row.status === "ok" || row.status === "zero_eligible") {
+-      bucket.ok += 1;
+-    } else {
+-      bucket.fail += 1;
+-    }
+-
+-    byWindowPreset.set(row.windowPreset, bucket);
+   }
+ 
+   return {
+     byStatus: Object.fromEntries(byStatus),
+-    byWindowPreset: Object.fromEntries(byWindowPreset),
+     failureExamples: rows
+       .filter((row) => row.status !== "ok" && row.status !== "zero_eligible")
+       .slice(0, 40),
+@@ -310,16 +280,15 @@ export function buildComputeScopeMarkdown(report: ReturnType<typeof buildCompute
+ 
+ Generated: ${report.generatedAt}
+ 
+-## Window semantics
++## Sample semantics
+ 
+-${report.semantics.windowPreset}
++${report.semantics.sampleContract}
+ 
+ ## Summary
+ 
+ - Contexts audited: **${summary.totalContexts}**
+ - Zero eligible (expected for sparse MONTH cells): **${summary.zeroEligibleCount}**
+ - Status counts: ${JSON.stringify(summary.byStatus)}
+-- By window: ${JSON.stringify(summary.byWindowPreset)}
+ 
+ ## Failures (sample)
+ 
+diff --git a/scripts/lib/normalization-audit-markdown.ts b/scripts/lib/normalization-audit-markdown.ts
+index 58553da..0f14110 100644
+--- a/scripts/lib/normalization-audit-markdown.ts
++++ b/scripts/lib/normalization-audit-markdown.ts
+@@ -9,14 +9,12 @@ export type NormalizationAuditReport = {
+     month: number | null;
+     prizeType: string;
+     scope: string;
+-    windowPreset: string;
+   }>;
+   moduleAudit: Array<{ module: string; risk: string; surfaces: string[] }>;
+   numberStatsMatrixDiagnostics: Array<{
+     maxDrawDenominatorInflationFactor: number;
+     prizeType: string;
+     scope: string;
+-    windowPreset: string;
+   }>;
+   snapshotCoverage: {
+     currentEngineVersion: string;
+@@ -55,25 +53,25 @@ ${report.moduleAudit.map((row) => `| ${row.module} | ${row.risk} | ${row.surface
+ 
+ ## Heatmap matrix (sample)
+ 
+-| Prize | Scope | Month | Window | Event mismatches |
+-| --- | --- | --- | --- | --- |
++| Prize | Scope | Month | Event mismatches |
++| --- | --- | --- | --- |
+ ${report.heatmapMatrixDiagnostics
+   .slice(0, 40)
+   .map(
+     (row) =>
+-      `| ${row.prizeType} | ${row.scope} | ${row.month ?? "ALL"} | ${row.windowPreset} | ${row.eventCountMismatchCount} |`
++      `| ${row.prizeType} | ${row.scope} | ${row.month ?? "ALL"} | ${row.eventCountMismatchCount} |`
+   )
+   .join("\n")}
+ 
+ ## Number-stats inflation (sample)
+ 
+-| Prize | Scope | Window | Max inflation |
+-| --- | --- | --- | --- |
++| Prize | Scope | Max inflation |
++| --- | --- | --- |
+ ${report.numberStatsMatrixDiagnostics
+   .slice(0, 24)
+   .map(
+     (row) =>
+-      `| ${row.prizeType} | ${row.scope} | ${row.windowPreset} | ${row.maxDrawDenominatorInflationFactor}x |`
++      `| ${row.prizeType} | ${row.scope} | ${row.maxDrawDenominatorInflationFactor}x |`
+   )
+   .join("\n")}
+ 
+diff --git a/src/api/model/dto/analytics.dto.ts b/src/api/model/dto/analytics.dto.ts
+index 4e17b40..e412c55 100644
+--- a/src/api/model/dto/analytics.dto.ts
++++ b/src/api/model/dto/analytics.dto.ts
+@@ -63,8 +63,7 @@ export function toApiDigitStat(stat: DigitStatDtoInput): ApiDigitStat {
+     position: stat.position,
+     prizeType: stat.prizeType,
+     sampleEventCount: stat.sampleEventCount,
+-    trendDirection: stat.trendDirection,
+-    windowSize: stat.windowSize
++    trendDirection: stat.trendDirection
+   };
+ }
+ 
+@@ -88,8 +87,7 @@ export function toApiNumberStat(stat: NumberStatDtoInput): ApiNumberStat {
+     patternFlags: [...stat.patternFlags],
+     prizeType: stat.prizeType,
+     samplePrizeCount: stat.samplePrizeCount,
+-    trendScore: stat.trendScore,
+-    windowSize: stat.windowSize
++    trendScore: stat.trendScore
+   };
+ }
+ 
+diff --git a/src/api/model/dto/calendar.dto.ts b/src/api/model/dto/calendar.dto.ts
+index aa5815c..a4126e5 100644
+--- a/src/api/model/dto/calendar.dto.ts
++++ b/src/api/model/dto/calendar.dto.ts
+@@ -106,9 +106,7 @@ export function toApiMonthlyInsight(insight: MonthlyInsightDtoInput): ApiMonthly
+       position: positionInsight.position
+     })),
+     sampleSize: insight.sampleSize,
+-    summary: insight.summary,
+-    windowPreset: insight.windowPreset,
+-    windowSize: insight.windowSize
++    summary: insight.summary
+   };
+ }
+ 
+diff --git a/src/api/service/analysis-snapshot/analysis-context.ts b/src/api/service/analysis-snapshot/analysis-context.ts
+index 4068541..9be2188 100644
+--- a/src/api/service/analysis-snapshot/analysis-context.ts
++++ b/src/api/service/analysis-snapshot/analysis-context.ts
+@@ -25,14 +25,11 @@ export const SIX_DIGIT_SOURCE_PRIZE_TYPES = [
+   "PRIZE5"
+ ] as const;
+ 
+-/** Single analysis window: full eligible sample in scope (no draw cap). */
+-export const ANALYSIS_WINDOW_PRESET = "ALL" as const;
+ export const ANALYSIS_SCOPES = ["ALL_TIME", "MONTH"] as const;
+ export const ANALYSIS_MONTHS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as const;
+ 
+ export type AnalysisPrizeType = (typeof ANALYSIS_PRIZE_TYPES)[number];
+ export type AnalysisSourcePrizeType = Exclude<AnalysisPrizeType, "SIX_DIGIT_ALL">;
+-export type AnalysisWindowPreset = typeof ANALYSIS_WINDOW_PRESET;
+ export type AnalysisScope = (typeof ANALYSIS_SCOPES)[number];
+ export type AnalysisMonth = (typeof ANALYSIS_MONTHS)[number];
+ 
+@@ -45,20 +42,17 @@ export type AnalysisContext = {
+   numberLength: 2 | 3 | 6;
+   prizeType: AnalysisPrizeType;
+   scope: AnalysisScope;
+-  windowPreset: AnalysisWindowPreset;
+ };
+ 
+ export type AnalysisContextInput = Partial<
+   Pick<AnalysisContext, "engineVersion" | "lotteryType" | "month" | "scope" | "year">
+ > & {
+   prizeType: string;
+-  windowPreset?: string;
+ };
+ 
+ export function createAnalysisContext(input: AnalysisContextInput): AnalysisContext {
+   const prizeType = parseAnalysisPrizeType(input.prizeType);
+   const scope = parseAnalysisScope(input.scope ?? "ALL_TIME");
+-  const windowPreset = parseAnalysisWindowPreset(input.windowPreset);
+   const month = scope === "MONTH" ? parseAnalysisMonth(input.month) : undefined;
+   const year =
+     scope === "MONTH" && input.year !== undefined ? parseAnalysisYear(input.year) : undefined;
+@@ -70,8 +64,7 @@ export function createAnalysisContext(input: AnalysisContextInput): AnalysisCont
+     year,
+     numberLength: getAnalysisPrizeNumberLength(prizeType),
+     prizeType,
+-    scope,
+-    windowPreset
++    scope
+   };
+ }
+ 
+@@ -87,8 +80,7 @@ export function getAnalysisContextKey(context: AnalysisContext) {
+       ? context.year !== undefined
+         ? String(context.year)
+         : "ALL_YEARS"
+-      : "ALL_YEARS",
+-    context.windowPreset
++      : "ALL_YEARS"
+   ].join("|");
+ }
+ 
+@@ -125,10 +117,6 @@ export function isAnalysisPrizeType(value: string): value is AnalysisPrizeType {
+   return ANALYSIS_PRIZE_TYPES.includes(value as AnalysisPrizeType);
+ }
+ 
+-export function isAnalysisWindowPreset(value: string): value is AnalysisWindowPreset {
+-  return value === ANALYSIS_WINDOW_PRESET;
+-}
+-
+ export function isAnalysisScope(value: string): value is AnalysisScope {
+   return ANALYSIS_SCOPES.includes(value as AnalysisScope);
+ }
+@@ -143,16 +131,6 @@ function parseAnalysisPrizeType(value: string): AnalysisPrizeType {
+   );
+ }
+ 
+-function parseAnalysisWindowPreset(value: string | undefined): AnalysisWindowPreset {
+-  if (value === undefined || value === ANALYSIS_WINDOW_PRESET) {
+-    return ANALYSIS_WINDOW_PRESET;
+-  }
+-
+-  throw new Error(
+-    `Invalid analysis windowPreset "${value}". Only "${ANALYSIS_WINDOW_PRESET}" is supported (no draw cap).`
+-  );
+-}
+-
+ function parseAnalysisScope(value: string): AnalysisScope {
+   if (isAnalysisScope(value)) {
+     return value;
+diff --git a/src/api/service/analysis-snapshot/compute-analysis-snapshot.ts b/src/api/service/analysis-snapshot/compute-analysis-snapshot.ts
+index 2a03a90..dff98b6 100644
+--- a/src/api/service/analysis-snapshot/compute-analysis-snapshot.ts
++++ b/src/api/service/analysis-snapshot/compute-analysis-snapshot.ts
+@@ -16,7 +16,6 @@ export type AnalysisSnapshotSummary = {
+   sampleDrawCount: number;
+   samplePrizeCount: number;
+   scope: AnalysisContext["scope"];
+-  windowPreset: AnalysisContext["windowPreset"];
+ };
+ 
+ const SNAPSHOT_INSERT_CHUNK_SIZE = 500;
+@@ -75,8 +74,6 @@ export async function recomputeAnalysisSnapshot(
+           "numberLength",
+           "scope",
+           "month",
+-          "windowPreset",
+-          "windowSize",
+           "sampleDrawCount",
+           "samplePrizeCount",
+           "invalidPrizeCount",
+@@ -98,8 +95,6 @@ export async function recomputeAnalysisSnapshot(
+           ${context.numberLength},
+           ${context.scope},
+           ${context.month ?? null},
+-          ${context.windowPreset},
+-          ${sample.drawCount},
+           ${sample.drawCount},
+           ${sample.prizeCount},
+           ${sample.invalidPrizeCount},
+@@ -122,7 +117,6 @@ export async function recomputeAnalysisSnapshot(
+             "runId",
+             "lotteryType",
+             "prizeType",
+-            "windowPreset",
+             "digit",
+             "position",
+             "drawCount",
+@@ -142,7 +136,6 @@ export async function recomputeAnalysisSnapshot(
+                 ${runId}::uuid,
+                 ${stat.lotteryType}::"LotteryType",
+                 ${stat.prizeType},
+-                ${context.windowPreset},
+                 ${stat.digit},
+                 ${stat.position ?? null},
+                 ${stat.drawCount},
+@@ -167,7 +160,6 @@ export async function recomputeAnalysisSnapshot(
+             "runId",
+             "lotteryType",
+             "prizeType",
+-            "windowPreset",
+             "number",
+             "numberLength",
+             "drawCount",
+@@ -190,7 +182,6 @@ export async function recomputeAnalysisSnapshot(
+                 ${runId}::uuid,
+                 ${stat.lotteryType}::"LotteryType",
+                 ${stat.prizeType},
+-                ${context.windowPreset},
+                 ${stat.number},
+                 ${stat.numberLength},
+                 ${stat.drawCount},
+@@ -218,7 +209,6 @@ export async function recomputeAnalysisSnapshot(
+             "runId",
+             "lotteryType",
+             "prizeType",
+-            "windowPreset",
+             "pattern",
+             "hitCount",
+             "frequencyPercent",
+@@ -235,7 +225,6 @@ export async function recomputeAnalysisSnapshot(
+                 ${runId}::uuid,
+                 ${context.lotteryType}::"LotteryType",
+                 ${context.prizeType},
+-                ${context.windowPreset},
+                 ${summary.pattern},
+                 ${summary.hitCount},
+                 ${summary.frequencyPercent},
+@@ -269,7 +258,6 @@ export async function recomputeAnalysisSnapshot(
+             "prizeType",
+             "scope",
+             "month",
+-            "windowPreset",
+             "position",
+             "digit",
+             "appearanceCount",
+@@ -289,7 +277,6 @@ export async function recomputeAnalysisSnapshot(
+                 ${context.prizeType},
+                 ${context.scope},
+                 ${context.month ?? null},
+-                ${context.windowPreset},
+                 ${cell.position},
+                 ${cell.digit},
+                 ${cell.appearanceCount},
+@@ -317,8 +304,7 @@ export async function recomputeAnalysisSnapshot(
+     prizeType: context.prizeType,
+     sampleDrawCount: sample.drawCount,
+     samplePrizeCount: sample.prizeCount,
+-    scope: context.scope,
+-    windowPreset: context.windowPreset
++    scope: context.scope
+   };
+ }
+ 
+diff --git a/src/api/service/analysis-snapshot/snapshot-reader.ts b/src/api/service/analysis-snapshot/snapshot-reader.ts
+index 3b391ab..8683722 100644
+--- a/src/api/service/analysis-snapshot/snapshot-reader.ts
++++ b/src/api/service/analysis-snapshot/snapshot-reader.ts
+@@ -1,13 +1,11 @@
+ import {
+   ANALYSIS_ENGINE_VERSION,
+-  ANALYSIS_WINDOW_PRESET,
+   type AnalysisContext,
+   type AnalysisMonth,
+   createAnalysisContext,
+   getAnalysisContextKey,
+   getAnalysisPrizeNumberLength,
+-  isAnalysisPrizeType,
+-  isAnalysisWindowPreset
++  isAnalysisPrizeType
+ } from "@/api/service/analysis-snapshot/analysis-context";
+ import type { AnalysisCalendarHeatmapReadModel } from "@/api/service/analysis-snapshot/calendar-heatmap-read-model";
+ import { getPrisma } from "@/api/service/prisma";
+@@ -31,7 +29,6 @@ type AnalysisSnapshotRow = {
+   invalidPrizeCount: number;
+   sampleDrawCount: number;
+   samplePrizeCount: number;
+-  windowSize: number | null;
+ };
+ 
+ type AnalysisSnapshotAnalyticsRow = {
+@@ -39,14 +36,12 @@ type AnalysisSnapshotAnalyticsRow = {
+   analyticsReadModel: unknown;
+   sampleDrawCount: number;
+   samplePrizeCount: number;
+-  windowSize: number | null;
+ };
+ 
+ type AnalysisSnapshotStatRunRow = {
+   runId: string;
+   sampleDrawCount: number;
+   samplePrizeCount: number;
+-  windowSize: number | null;
+ };
+ 
+ type AnalysisSnapshotDigitRow = {
+@@ -86,14 +81,12 @@ type AnalysisSnapshotPatternRow = {
+   patternReadModel: unknown;
+   sampleDrawCount: number;
+   samplePrizeCount: number;
+-  windowSize: number | null;
+ };
+ 
+ export type AnalysisSnapshotNumberStatsLookup = {
+   sampleDrawCount: number;
+   samplePrizeCount: number;
+   stats: ApiNumberStat[];
+-  windowSize: number;
+ };
+ 
+ const SLOW_SNAPSHOT_LOOKUP_MS = 500;
+@@ -233,8 +226,7 @@ export async function getAnalysisSnapshotNumberStatsForNumbers(
+   return {
+     sampleDrawCount: snapshot.sampleDrawCount,
+     samplePrizeCount: snapshot.samplePrizeCount,
+-    stats: rows.map((row) => toApiNumberStat(row, snapshot)),
+-    windowSize: snapshot.windowSize ?? snapshot.sampleDrawCount
++    stats: rows.map((row) => toApiNumberStat(row, snapshot))
+   };
+ }
+ 
+@@ -294,7 +286,6 @@ export async function getAnalysisSnapshotPatternReadModel(
+     return null;
+   }
+ 
+-  const expectedWindowSize = snapshot.windowSize ?? snapshot.sampleDrawCount;
+   const generatedAt = snapshot.computedAt.toISOString();
+ 
+   return {
+@@ -304,9 +295,7 @@ export async function getAnalysisSnapshotPatternReadModel(
+       numberLength: context.numberLength,
+       prizeType: context.prizeType,
+       scope: context.scope,
+-      year: context.year,
+-      windowPreset: context.windowPreset,
+-      windowSize: expectedWindowSize
++      year: context.year
+     },
+     generatedAt,
+     pattern: patternReadModel,
+@@ -364,10 +353,6 @@ export async function getAnalysisSnapshotCalendarReadModel(query: CalendarHeatma
+ }
+ 
+ export function getAnalysisContextForFilterQuery(query: FilterContext): AnalysisContext | null {
+-  if (query.windowPreset && !isAnalysisWindowPreset(query.windowPreset)) {
+-    return null;
+-  }
+-
+   const normalized = normalizeProductAnalysisQuery(query);
+ 
+   if (!normalized.prizeType || !isAnalysisPrizeType(normalized.prizeType)) {
+@@ -392,8 +377,7 @@ export function getAnalysisContextForFilterQuery(query: FilterContext): Analysis
+     lotteryType: normalized.lotteryType,
+     month: normalized.month as AnalysisMonth | undefined,
+     prizeType: normalized.prizeType,
+-    scope: normalized.scope,
+-    windowPreset: ANALYSIS_WINDOW_PRESET
++    scope: normalized.scope
+   });
+ }
+ 
+@@ -408,18 +392,13 @@ export function getAnalysisContextForCalendarQuery(
+     return null;
+   }
+ 
+-  if (query.windowPreset && !isAnalysisWindowPreset(query.windowPreset)) {
+-    return null;
+-  }
+-
+   const month =
+     scope === "MONTH" ? ((query.month ?? now.getUTCMonth() + 1) as AnalysisMonth) : undefined;
+ 
+   return createAnalysisContext({
+     month,
+     prizeType,
+-    scope,
+-    windowPreset: ANALYSIS_WINDOW_PRESET
++    scope
+   });
+ }
+ 
+@@ -435,8 +414,7 @@ async function getAnalysisSnapshotAnalyticsRow(
+         "analyticsReadModel",
+         pg_column_size("analyticsReadModel")::int AS "analyticsReadModelBytes",
+         "sampleDrawCount",
+-        "samplePrizeCount",
+-        "windowSize"
++        "samplePrizeCount"
+       FROM "analysis_snapshot_runs"
+       WHERE
+         "contextKey" = ${contextKey}
+@@ -474,8 +452,7 @@ async function getAnalysisSnapshotStatRunRowUncached(
+           SELECT
+             "_id"::text AS "runId",
+             "sampleDrawCount",
+-            "samplePrizeCount",
+-            "windowSize"
++            "samplePrizeCount"
+           FROM "analysis_snapshot_runs"
+           WHERE
+             "contextKey" = ${contextKey}
+@@ -590,7 +567,6 @@ async function getAnalysisSnapshotPatternRow(
+         pg_column_size("patternReadModel")::int AS "patternReadModelBytes",
+         "sampleDrawCount",
+         "samplePrizeCount",
+-        "windowSize",
+         "computedAt"
+       FROM "analysis_snapshot_runs"
+       WHERE
+@@ -616,8 +592,7 @@ async function getAnalysisSnapshot(context: AnalysisContext): Promise<AnalysisSn
+         pg_column_size("calendarReadModel")::int AS "calendarReadModelBytes",
+         "sampleDrawCount",
+         "samplePrizeCount",
+-        "invalidPrizeCount",
+-        "windowSize"
++        "invalidPrizeCount"
+       FROM "analysis_snapshot_runs"
+       WHERE
+         "contextKey" = ${contextKey}
+@@ -647,21 +622,14 @@ function isAnalyticsSnapshotMetadataCurrent(
+   model: ApiAnalyticsReadModel,
+   snapshot: AnalysisSnapshotAnalyticsRow
+ ) {
+-  const expectedWindowSize = snapshot.windowSize ?? snapshot.sampleDrawCount;
+-
+   return (
+-    snapshot.windowSize === snapshot.sampleDrawCount &&
+     model.summary.drawCount === snapshot.sampleDrawCount &&
+     model.summary.prizeCount === snapshot.samplePrizeCount &&
+     (snapshot.samplePrizeCount === 0 || model.numberStats.length > 0) &&
+-    model.digitStats.every(
+-      (stat) =>
+-        stat.drawCount === snapshot.sampleDrawCount && stat.windowSize === expectedWindowSize
+-    ) &&
++    model.digitStats.every((stat) => stat.drawCount === snapshot.sampleDrawCount) &&
+     model.numberStats.every(
+       (stat) =>
+         stat.drawCount === snapshot.sampleDrawCount &&
+-        stat.windowSize === expectedWindowSize &&
+         stat.samplePrizeCount === snapshot.samplePrizeCount
+     )
+   );
+@@ -670,7 +638,7 @@ function isAnalyticsSnapshotMetadataCurrent(
+ function isStatSnapshotCurrent(
+   snapshot: AnalysisSnapshotStatRunRow | null
+ ): snapshot is AnalysisSnapshotStatRunRow {
+-  return Boolean(snapshot && snapshot.windowSize === snapshot.sampleDrawCount);
++  return Boolean(snapshot);
+ }
+ 
+ function isDerivedRowsCurrent(
+@@ -708,8 +676,7 @@ function toApiDigitStat(
+     position: row.position ?? undefined,
+     prizeType: row.prizeType,
+     sampleEventCount: getSampleEventCount(row.hitCount, row.frequencyPercent),
+-    trendDirection: row.trendDirection,
+-    windowSize: snapshot.windowSize ?? snapshot.sampleDrawCount
++    trendDirection: row.trendDirection
+   };
+ }
+ 
+@@ -734,8 +701,7 @@ function toApiNumberStat(
+     patternFlags: toPatternFlags(row.patternFlags),
+     prizeType: row.prizeType,
+     samplePrizeCount: snapshot.samplePrizeCount,
+-    trendScore: row.trendScore,
+-    windowSize: snapshot.windowSize ?? snapshot.sampleDrawCount
++    trendScore: row.trendScore
+   };
+ }
+ 
+@@ -744,7 +710,6 @@ function isCalendarSnapshotMetadataCurrent(
+   snapshot: AnalysisSnapshotRow
+ ) {
+   return (
+-    snapshot.windowSize === snapshot.sampleDrawCount &&
+     model.drawCount === snapshot.sampleDrawCount &&
+     model.invalidPrizeCount === snapshot.invalidPrizeCount &&
+     model.prizeCount === snapshot.samplePrizeCount &&
+@@ -756,10 +721,7 @@ function isPatternSnapshotMetadataCurrent(
+   model: ApiPatternsReadModel["pattern"],
+   snapshot: AnalysisSnapshotPatternRow
+ ) {
+-  return (
+-    snapshot.windowSize === snapshot.sampleDrawCount &&
+-    model.sampleSize === snapshot.samplePrizeCount
+-  );
++  return model.sampleSize === snapshot.samplePrizeCount;
+ }
+ 
+ async function dedupeInFlight<T>(key: string, operation: () => Promise<T>): Promise<T> {
+diff --git a/src/api/service/analytics/analytics-engine.ts b/src/api/service/analytics/analytics-engine.ts
+index 65ada1e..f771c13 100644
+--- a/src/api/service/analytics/analytics-engine.ts
++++ b/src/api/service/analytics/analytics-engine.ts
+@@ -22,7 +22,7 @@ export function buildAnalyticsReadModelFromPrizes(
+   prizes: readonly AnalysisPrizeSample[],
+   context: Pick<
+     AnalysisContext,
+-    "lotteryType" | "numberLength" | "prizeType" | "scope" | "month" | "year" | "windowPreset"
++    "lotteryType" | "numberLength" | "prizeType" | "scope" | "month" | "year"
+   >,
+   computedAt: Date,
+   sampleMetadata?: AnalysisSampleMetadata
+@@ -38,8 +38,7 @@ export function buildAnalyticsReadModelFromPrizes(
+     normalizedPrizes.filter((prize) => prize.number.length === context.numberLength).length;
+   const statsContext = {
+     computedAt,
+-    drawCount,
+-    windowSize: drawCount
++    drawCount
+   };
+   const digitStats = calculateDigitStats(extractDigitEvents(normalizedPrizes), statsContext);
+   const numberStats = calculateNumberStats(normalizedPrizes, statsContext, context.numberLength);
+diff --git a/src/api/service/analytics/number-stats.ts b/src/api/service/analytics/number-stats.ts
+index 28af212..250c699 100644
+--- a/src/api/service/analytics/number-stats.ts
++++ b/src/api/service/analytics/number-stats.ts
+@@ -11,7 +11,6 @@ import type {
+ type AnalyticsContext = {
+   computedAt: Date;
+   drawCount: number;
+-  windowSize: number;
+ };
+ 
+ type DateWindowContext = {
+@@ -61,8 +60,7 @@ export function calculateDigitStats(
+         position: group[0]?.position,
+         prizeType: group[0]?.prizeType ?? "",
+         sampleEventCount,
+-        trendDirection: getTrendDirection(group, dateWindow),
+-        windowSize: context.windowSize
++        trendDirection: getTrendDirection(group, dateWindow)
+       };
+     })
+     .sort(sortDigitStats);
+@@ -121,8 +119,7 @@ export function calculateNumberStats(
+           frequencyPercent,
+           missingDrawCount,
+           context.drawCount
+-        ),
+-        windowSize: context.windowSize
++        )
+       };
+     })
+     .sort(sortNumberStats);
+@@ -173,7 +170,7 @@ export function summarizePatterns(
+         frequencyPercent: getFrequencyPercent(hitCount, totalHits),
+         hitCount,
+         id: `pattern-${flag}`,
+-        insight: `Found ${hitCount} of ${totalHits} prize rows with ${flag} (${drawCount} draws in window).`,
++        insight: `Found ${hitCount} of ${totalHits} prize rows with ${flag} (${drawCount} draws in sample).`,
+         label: flag,
+         pattern: flag,
+         sampleSize: totalHits
+diff --git a/src/api/service/calendar/calendar-heatmap-insight.ts b/src/api/service/calendar/calendar-heatmap-insight.ts
+index f120c1a..4175885 100644
+--- a/src/api/service/calendar/calendar-heatmap-insight.ts
++++ b/src/api/service/calendar/calendar-heatmap-insight.ts
+@@ -1,5 +1,4 @@
+ import type { AnalysisContext } from "@/api/service/analysis-snapshot/analysis-context";
+-import { ANALYSIS_WINDOW_PRESET } from "@/api/service/analysis-snapshot/analysis-context";
+ import type { AnalysisCalendarHeatmapReadModel } from "@/api/service/analysis-snapshot/calendar-heatmap-read-model";
+ import type {
+   AnalysisPrizeSample,
+@@ -58,8 +57,6 @@ export type CalendarMonthlyInsight = {
+   sampleSize: number;
+   scope: AnalysisContext["scope"];
+   summary: string;
+-  windowPreset: AnalysisContext["windowPreset"];
+-  windowSize: number;
+ };
+ 
+ export function buildCalendarHeatmapInsight(
+@@ -133,9 +130,7 @@ export function buildCalendarHeatmapInsightFromSnapshot(
+       "Counts are prize-slot hits over actual opportunities in the sample (draws × prizes per draw).",
+       "This insight is served from a precomputed analysis snapshot."
+     ],
+-    scope: query.scope ?? snapshot.scope,
+-    windowPreset: ANALYSIS_WINDOW_PRESET,
+-    windowSize: metadata.drawCount
++    scope: query.scope ?? snapshot.scope
+   };
+ }
+ 
+@@ -180,9 +175,7 @@ function assembleCalendarMonthlyInsight(
+     prizesPerDrawExpected: metadata.prizesPerDrawExpected,
+     sampleSize: metadata.drawCount,
+     scope: context.scope,
+-    summary: metadata.summary,
+-    windowPreset: context.windowPreset,
+-    windowSize: metadata.drawCount
++    summary: metadata.summary
+   };
+ }
+ 
+diff --git a/src/api/service/compare.service.ts b/src/api/service/compare.service.ts
+index d7510a0..c118cf2 100644
+--- a/src/api/service/compare.service.ts
++++ b/src/api/service/compare.service.ts
+@@ -26,8 +26,7 @@ export async function compareNumbers(input: CompareRequest) {
+     prizeType: input.prizeType,
+     q: input.q,
+     scope: "ALL_TIME",
+-    startDate: input.startDate,
+-    windowPreset: "ALL"
++    startDate: input.startDate
+   } as const;
+   const snapshotStats = await getAnalysisSnapshotNumberStatsForNumbers(
+     statsQuery,
+@@ -111,8 +110,7 @@ function createEmptyNumberStat({
+     patternFlags: getPatternFlags(number),
+     prizeType: input.prizeType ?? "TWO_DIGIT",
+     samplePrizeCount: sampleStat?.samplePrizeCount ?? sampleStat?.drawCount ?? 0,
+-    trendScore: 0,
+-    windowSize: input.windowSize
++    trendScore: 0
+   };
+ }
+ 
+diff --git a/src/api/service/dashboard.service.ts b/src/api/service/dashboard.service.ts
+index 5812b4b..dbe4820 100644
+--- a/src/api/service/dashboard.service.ts
++++ b/src/api/service/dashboard.service.ts
+@@ -63,8 +63,7 @@ export async function getDashboardReadModel() {
+         page: 1,
+         pageSize: 20,
+         prizeType: "TWO_DIGIT",
+-        scope: "ALL_TIME",
+-        windowPreset: "ALL"
++        scope: "ALL_TIME"
+       })
+     ),
+     timeAsync("dashboard.prediction summary", () => predictionService.getLatestPredictionSummary())
+diff --git a/src/api/service/patterns.service.ts b/src/api/service/patterns.service.ts
+index 94fc41e..54daa74 100644
+--- a/src/api/service/patterns.service.ts
++++ b/src/api/service/patterns.service.ts
+@@ -1,4 +1,3 @@
+-import { ANALYSIS_WINDOW_PRESET } from "@/api/service/analysis-snapshot/analysis-context";
+ import { buildOnDemandAnalysisReadModel } from "@/api/service/analysis-snapshot/on-demand-read-model";
+ import { buildAnalysisPatternReadModel } from "@/api/service/analysis-snapshot/pattern-read-model";
+ import {
+@@ -32,9 +31,7 @@ export async function getPatternsReadModel(query: FilterContext): Promise<ApiPat
+         numberLength: context.numberLength,
+         prizeType: context.prizeType,
+         scope: context.scope,
+-        year: context.year,
+-        windowPreset: context.windowPreset,
+-        windowSize: analytics.summary.drawCount
++        year: context.year
+       },
+       generatedAt,
+       pattern: buildAnalysisPatternReadModel(analytics),
+@@ -64,9 +61,7 @@ function getMissingPatternsReadModel(query: FilterContext): ApiPatternsReadModel
+       numberLength: context?.numberLength ?? query.numberLength ?? 2,
+       prizeType: context?.prizeType ?? query.prizeType ?? "TWO_DIGIT",
+       scope: context?.scope ?? query.scope ?? "ALL_TIME",
+-      year: context?.year ?? query.year,
+-      windowPreset: context?.windowPreset ?? ANALYSIS_WINDOW_PRESET,
+-      windowSize: 0
++      year: context?.year ?? query.year
+     },
+     generatedAt,
+     pattern: {
+diff --git a/src/api/service/prediction.service.ts b/src/api/service/prediction.service.ts
+index 7770a52..c474f30 100644
+--- a/src/api/service/prediction.service.ts
++++ b/src/api/service/prediction.service.ts
+@@ -64,8 +64,7 @@ export async function generate(input: PredictionRequestInput) {
+       page: 1,
+       pageSize: 20,
+       prizeType: normalizedInput.prizeType,
+-      scope: "ALL_TIME",
+-      windowPreset: "ALL"
++      scope: "ALL_TIME"
+     })
+   );
+   const rankedResults = timeSync("prediction.generate build results", () =>
+diff --git a/src/api/service/prediction/position-engine.ts b/src/api/service/prediction/position-engine.ts
+index 3195ea9..e1d6c57 100644
+--- a/src/api/service/prediction/position-engine.ts
++++ b/src/api/service/prediction/position-engine.ts
+@@ -190,8 +190,7 @@ function buildDigitOptionsForPosition(
+         position: positionIndex,
+         prizeType: digitStats[0]?.prizeType ?? "TWO_DIGIT",
+         sampleEventCount: drawCount,
+-        trendDirection: "flat",
+-        windowSize: digitStats[0]?.windowSize ?? 0
++        trendDirection: "flat"
+       } satisfies ApiDigitStat);
+     const breakdown = toPositionBreakdown(stat, positionIndex);
+     const score = round(
+diff --git a/src/api/service/search.service.ts b/src/api/service/search.service.ts
+index b5618aa..85aa018 100644
+--- a/src/api/service/search.service.ts
++++ b/src/api/service/search.service.ts
+@@ -134,8 +134,7 @@ async function getSearchStats(query: SearchQuery) {
+         numberLength: 2,
+         page: 1,
+         pageSize: 100,
+-        prizeType: "TWO_DIGIT",
+-        windowPreset: "ALL"
++        prizeType: "TWO_DIGIT"
+       }),
+       query.q ?? ""
+     );
+@@ -148,8 +147,7 @@ async function getSearchStats(query: SearchQuery) {
+         numberLength: 3,
+         page: 1,
+         pageSize: 1000,
+-        prizeType: "THREE_DIGIT",
+-        windowPreset: "ALL"
++        prizeType: "THREE_DIGIT"
+       }),
+       query.q ?? ""
+     );
+@@ -163,8 +161,7 @@ async function getSearchStats(query: SearchQuery) {
+         page: 1,
+         pageSize: 1000,
+         prizeType: "SIX_DIGIT_ALL",
+-        scope: "ALL_TIME",
+-        windowPreset: "ALL"
++        scope: "ALL_TIME"
+       }),
+       query.q ?? ""
+     );
+@@ -181,6 +178,7 @@ function mapSearchStats(
+     .filter((stat) => stat.number.includes(q))
+     .slice(0, 20)
+     .map((stat) => ({
++      drawCount: stat.drawCount,
+       frequencyPercent: stat.frequencyPercent,
+       hitCount: stat.hitCount,
+       lastSeenDrawDate: stat.lastSeenDrawDate,
+@@ -188,7 +186,6 @@ function mapSearchStats(
+       number: stat.number,
+       prizeType: stat.prizeType as ApiSearchStatHit["prizeType"],
+       samplePrizeCount: stat.samplePrizeCount,
+-      trendScore: stat.trendScore,
+-      windowSize: stat.windowSize
++      trendScore: stat.trendScore
+     }));
+ }
+diff --git a/src/frontend/pages/analytics/analytics.content.ts b/src/frontend/pages/analytics/analytics.content.ts
+index f9d5cb9..cc0b6ae 100644
+--- a/src/frontend/pages/analytics/analytics.content.ts
++++ b/src/frontend/pages/analytics/analytics.content.ts
+@@ -11,8 +11,7 @@ export const analyticsContent = {
+   filters: {
+     prizeLabel: "Prize type",
+     prizeSummary: "เลือกรางวัลก่อน เพราะเลข 2, 3 และ 6 หลักควรอ่านสัญญาณไม่เหมือนกัน",
+-    title: "Analytics filters",
+-    windowLabel: "Sample"
++    title: "Analytics filters"
+   },
+   hero: {
+     description:
+@@ -23,8 +22,7 @@ export const analyticsContent = {
+   metrics: {
+     numberLength: "Number length",
+     prizeType: "Prize type",
+-    sampleSize: "Sample size",
+-    windowSize: "Sample"
++    sampleSize: "Sample size"
+   },
+   notes: {
+     sixDigit:
+diff --git a/src/frontend/pages/analytics/analytics.data.ts b/src/frontend/pages/analytics/analytics.data.ts
+index 450ac2c..0fbff91 100644
+--- a/src/frontend/pages/analytics/analytics.data.ts
++++ b/src/frontend/pages/analytics/analytics.data.ts
+@@ -58,8 +58,7 @@ export async function getAnalyticsModel(query?: FilterContext): Promise<Analytic
+         page: 1,
+         pageSize: 20,
+         prizeType: "TWO_DIGIT",
+-        scope: "ALL_TIME",
+-        windowPreset: "ALL"
++        scope: "ALL_TIME"
+       }
+     )
+   ).model;
+diff --git a/src/frontend/pages/analytics/analytics.mappers.ts b/src/frontend/pages/analytics/analytics.mappers.ts
+index 603f399..597d7fa 100644
+--- a/src/frontend/pages/analytics/analytics.mappers.ts
++++ b/src/frontend/pages/analytics/analytics.mappers.ts
+@@ -47,7 +47,6 @@ export type AnalyticsViewModel = {
+     scope: NonNullable<FilterContext["scope"]>;
+     scopeLabel: string;
+     scopeDrawLabel: string;
+-    windowPreset: "ALL";
+   };
+   digitPositions: Array<{
+     digit: string;
+@@ -105,8 +104,7 @@ export function buildAnalyticsViewModel(
+       sampleSize: analytics.summary.drawCount,
+       scope: query.scope ?? "ALL_TIME",
+       scopeLabel: getScopeLabel(query),
+-      scopeDrawLabel: getScopeDrawLabel(query, analytics.summary.drawCount),
+-      windowPreset: "ALL"
++      scopeDrawLabel: getScopeDrawLabel(query, analytics.summary.drawCount)
+     },
+     digitPositions: getPositionDigitStats(filteredDigits, query.prizeType, numberLength),
+     exactNumbers: filteredNumbers.slice(0, numberLength === 6 ? 10 : 12),
+diff --git a/src/frontend/pages/analytics/analytics.query.ts b/src/frontend/pages/analytics/analytics.query.ts
+index 3abfe86..8078f1f 100644
+--- a/src/frontend/pages/analytics/analytics.query.ts
++++ b/src/frontend/pages/analytics/analytics.query.ts
+@@ -31,10 +31,6 @@ export function buildAnalyticsHref(
+       continue;
+     }
+ 
+-    if (key === "windowPreset" && value === "ALL") {
+-      continue;
+-    }
+-
+     if (key === "year") {
+       continue;
+     }
+@@ -60,8 +56,7 @@ export function toAnalyticsApiQuery(query: FilterContext) {
+     prizeType: normalized.prizeType,
+     q: normalized.q,
+     scope: normalized.scope,
+-    startDate: normalized.startDate,
+-    windowPreset: normalized.windowPreset
++    startDate: normalized.startDate
+   };
+ }
+ 
+diff --git a/src/frontend/pages/calendar/calendar.content.ts b/src/frontend/pages/calendar/calendar.content.ts
+index 2327984..284a38a 100644
+--- a/src/frontend/pages/calendar/calendar.content.ts
++++ b/src/frontend/pages/calendar/calendar.content.ts
+@@ -98,10 +98,6 @@ export const calendarContent = {
+     prizeType: {
+       label: "Prize type",
+       placeholder: "Prize type"
+-    },
+-    windowSize: {
+-      label: "Sample size",
+-      placeholder: "Sample size"
+     }
+   },
+   heatmap: {
+diff --git a/src/frontend/pages/calendar/calendar.mappers.ts b/src/frontend/pages/calendar/calendar.mappers.ts
+index f401647..8aa9a2b 100644
+--- a/src/frontend/pages/calendar/calendar.mappers.ts
++++ b/src/frontend/pages/calendar/calendar.mappers.ts
+@@ -74,8 +74,7 @@ export function toCalendarApiQuery(filters: CalendarPageFilters) {
+   return {
+     month: filters.month,
+     prizeType: filters.prizeType,
+-    scope: filters.scope,
+-    windowPreset: "ALL" as const
++    scope: filters.scope
+   };
+ }
+ 
+diff --git a/src/frontend/pages/patterns/patterns.mappers.ts b/src/frontend/pages/patterns/patterns.mappers.ts
+index 02672e9..fb5ada6 100644
+--- a/src/frontend/pages/patterns/patterns.mappers.ts
++++ b/src/frontend/pages/patterns/patterns.mappers.ts
+@@ -166,8 +166,7 @@ export function toPatternsAnalyticsQuery(query: PatternPageQuery): FilterContext
+     page: 1,
+     pageSize: 100,
+     prizeType: query.prizeType,
+-    scope: query.scope,
+-    windowPreset: "ALL"
++    scope: query.scope
+   });
+ }
+ 
+diff --git a/src/frontend/pages/search/index.tsx b/src/frontend/pages/search/index.tsx
+index 5f7c20c..974605c 100644
+--- a/src/frontend/pages/search/index.tsx
++++ b/src/frontend/pages/search/index.tsx
+@@ -133,7 +133,7 @@ export async function SearchPage({
+               {model.groups.stats.map((stat) => (
+                 <article
+                   className="border border-[var(--color-border-soft)] bg-[var(--color-bg-canvas)] p-4"
+-                  key={`${stat.prizeType}-${stat.number}-${stat.windowSize}`}
++                  key={`${stat.prizeType}-${stat.number}-${stat.drawCount}`}
+                 >
+                   <div className="flex items-start justify-between gap-3">
+                     <div>
+@@ -141,7 +141,7 @@ export async function SearchPage({
+                         {stat.number}
+                       </p>
+                       <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+-                        {stat.prizeType} | {stat.windowSize} draw window
++                        {stat.prizeType} | {stat.drawCount} draws in sample
+                       </p>
+                     </div>
+                     <Badge variant="brand">{stat.frequencyPercent}%</Badge>
+diff --git a/src/lib/app/analysis-product-scope.ts b/src/lib/app/analysis-product-scope.ts
+index d02d77b..a798c57 100644
+--- a/src/lib/app/analysis-product-scope.ts
++++ b/src/lib/app/analysis-product-scope.ts
+@@ -25,7 +25,6 @@ export function normalizeProductAnalysisQuery<T extends FilterContext>(query: T)
+     ...query,
+     month: scope === "MONTH" ? (query.month ?? now.getUTCMonth() + 1) : undefined,
+     scope,
+-    windowPreset: "ALL",
+     year: undefined
+   };
+ }
+diff --git a/src/lib/app/pattern-playground/query.ts b/src/lib/app/pattern-playground/query.ts
+index dd91170..33d3be7 100644
+--- a/src/lib/app/pattern-playground/query.ts
++++ b/src/lib/app/pattern-playground/query.ts
+@@ -18,7 +18,6 @@ export function toPatternStatsQueryForPrize(prizeType: PatternStatsPrizeType): F
+     page: 1,
+     pageSize: 100,
+     prizeType,
+-    scope: "ALL_TIME",
+-    windowPreset: "ALL"
++    scope: "ALL_TIME"
+   });
+ }
+diff --git a/src/schema/api/analytics.ts b/src/schema/api/analytics.ts
+index 6e3f68a..9e28cc8 100644
+--- a/src/schema/api/analytics.ts
++++ b/src/schema/api/analytics.ts
+@@ -34,7 +34,6 @@ export interface ApiDigitStat {
+   prizeType: string;
+   digit: string;
+   position?: number;
+-  windowSize: number;
+   drawCount: number;
+   hitCount: number;
+   frequencyPercent: number;
+@@ -52,7 +51,6 @@ export interface ApiNumberStat {
+   numberLength: number;
+   lotteryType: string;
+   prizeType: string;
+-  windowSize: number;
+   drawCount: number;
+   hitCount: number;
+   frequencyPercent: number;
+diff --git a/src/schema/api/calendar.ts b/src/schema/api/calendar.ts
+index 281791d..f45cfb6 100644
+--- a/src/schema/api/calendar.ts
++++ b/src/schema/api/calendar.ts
+@@ -55,8 +55,6 @@ export interface ApiMonthlyInsight {
+     | "PRIZE4"
+     | "PRIZE5";
+   scope?: "ALL_TIME" | "MONTH";
+-  windowPreset?: "ALL";
+-  windowSize?: number;
+   positionInsights: Array<{
+     coldNumbers: Array<{
+       appearanceCount: number;
+diff --git a/src/schema/api/patterns.ts b/src/schema/api/patterns.ts
+index d2b1cfc..12e5492 100644
+--- a/src/schema/api/patterns.ts
++++ b/src/schema/api/patterns.ts
+@@ -37,9 +37,7 @@ export interface ApiPatternsReadModel {
+     numberLength: 2 | 3 | 6;
+     prizeType: string;
+     scope: "ALL_TIME" | "MONTH";
+-    windowPreset: "ALL";
+     year?: number;
+-    windowSize: number;
+   };
+   generatedAt: string;
+   pattern: ApiAnalysisPatternReadModel;
+diff --git a/src/schema/api/search.ts b/src/schema/api/search.ts
+index 26aabe3..63a2a3b 100644
+--- a/src/schema/api/search.ts
++++ b/src/schema/api/search.ts
+@@ -29,6 +29,7 @@ export interface ApiSearchPrizeHit {
+ }
+ 
+ export interface ApiSearchStatHit {
++  drawCount: number;
+   frequencyPercent: number;
+   hitCount: number;
+   lastSeenDrawDate?: string;
+@@ -37,7 +38,6 @@ export interface ApiSearchStatHit {
+   prizeType: ApiSearchStatHitPrizeType;
+   samplePrizeCount?: number;
+   trendScore: number;
+-  windowSize: number;
+ }
+ 
+ export interface ApiSearchReadModel {
+diff --git a/src/schema/app/analytics.schema.ts b/src/schema/app/analytics.schema.ts
+index 59e8840..96d0107 100644
+--- a/src/schema/app/analytics.schema.ts
++++ b/src/schema/app/analytics.schema.ts
+@@ -37,7 +37,6 @@ export const digitStatSchema = z.object({
+   prizeType: z.string(),
+   digit: z.string(),
+   position: z.number().optional(),
+-  windowSize: z.number(),
+   drawCount: z.number(),
+   hitCount: z.number(),
+   frequencyPercent: z.number(),
+@@ -55,7 +54,6 @@ export const numberStatSchema = z.object({
+   numberLength: z.number(),
+   lotteryType: z.string(),
+   prizeType: z.string(),
+-  windowSize: z.number(),
+   drawCount: z.number(),
+   hitCount: z.number(),
+   frequencyPercent: z.number(),
+diff --git a/src/schema/app/calendar.schema.ts b/src/schema/app/calendar.schema.ts
+index f4a4593..0e10388 100644
+--- a/src/schema/app/calendar.schema.ts
++++ b/src/schema/app/calendar.schema.ts
+@@ -1,5 +1,5 @@
+ import { z } from "zod";
+-import { analysisScopeSchema, analysisWindowPresetSchema } from "@/schema/app/query.schema";
++import { analysisScopeSchema } from "@/schema/app/query.schema";
+ 
+ const calendarPrizeTypeSchema = z.enum([
+   "FIRST",
+@@ -24,8 +24,7 @@ export const calendarHeatmapQuerySchema = z.object({
+   month: z.coerce.number().int().min(1).max(12).optional(),
+   year: z.coerce.number().int().min(1900).max(3000).optional(),
+   prizeType: optionalCalendarPrizeTypeSchema,
+-  scope: analysisScopeSchema.optional(),
+-  windowPreset: analysisWindowPresetSchema.optional()
++  scope: analysisScopeSchema.optional()
+ });
+ 
+ export const calendarDataCompletenessSchema = z.enum(["complete", "partial"]);
+@@ -81,8 +80,6 @@ export const monthlyInsightSchema = z.object({
+   summary: z.string(),
+   prizeType: calendarPrizeTypeSchema.optional(),
+   scope: analysisScopeSchema.optional(),
+-  windowPreset: analysisWindowPresetSchema.optional(),
+-  windowSize: z.number().int().positive().optional(),
+   positionInsights: z.array(
+     z.object({
+       coldNumbers: z.array(
+diff --git a/src/schema/app/patterns.schema.ts b/src/schema/app/patterns.schema.ts
+index 64eed66..a95116e 100644
+--- a/src/schema/app/patterns.schema.ts
++++ b/src/schema/app/patterns.schema.ts
+@@ -1,11 +1,6 @@
+ import { z } from "zod";
+ import { patternFlagSchema } from "@/schema/app/analytics.schema";
+-import {
+-  analysisScopeSchema,
+-  analysisWindowPresetSchema,
+-  lotteryTypeSchema,
+-  numberLengthSchema
+-} from "@/schema/app/query.schema";
++import { analysisScopeSchema, lotteryTypeSchema, numberLengthSchema } from "@/schema/app/query.schema";
+ 
+ export const analysisPatternOverviewSchema = z.object({
+   examples: z.array(z.string()),
+@@ -44,9 +39,7 @@ export const patternsReadModelSchema = z.object({
+     numberLength: numberLengthSchema,
+     prizeType: z.string(),
+     scope: analysisScopeSchema,
+-    year: z.number().int().min(1900).max(3000).optional(),
+-    windowPreset: analysisWindowPresetSchema,
+-    windowSize: z.number()
++    year: z.number().int().min(1900).max(3000).optional()
+   }),
+   generatedAt: z.string(),
+   pattern: analysisPatternReadModelSchema,
+diff --git a/src/schema/app/query.schema.ts b/src/schema/app/query.schema.ts
+index 50067f0..9316ce2 100644
+--- a/src/schema/app/query.schema.ts
++++ b/src/schema/app/query.schema.ts
+@@ -32,7 +32,6 @@ export const analysisPrizeTypeSchema = z.enum([
+ 
+ export const numberLengthSchema = z.union([z.literal(2), z.literal(3), z.literal(6)]);
+ export const analysisScopeSchema = z.enum(["ALL_TIME", "MONTH"]);
+-export const analysisWindowPresetSchema = z.enum(["ALL"]);
+ 
+ const optionalPositiveIntSchema = z.coerce.number().int().positive().optional();
+ 
+@@ -78,7 +77,6 @@ export const lotteryFilterContextSchema = drawRangeQuerySchema.merge(paginationQ
+   q: z.string().trim().optional(),
+   /** Training/scoring window for compare, backtest, prediction — not analysis snapshot scope. */
+   windowSize: z.coerce.number().int().min(1).max(2000).optional().default(120),
+-  windowPreset: analysisWindowPresetSchema.optional(),
+   scope: analysisScopeSchema.optional(),
+   numberLength: z.coerce.number().pipe(numberLengthSchema).optional()
+ });
+@@ -87,7 +85,6 @@ export const filterContextSchema = analysisDrawRangeQuerySchema
+   .merge(paginationQuerySchema)
+   .extend({
+     q: z.string().trim().optional(),
+-    windowPreset: analysisWindowPresetSchema.optional(),
+     scope: analysisScopeSchema.optional(),
+     numberLength: z.coerce.number().pipe(numberLengthSchema).optional()
+   });
+diff --git a/src/schema/app/search.schema.ts b/src/schema/app/search.schema.ts
+index 9a8564b..f91c947 100644
+--- a/src/schema/app/search.schema.ts
++++ b/src/schema/app/search.schema.ts
+@@ -18,6 +18,7 @@ export const searchPrizeHitSchema = z.object({
+ });
+ 
+ export const searchStatHitSchema = z.object({
++  drawCount: z.number().int().nonnegative(),
+   frequencyPercent: z.number(),
+   hitCount: z.number().int().nonnegative(),
+   lastSeenDrawDate: z.string().optional(),
+@@ -25,8 +26,7 @@ export const searchStatHitSchema = z.object({
+   number: z.string(),
+   prizeType: analysisPrizeTypeSchema,
+   samplePrizeCount: z.number().int().nonnegative().optional(),
+-  trendScore: z.number(),
+-  windowSize: z.number().int().positive()
++  trendScore: z.number()
+ });
+ 
+ export const searchReadModelSchema = z.object({
+diff --git a/tests/analysis/analysis-pipeline-parity.test.ts b/tests/analysis/analysis-pipeline-parity.test.ts
+index 280ae4d..dcf5728 100644
+--- a/tests/analysis/analysis-pipeline-parity.test.ts
++++ b/tests/analysis/analysis-pipeline-parity.test.ts
+@@ -76,7 +76,7 @@ describe("analysis pipeline parity", () => {
+     expect(onDemand.summary.drawCount).toBe(computePath.summary.drawCount);
+     expect(onDemand.summary.drawCount).toBe(sample.drawCount);
+     expect(onDemand.summary.prizeCount).toBe(sample.prizeCount);
+-    expect(onDemand.numberStats.every((stat) => stat.windowSize === sample.drawCount)).toBe(true);
++    expect(onDemand.numberStats.every((stat) => stat.drawCount === sample.drawCount)).toBe(true);
+     expect(onDemand.digitStats).toHaveLength(computePath.digitStats.length);
+     expect(onDemand.numberStats.map((stat) => stat.number).sort()).toEqual(
+       computePath.numberStats.map((stat) => stat.number).sort()
+diff --git a/tests/analysis/compute-scope-audit.test.ts b/tests/analysis/compute-scope-audit.test.ts
+index 9a0f0a9..ac7517d 100644
+--- a/tests/analysis/compute-scope-audit.test.ts
++++ b/tests/analysis/compute-scope-audit.test.ts
+@@ -81,8 +81,6 @@ describe("compute scope audit", () => {
+       samplePrizeCount: 1,
+       scope: "ALL_TIME",
+       startDrawDate: null,
+-      windowPreset: "ALL",
+-      windowSize: 3
+     });
+ 
+     expect(row.status).toBe("draw_count_mismatch");
+diff --git a/tests/analysis/context-plan.test.ts b/tests/analysis/context-plan.test.ts
+index 033a64a..a6d2cbd 100644
+--- a/tests/analysis/context-plan.test.ts
++++ b/tests/analysis/context-plan.test.ts
+@@ -27,6 +27,6 @@ describe("listAnalysisContexts", () => {
+     expect(contexts).toHaveLength(1);
+     expect(contexts[0]?.month).toBe(5);
+     expect(contexts[0]?.year).toBeUndefined();
+-    expect(contexts[0]?.windowPreset).toBe("ALL");
++    expect(contexts[0]?.scope).toBe("MONTH");
+   });
+ });
+diff --git a/tests/analytics/analysis-matrix.test.ts b/tests/analytics/analysis-matrix.test.ts
+index e49a139..2281a2b 100644
+--- a/tests/analytics/analysis-matrix.test.ts
++++ b/tests/analytics/analysis-matrix.test.ts
+@@ -71,7 +71,7 @@ describe("analysis normalization matrix", () => {
+     }));
+     const stats = calculateNumberStats(
+       twoDigitPrizes,
+-      { computedAt: new Date(), drawCount, windowSize: drawCount },
++      { computedAt: new Date(), drawCount },
+       6
+     );
+     const hit = stats.find((stat) => stat.number === sharedNumber);
+diff --git a/tests/analytics/fixtures/analysis-matrix.ts b/tests/analytics/fixtures/analysis-matrix.ts
+index 8733f87..2d14167 100644
+--- a/tests/analytics/fixtures/analysis-matrix.ts
++++ b/tests/analytics/fixtures/analysis-matrix.ts
+@@ -117,7 +117,7 @@ export function assertNumberStatsDenominator(
+ ) {
+   const stats = calculateNumberStats(
+     prizes,
+-    { computedAt: new Date("2026-05-01T00:00:00.000Z"), drawCount, windowSize: drawCount },
++    { computedAt: new Date("2026-05-01T00:00:00.000Z"), drawCount },
+     numberLength
+   );
+   const samplePrizeCount = prizes.length;
+@@ -143,8 +143,7 @@ export function assertDigitStatsDenominator(prizes: readonly PrizeLike[], drawCo
+   const events = extractDigitEvents(prizes);
+   const stats = calculateDigitStats(events, {
+     computedAt: new Date("2026-05-01T00:00:00.000Z"),
+-    drawCount,
+-    windowSize: drawCount
++    drawCount
+   });
+   const sampleByPosition = new Map<number, number>();
+ 
+diff --git a/tests/analytics/number-stats.test.ts b/tests/analytics/number-stats.test.ts
+index 6d9d524..f1dbe55 100644
+--- a/tests/analytics/number-stats.test.ts
++++ b/tests/analytics/number-stats.test.ts
+@@ -20,8 +20,7 @@ describe("calculateDigitStats", () => {
+   test("calculates digit frequency without dropping leading zero", () => {
+     const stats = calculateDigitStats(extractDigitEvents(prizes), {
+       computedAt,
+-      drawCount: 2,
+-      windowSize: 120
++      drawCount: 2
+     });
+     const zeroAtFirstPosition = stats.find(
+       (stat) => stat.digit === "0" && stat.position === 1 && stat.prizeType === "TWO_DIGIT"
+@@ -44,8 +43,7 @@ describe("calculateDigitStats", () => {
+       ]),
+       {
+         computedAt,
+-        drawCount: 1,
+-        windowSize: 30
++        drawCount: 1
+       }
+     );
+     const nineAtSecondPosition = stats.find((stat) => stat.digit === "9" && stat.position === 2);
+@@ -60,8 +58,7 @@ describe("calculateDigitStats", () => {
+     expect(
+       calculateDigitStats([], {
+         computedAt,
+-        drawCount: 0,
+-        windowSize: 120
++        drawCount: 0
+       })
+     ).toEqual([]);
+   });
+@@ -71,8 +68,7 @@ describe("calculateNumberStats", () => {
+   test("keeps leading zero numbers as strings", () => {
+     const stats = calculateNumberStats(prizes, {
+       computedAt,
+-      drawCount: 2,
+-      windowSize: 120
++      drawCount: 2
+     });
+     const stat09 = stats.find((stat) => stat.number === "09");
+     const stat007 = stats.find((stat) => stat.number === "007");
+@@ -94,8 +90,7 @@ describe("calculateNumberStats", () => {
+       prizes,
+       {
+         computedAt,
+-        drawCount: 2,
+-        windowSize: 120
++        drawCount: 2
+       },
+       3
+     );
+@@ -108,8 +103,7 @@ describe("calculateNumberStats", () => {
+       [prize("2026-04-01", "09", "TWO_DIGIT"), prize("2026-04-16", "09", "THREE_BACK")],
+       {
+         computedAt,
+-        drawCount: 2,
+-        windowSize: 120
++        drawCount: 2
+       }
+     );
+ 
+@@ -128,8 +122,7 @@ describe("calculateNumberStats", () => {
+     expect(
+       calculateNumberStats([], {
+         computedAt,
+-        drawCount: 0,
+-        windowSize: 120
++        drawCount: 0
+       })
+     ).toEqual([]);
+   });
+@@ -151,8 +144,7 @@ describe("calculateNumberStats", () => {
+       multiPrizeRows,
+       {
+         computedAt,
+-        drawCount: 2,
+-        windowSize: 2
++        drawCount: 2
+       },
+       6
+     );
+@@ -169,8 +161,7 @@ describe("calculateNumberStats", () => {
+   test("assigns pattern flags for odd even high low double sequence and mirror", () => {
+     const stats = calculateNumberStats(prizes, {
+       computedAt,
+-      drawCount: 2,
+-      windowSize: 120
++      drawCount: 2
+     });
+ 
+     expect(stats.find((stat) => stat.number === "09")?.patternFlags).toEqual(
+@@ -192,8 +183,7 @@ describe("summarizePatterns", () => {
+   test("summarizes non-empty pattern buckets", () => {
+     const numberStats = calculateNumberStats(prizes, {
+       computedAt,
+-      drawCount: 2,
+-      windowSize: 120
++      drawCount: 2
+     });
+     const summaries = summarizePatterns(numberStats, 2);
+ 
+diff --git a/tests/dto/analytics.dto.test.ts b/tests/dto/analytics.dto.test.ts
+index 6fd6223..66e387d 100644
+--- a/tests/dto/analytics.dto.test.ts
++++ b/tests/dto/analytics.dto.test.ts
+@@ -25,8 +25,7 @@ describe("analytics.dto", () => {
+       missingDrawCount: 4,
+       position: 2,
+       prizeType: "TWO_DIGIT",
+-      trendDirection: "up",
+-      windowSize: 120
++      trendDirection: "up"
+     } as never);
+     const numberStat = toApiNumberStat({
+       averageGap: 2.5,
+@@ -43,8 +42,7 @@ describe("analytics.dto", () => {
+       numberLength: 2,
+       patternFlags,
+       prizeType: "TWO_DIGIT",
+-      trendScore: 66,
+-      windowSize: 120
++      trendScore: 66
+     } as never);
+ 
+     expect(toApiAnalyticsSummary({ drawCount: 24, generatedAt: computedAt })).toEqual({
+diff --git a/tests/dto/calendar.dto.test.ts b/tests/dto/calendar.dto.test.ts
+index d5ea720..ccfc6b5 100644
+--- a/tests/dto/calendar.dto.test.ts
++++ b/tests/dto/calendar.dto.test.ts
+@@ -59,8 +59,7 @@ describe("calendar.dto", () => {
+         }
+       ],
+       sampleSize: 8,
+-      summary: "April sample leans toward odd-ending numbers.",
+-      windowSize: 24
++      summary: "April sample leans toward odd-ending numbers."
+     };
+     const insight = toApiMonthlyInsight({ ...insightInput, hidden: "skip" } as never);
+ 
+diff --git a/tests/lib/pattern-distribution.test.ts b/tests/lib/pattern-distribution.test.ts
+index 5b9c2c3..df0e576 100644
+--- a/tests/lib/pattern-distribution.test.ts
++++ b/tests/lib/pattern-distribution.test.ts
+@@ -22,8 +22,7 @@ describe("pattern-distribution", () => {
+         numberLength: 6,
+         patternFlags: ["has_repeat", "balanced_odd_even"],
+         prizeType: "FIRST",
+-        trendScore: 0,
+-        windowSize: 50
++        trendScore: 0
+       }
+     ];
+     const items = buildPatternDistributionItems(
+diff --git a/tests/lib/pattern-playground.test.ts b/tests/lib/pattern-playground.test.ts
+index 7a745e3..54eb12f 100644
+--- a/tests/lib/pattern-playground.test.ts
++++ b/tests/lib/pattern-playground.test.ts
+@@ -47,8 +47,7 @@ describe("pattern-playground", () => {
+       page: 1,
+       pageSize: 100,
+       prizeType: "TWO_DIGIT",
+-      scope: "ALL_TIME",
+-      windowPreset: "ALL"
++      scope: "ALL_TIME"
+     });
+     expect(sixDigitAll.numberLength).toBe(6);
+     expect(sixDigitAll.prizeType).toBe("SIX_DIGIT_ALL");
+@@ -67,9 +66,7 @@ function createPatternSnapshot(): PatternsApiReadModel {
+       lotteryType: "THAI_GOVERNMENT",
+       numberLength: 2,
+       prizeType: "TWO_DIGIT",
+-      scope: "ALL_TIME",
+-      windowPreset: "ALL",
+-      windowSize: 4
++      scope: "ALL_TIME"
+     },
+     generatedAt: "2026-04-28T00:00:00.000Z",
+     pattern: {
+diff --git a/tests/services/search.service.test.ts b/tests/services/search.service.test.ts
+index f72d466..37f8714 100644
+--- a/tests/services/search.service.test.ts
++++ b/tests/services/search.service.test.ts
+@@ -28,8 +28,7 @@ describe("search.service", () => {
+         numberLength: 2,
+         patternFlags: [],
+         prizeType: "TWO_DIGIT",
+-        trendScore: 50,
+-        windowSize: 120
++        trendScore: 50
+       }
+     ];
+     (globalThis as { prisma?: unknown }).prisma = {

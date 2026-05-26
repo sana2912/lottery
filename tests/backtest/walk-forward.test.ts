@@ -93,8 +93,7 @@ describe("runWalkForwardBacktest", () => {
     const drawCount = new Set(historyPrizes.map((prize) => prize.drawId)).size;
     const digitStats = calculateDigitStats(extractDigitEvents(historyPrizes), {
       computedAt: new Date(targetDrawDate),
-      drawCount,
-      windowSize: 10
+      drawCount
     });
     const expectedNumber = buildPositionPredictionResults({
       count: 2,

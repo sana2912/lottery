@@ -16,8 +16,6 @@ const SYMBOLS = [
   "trendScore",
   "score",
   "Math.min",
-  "windowSize",
-  "windowPreset",
   "SIX_DIGIT_ALL",
   "THREE_FRONT",
   "THREE_BACK",
@@ -131,12 +129,6 @@ function classifyHit(file: string, symbol: (typeof SYMBOLS)[number], line: strin
 
   if (symbol === "frequencyPercent" && line.includes("drawCount")) {
     return "needs-formula-fix";
-  }
-
-  if (symbol === "windowPreset" || symbol === "windowSize") {
-    return file.includes("analysis-context") || file.includes("sample-resolver")
-      ? "correct"
-      : "needs-denominator-metadata";
   }
 
   if (

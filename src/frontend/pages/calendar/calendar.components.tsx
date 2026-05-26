@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { calendarContent } from "@/frontend/pages/calendar/calendar.content";
 import {
@@ -25,13 +25,12 @@ type CalendarHeatmapFiltersProps = {
 export function CalendarHeatmapFilters({ filters }: CalendarHeatmapFiltersProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const monthOptions = getCalendarMonthOptions();
   const prizeTypeOptions = getCalendarPrizeTypeOptions();
   const scopeOptions = getCalendarScopeOptions();
 
   function updateQuery(nextPartialFilters: Partial<CalendarPageFilters>) {
-    const nextSearchParams = new URLSearchParams(searchParams.toString());
+    const nextSearchParams = new URLSearchParams();
     const nextFilters = { ...filters, ...nextPartialFilters };
 
     if (nextFilters.scope === "MONTH" && nextFilters.month) {
@@ -43,8 +42,6 @@ export function CalendarHeatmapFilters({ filters }: CalendarHeatmapFiltersProps)
     nextSearchParams.delete("year");
     nextSearchParams.set("prizeType", nextFilters.prizeType);
     nextSearchParams.set("scope", nextFilters.scope);
-    nextSearchParams.delete("windowPreset");
-    nextSearchParams.delete("windowSize");
 
     router.replace(
       nextSearchParams.toString() ? `${pathname}?${nextSearchParams.toString()}` : pathname

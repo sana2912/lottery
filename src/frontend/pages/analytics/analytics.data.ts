@@ -58,8 +58,7 @@ export async function getAnalyticsModel(query?: FilterContext): Promise<Analytic
         page: 1,
         pageSize: 20,
         prizeType: "TWO_DIGIT",
-        scope: "ALL_TIME",
-        windowPreset: "ALL"
+        scope: "ALL_TIME"
       }
     )
   ).model;

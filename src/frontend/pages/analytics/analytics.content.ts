@@ -11,8 +11,7 @@ export const analyticsContent = {
   filters: {
     prizeLabel: "Prize type",
     prizeSummary: "เลือกรางวัลก่อน เพราะเลข 2, 3 และ 6 หลักควรอ่านสัญญาณไม่เหมือนกัน",
-    title: "Analytics filters",
-    windowLabel: "Sample"
+    title: "Analytics filters"
   },
   hero: {
     description:
@@ -23,8 +22,7 @@ export const analyticsContent = {
   metrics: {
     numberLength: "Number length",
     prizeType: "Prize type",
-    sampleSize: "Sample size",
-    windowSize: "Sample"
+    sampleSize: "Sample size"
   },
   notes: {
     sixDigit:

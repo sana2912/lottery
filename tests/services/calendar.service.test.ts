@@ -95,8 +95,7 @@ describe("calendar.service", () => {
     const response = await calendarService.getCalendarReadModel({
       month: 4,
       prizeType: "FIRST",
-      scope: "MONTH",
-      windowPreset: "ALL"
+      scope: "MONTH"
     });
 
     expect(calendarReadModelSchema.parse(response)).toEqual(response);
@@ -188,8 +187,7 @@ describe("calendar.service", () => {
               computedAt: new Date("2026-04-29T00:00:00.000Z"),
               invalidPrizeCount: 0,
               sampleDrawCount: 2,
-              samplePrizeCount: 2,
-              windowSize: 2
+              samplePrizeCount: 2
             }
           ];
         }
@@ -237,8 +235,7 @@ describe("calendar.service", () => {
     const response = await calendarService.getCalendarReadModel({
       month: 4,
       prizeType: "FIRST",
-      scope: "MONTH",
-      windowPreset: "ALL"
+      scope: "MONTH"
     });
 
     expect(queryCalls.some((sql) => sql.includes("SELECT DISTINCT"))).toBe(true);

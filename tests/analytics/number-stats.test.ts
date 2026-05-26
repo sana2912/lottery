@@ -20,8 +20,7 @@ describe("calculateDigitStats", () => {
   test("calculates digit frequency without dropping leading zero", () => {
     const stats = calculateDigitStats(extractDigitEvents(prizes), {
       computedAt,
-      drawCount: 2,
-      windowSize: 120
+      drawCount: 2
     });
     const zeroAtFirstPosition = stats.find(
       (stat) => stat.digit === "0" && stat.position === 1 && stat.prizeType === "TWO_DIGIT"
@@ -44,8 +43,7 @@ describe("calculateDigitStats", () => {
       ]),
       {
         computedAt,
-        drawCount: 1,
-        windowSize: 30
+        drawCount: 1
       }
     );
     const nineAtSecondPosition = stats.find((stat) => stat.digit === "9" && stat.position === 2);
@@ -60,8 +58,7 @@ describe("calculateDigitStats", () => {
     expect(
       calculateDigitStats([], {
         computedAt,
-        drawCount: 0,
-        windowSize: 120
+        drawCount: 0
       })
     ).toEqual([]);
   });
@@ -71,8 +68,7 @@ describe("calculateNumberStats", () => {
   test("keeps leading zero numbers as strings", () => {
     const stats = calculateNumberStats(prizes, {
       computedAt,
-      drawCount: 2,
-      windowSize: 120
+      drawCount: 2
     });
     const stat09 = stats.find((stat) => stat.number === "09");
     const stat007 = stats.find((stat) => stat.number === "007");
@@ -94,8 +90,7 @@ describe("calculateNumberStats", () => {
       prizes,
       {
         computedAt,
-        drawCount: 2,
-        windowSize: 120
+        drawCount: 2
       },
       3
     );
@@ -108,8 +103,7 @@ describe("calculateNumberStats", () => {
       [prize("2026-04-01", "09", "TWO_DIGIT"), prize("2026-04-16", "09", "THREE_BACK")],
       {
         computedAt,
-        drawCount: 2,
-        windowSize: 120
+        drawCount: 2
       }
     );
 
@@ -128,8 +122,7 @@ describe("calculateNumberStats", () => {
     expect(
       calculateNumberStats([], {
         computedAt,
-        drawCount: 0,
-        windowSize: 120
+        drawCount: 0
       })
     ).toEqual([]);
   });
@@ -151,8 +144,7 @@ describe("calculateNumberStats", () => {
       multiPrizeRows,
       {
         computedAt,
-        drawCount: 2,
-        windowSize: 2
+        drawCount: 2
       },
       6
     );
@@ -169,8 +161,7 @@ describe("calculateNumberStats", () => {
   test("assigns pattern flags for odd even high low double sequence and mirror", () => {
     const stats = calculateNumberStats(prizes, {
       computedAt,
-      drawCount: 2,
-      windowSize: 120
+      drawCount: 2
     });
 
     expect(stats.find((stat) => stat.number === "09")?.patternFlags).toEqual(
@@ -192,8 +183,7 @@ describe("summarizePatterns", () => {
   test("summarizes non-empty pattern buckets", () => {
     const numberStats = calculateNumberStats(prizes, {
       computedAt,
-      drawCount: 2,
-      windowSize: 120
+      drawCount: 2
     });
     const summaries = summarizePatterns(numberStats, 2);
 

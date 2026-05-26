@@ -63,8 +63,7 @@ describe("compare.service", () => {
             {
               runId: "00000000-0000-7000-8000-000000000001",
               sampleDrawCount: 50,
-              samplePrizeCount: 120,
-              windowSize: 50
+              samplePrizeCount: 120
             }
           ];
         }
@@ -138,8 +137,7 @@ function stat(
     numberLength: 2,
     patternFlags,
     prizeType: "TWO_DIGIT",
-    trendScore,
-    windowSize: 120
+    trendScore
   };
 }
 

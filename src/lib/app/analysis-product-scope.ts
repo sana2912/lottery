@@ -25,7 +25,6 @@ export function normalizeProductAnalysisQuery<T extends FilterContext>(query: T)
     ...query,
     month: scope === "MONTH" ? (query.month ?? now.getUTCMonth() + 1) : undefined,
     scope,
-    windowPreset: "ALL",
     year: undefined
   };
 }

@@ -22,6 +22,7 @@
     "db:migrate": "bun --env-file=.env.development x --bun prisma migrate dev",
     "db:push": "bun --env-file=.env.development x --bun prisma db push",
     "db:seed": "bun --env-file=.env.development scripts/seed-draws.ts",
+    "db:cleanup-analysis-snapshots": "bun --env-file=.env.development scripts/cleanup-analysis-snapshots.ts",
     "db:compute-analysis": "bun --env-file=.env.development scripts/compute-analysis.ts",
     "db:audit": "bun --env-file=.env.development scripts/db-audit.ts",
     "db:audit:draw-prizes": "bun --env-file=.env.development scripts/audit-draw-prizes.ts --format=json --out=reports/audit/draw-prizes.json",

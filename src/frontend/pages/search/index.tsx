@@ -133,7 +133,7 @@ export async function SearchPage({
               {model.groups.stats.map((stat) => (
                 <article
                   className="border border-[var(--color-border-soft)] bg-[var(--color-bg-canvas)] p-4"
-                  key={`${stat.prizeType}-${stat.number}-${stat.windowSize}`}
+                  key={`${stat.prizeType}-${stat.number}-${stat.drawCount}`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -141,7 +141,7 @@ export async function SearchPage({
                         {stat.number}
                       </p>
                       <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-                        {stat.prizeType} | {stat.windowSize} draw window
+                        {stat.prizeType} | {stat.drawCount} draws in sample
                       </p>
                     </div>
                     <Badge variant="brand">{stat.frequencyPercent}%</Badge>

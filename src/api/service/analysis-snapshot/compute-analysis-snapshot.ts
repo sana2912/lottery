@@ -16,7 +16,6 @@ export type AnalysisSnapshotSummary = {
   sampleDrawCount: number;
   samplePrizeCount: number;
   scope: AnalysisContext["scope"];
-  windowPreset: AnalysisContext["windowPreset"];
 };
 
 const SNAPSHOT_INSERT_CHUNK_SIZE = 500;
@@ -75,8 +74,6 @@ export async function recomputeAnalysisSnapshot(
           "numberLength",
           "scope",
           "month",
-          "windowPreset",
-          "windowSize",
           "sampleDrawCount",
           "samplePrizeCount",
           "invalidPrizeCount",
@@ -98,8 +95,6 @@ export async function recomputeAnalysisSnapshot(
           ${context.numberLength},
           ${context.scope},
           ${context.month ?? null},
-          ${context.windowPreset},
-          ${sample.drawCount},
           ${sample.drawCount},
           ${sample.prizeCount},
           ${sample.invalidPrizeCount},
@@ -122,7 +117,6 @@ export async function recomputeAnalysisSnapshot(
             "runId",
             "lotteryType",
             "prizeType",
-            "windowPreset",
             "digit",
             "position",
             "drawCount",
@@ -142,7 +136,6 @@ export async function recomputeAnalysisSnapshot(
                 ${runId}::uuid,
                 ${stat.lotteryType}::"LotteryType",
                 ${stat.prizeType},
-                ${context.windowPreset},
                 ${stat.digit},
                 ${stat.position ?? null},
                 ${stat.drawCount},
@@ -167,7 +160,6 @@ export async function recomputeAnalysisSnapshot(
             "runId",
             "lotteryType",
             "prizeType",
-            "windowPreset",
             "number",
             "numberLength",
             "drawCount",
@@ -190,7 +182,6 @@ export async function recomputeAnalysisSnapshot(
                 ${runId}::uuid,
                 ${stat.lotteryType}::"LotteryType",
                 ${stat.prizeType},
-                ${context.windowPreset},
                 ${stat.number},
                 ${stat.numberLength},
                 ${stat.drawCount},
@@ -218,7 +209,6 @@ export async function recomputeAnalysisSnapshot(
             "runId",
             "lotteryType",
             "prizeType",
-            "windowPreset",
             "pattern",
             "hitCount",
             "frequencyPercent",
@@ -235,7 +225,6 @@ export async function recomputeAnalysisSnapshot(
                 ${runId}::uuid,
                 ${context.lotteryType}::"LotteryType",
                 ${context.prizeType},
-                ${context.windowPreset},
                 ${summary.pattern},
                 ${summary.hitCount},
                 ${summary.frequencyPercent},
@@ -269,7 +258,6 @@ export async function recomputeAnalysisSnapshot(
             "prizeType",
             "scope",
             "month",
-            "windowPreset",
             "position",
             "digit",
             "appearanceCount",
@@ -289,7 +277,6 @@ export async function recomputeAnalysisSnapshot(
                 ${context.prizeType},
                 ${context.scope},
                 ${context.month ?? null},
-                ${context.windowPreset},
                 ${cell.position},
                 ${cell.digit},
                 ${cell.appearanceCount},
@@ -317,8 +304,7 @@ export async function recomputeAnalysisSnapshot(
     prizeType: context.prizeType,
     sampleDrawCount: sample.drawCount,
     samplePrizeCount: sample.prizeCount,
-    scope: context.scope,
-    windowPreset: context.windowPreset
+    scope: context.scope
   };
 }
 

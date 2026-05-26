@@ -2,7 +2,6 @@ import { z } from "zod";
 import { patternFlagSchema } from "@/schema/app/analytics.schema";
 import {
   analysisScopeSchema,
-  analysisWindowPresetSchema,
   lotteryTypeSchema,
   numberLengthSchema
 } from "@/schema/app/query.schema";
@@ -44,9 +43,7 @@ export const patternsReadModelSchema = z.object({
     numberLength: numberLengthSchema,
     prizeType: z.string(),
     scope: analysisScopeSchema,
-    year: z.number().int().min(1900).max(3000).optional(),
-    windowPreset: analysisWindowPresetSchema,
-    windowSize: z.number()
+    year: z.number().int().min(1900).max(3000).optional()
   }),
   generatedAt: z.string(),
   pattern: analysisPatternReadModelSchema,

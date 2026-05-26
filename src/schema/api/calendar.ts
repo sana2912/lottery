@@ -55,8 +55,6 @@ export interface ApiMonthlyInsight {
     | "PRIZE4"
     | "PRIZE5";
   scope?: "ALL_TIME" | "MONTH";
-  windowPreset?: "ALL";
-  windowSize?: number;
   positionInsights: Array<{
     coldNumbers: Array<{
       appearanceCount: number;

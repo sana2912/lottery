@@ -463,8 +463,7 @@ function analyticsResponse() {
         missingDrawCount: 0,
         position: 1,
         prizeType: "TWO_DIGIT",
-        trendDirection: "up" as const,
-        windowSize: 50
+        trendDirection: "up" as const
       }
     ],
     generatedAt: "2026-04-29T00:00:00.000Z",
@@ -480,8 +479,8 @@ function analyticsResponse() {
         numberLength: 2,
         patternFlags: ["odd", "high", "ascending"] as const,
         prizeType: "TWO_DIGIT",
-        trendScore: 65,
-        windowSize: 50
+        samplePrizeCount: 1,
+        trendScore: 65
       }
     ],
     patternSummaries: [
@@ -701,8 +700,7 @@ function calendarReadModel() {
           }
         ],
         sampleSize: 8,
-        summary: "April has 8 historical draws in sample.",
-        windowSize: 24
+        summary: "April has 8 historical draws in sample."
       }
     ],
     nextDraw: {
@@ -805,6 +803,7 @@ function searchReadModel() {
       ],
       stats: [
         {
+          drawCount: 120,
           frequencyPercent: 12.5,
           hitCount: 3,
           lastSeenDrawDate: "2026-04-16T00:00:00.000Z",
@@ -812,7 +811,7 @@ function searchReadModel() {
           number: "09",
           prizeType: "TWO_DIGIT" as const,
           trendScore: 50,
-          windowSize: 120
+          samplePrizeCount: 3
         }
       ]
     },

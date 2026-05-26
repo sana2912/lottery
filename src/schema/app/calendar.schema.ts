@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { analysisScopeSchema, analysisWindowPresetSchema } from "@/schema/app/query.schema";
+import { analysisScopeSchema } from "@/schema/app/query.schema";
 
 const calendarPrizeTypeSchema = z.enum([
   "FIRST",
@@ -24,8 +24,7 @@ export const calendarHeatmapQuerySchema = z.object({
   month: z.coerce.number().int().min(1).max(12).optional(),
   year: z.coerce.number().int().min(1900).max(3000).optional(),
   prizeType: optionalCalendarPrizeTypeSchema,
-  scope: analysisScopeSchema.optional(),
-  windowPreset: analysisWindowPresetSchema.optional()
+  scope: analysisScopeSchema.optional()
 });
 
 export const calendarDataCompletenessSchema = z.enum(["complete", "partial"]);
@@ -81,8 +80,6 @@ export const monthlyInsightSchema = z.object({
   summary: z.string(),
   prizeType: calendarPrizeTypeSchema.optional(),
   scope: analysisScopeSchema.optional(),
-  windowPreset: analysisWindowPresetSchema.optional(),
-  windowSize: z.number().int().positive().optional(),
   positionInsights: z.array(
     z.object({
       coldNumbers: z.array(

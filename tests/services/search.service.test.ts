@@ -28,8 +28,7 @@ describe("search.service", () => {
         numberLength: 2,
         patternFlags: [],
         prizeType: "TWO_DIGIT",
-        trendScore: 50,
-        windowSize: 120
+        trendScore: 50
       }
     ];
     (globalThis as { prisma?: unknown }).prisma = {

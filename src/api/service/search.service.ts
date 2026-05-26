@@ -134,8 +134,7 @@ async function getSearchStats(query: SearchQuery) {
         numberLength: 2,
         page: 1,
         pageSize: 100,
-        prizeType: "TWO_DIGIT",
-        windowPreset: "ALL"
+        prizeType: "TWO_DIGIT"
       }),
       query.q ?? ""
     );
@@ -148,8 +147,7 @@ async function getSearchStats(query: SearchQuery) {
         numberLength: 3,
         page: 1,
         pageSize: 1000,
-        prizeType: "THREE_DIGIT",
-        windowPreset: "ALL"
+        prizeType: "THREE_DIGIT"
       }),
       query.q ?? ""
     );
@@ -163,8 +161,7 @@ async function getSearchStats(query: SearchQuery) {
         page: 1,
         pageSize: 1000,
         prizeType: "SIX_DIGIT_ALL",
-        scope: "ALL_TIME",
-        windowPreset: "ALL"
+        scope: "ALL_TIME"
       }),
       query.q ?? ""
     );
@@ -181,6 +178,7 @@ function mapSearchStats(
     .filter((stat) => stat.number.includes(q))
     .slice(0, 20)
     .map((stat) => ({
+      drawCount: stat.drawCount,
       frequencyPercent: stat.frequencyPercent,
       hitCount: stat.hitCount,
       lastSeenDrawDate: stat.lastSeenDrawDate,
@@ -188,7 +186,6 @@ function mapSearchStats(
       number: stat.number,
       prizeType: stat.prizeType as ApiSearchStatHit["prizeType"],
       samplePrizeCount: stat.samplePrizeCount,
-      trendScore: stat.trendScore,
-      windowSize: stat.windowSize
+      trendScore: stat.trendScore
     }));
 }

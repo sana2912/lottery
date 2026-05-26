@@ -76,7 +76,7 @@ describe("analysis pipeline parity", () => {
     expect(onDemand.summary.drawCount).toBe(computePath.summary.drawCount);
     expect(onDemand.summary.drawCount).toBe(sample.drawCount);
     expect(onDemand.summary.prizeCount).toBe(sample.prizeCount);
-    expect(onDemand.numberStats.every((stat) => stat.windowSize === sample.drawCount)).toBe(true);
+    expect(onDemand.numberStats.every((stat) => stat.drawCount === sample.drawCount)).toBe(true);
     expect(onDemand.digitStats).toHaveLength(computePath.digitStats.length);
     expect(onDemand.numberStats.map((stat) => stat.number).sort()).toEqual(
       computePath.numberStats.map((stat) => stat.number).sort()

@@ -47,7 +47,6 @@ export type AnalyticsViewModel = {
     scope: NonNullable<FilterContext["scope"]>;
     scopeLabel: string;
     scopeDrawLabel: string;
-    windowPreset: "ALL";
   };
   digitPositions: Array<{
     digit: string;
@@ -105,8 +104,7 @@ export function buildAnalyticsViewModel(
       sampleSize: analytics.summary.drawCount,
       scope: query.scope ?? "ALL_TIME",
       scopeLabel: getScopeLabel(query),
-      scopeDrawLabel: getScopeDrawLabel(query, analytics.summary.drawCount),
-      windowPreset: "ALL"
+      scopeDrawLabel: getScopeDrawLabel(query, analytics.summary.drawCount)
     },
     digitPositions: getPositionDigitStats(filteredDigits, query.prizeType, numberLength),
     exactNumbers: filteredNumbers.slice(0, numberLength === 6 ? 10 : 12),

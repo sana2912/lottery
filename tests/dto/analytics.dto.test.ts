@@ -25,8 +25,7 @@ describe("analytics.dto", () => {
       missingDrawCount: 4,
       position: 2,
       prizeType: "TWO_DIGIT",
-      trendDirection: "up",
-      windowSize: 120
+      trendDirection: "up"
     } as never);
     const numberStat = toApiNumberStat({
       averageGap: 2.5,
@@ -43,8 +42,7 @@ describe("analytics.dto", () => {
       numberLength: 2,
       patternFlags,
       prizeType: "TWO_DIGIT",
-      trendScore: 66,
-      windowSize: 120
+      trendScore: 66
     } as never);
 
     expect(toApiAnalyticsSummary({ drawCount: 24, generatedAt: computedAt })).toEqual({

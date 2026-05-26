@@ -80,9 +80,7 @@ describe("compute scope audit", () => {
       sampleDrawCount: 1,
       samplePrizeCount: 1,
       scope: "ALL_TIME",
-      startDrawDate: null,
-      windowPreset: "ALL",
-      windowSize: 3
+      startDrawDate: null
     });
 
     expect(row.status).toBe("draw_count_mismatch");

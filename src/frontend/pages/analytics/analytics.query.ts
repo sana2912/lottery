@@ -31,10 +31,6 @@ export function buildAnalyticsHref(
       continue;
     }
 
-    if (key === "windowPreset" && value === "ALL") {
-      continue;
-    }
-
     if (key === "year") {
       continue;
     }
@@ -60,8 +56,7 @@ export function toAnalyticsApiQuery(query: FilterContext) {
     prizeType: normalized.prizeType,
     q: normalized.q,
     scope: normalized.scope,
-    startDate: normalized.startDate,
-    windowPreset: normalized.windowPreset
+    startDate: normalized.startDate
   };
 }
 

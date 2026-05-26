@@ -2,7 +2,6 @@ import {
   ANALYSIS_ENGINE_VERSION,
   ANALYSIS_MONTHS,
   ANALYSIS_PRIZE_TYPES,
-  ANALYSIS_WINDOW_PRESET,
   type AnalysisMonth,
   type AnalysisPrizeType,
   createAnalysisContext,
@@ -26,7 +25,6 @@ import {
 const LOTTERY_TYPE = "THAI_GOVERNMENT";
 const DEFAULT_OUT = "reports/audit/analysis-normalization.json";
 const DEFAULT_REPORT_OUT = "reports/audit/normalization-system-audit.md";
-const WINDOW_PRESETS = [ANALYSIS_WINDOW_PRESET] as const;
 const MONTHS = ANALYSIS_MONTHS;
 const PRIZE_TYPES = [
   "FIRST",
@@ -67,7 +65,6 @@ const EXPECTED_ROWS_PER_DRAW = {
 } satisfies Record<PrizeType, number | null>;
 
 type PrizeType = (typeof PRIZE_TYPES)[number];
-type WindowPreset = (typeof WINDOW_PRESETS)[number];
 type DrawRow = Awaited<ReturnType<typeof loadDraws>>[number];
 type PrizeRow = DrawRow["prizes"][number];
 type SnapshotRow = {
@@ -82,8 +79,6 @@ type SnapshotRow = {
   sampleDrawCount: number;
   samplePrizeCount: number;
   scope: string;
-  windowPreset: string;
-  windowSize: number | null;
 };
 
 type CliOptions = {
@@ -174,15 +169,13 @@ async function loadSnapshots(
         "numberLength",
         "scope",
         "month",
-        "windowPreset",
-        "windowSize",
         "sampleDrawCount",
         "samplePrizeCount",
         "invalidPrizeCount",
         "engineVersion",
         "computedAt"
       FROM "analysis_snapshot_runs"
-      ORDER BY "prizeType" ASC, "scope" ASC, "month" ASC NULLS FIRST, "windowPreset" ASC
+      ORDER BY "prizeType" ASC, "scope" ASC, "month" ASC NULLS FIRST
     `;
   } catch (error) {
     warnings.push(`Could not read analysis snapshots: ${getErrorMessage(error)}`);
@@ -216,7 +209,7 @@ function buildReport(
     prizeProfiles,
     lengthProfiles: buildLengthProfiles(draws),
     sixDigitAllProfile: buildSixDigitAllProfile(draws),
-    windowSamples: buildWindowSamples(draws),
+    analysisSamples: buildAnalysisSamples(draws),
     calendarHeatmapDiagnostics,
     heatmapMatrixDiagnostics,
     numberStatsDiagnostics: buildNumberStatsDiagnostics(draws),
@@ -322,29 +315,24 @@ function buildSixDigitAllProfile(draws: readonly DrawRow[]) {
   };
 }
 
-function buildWindowSamples(draws: readonly DrawRow[]) {
-  const allTimeSamples = ANALYSIS_PRIZE_TYPES.flatMap((prizeType) =>
-    WINDOW_PRESETS.map((windowPreset) =>
-      buildWindowSample(draws, prizeType, "ALL_TIME", windowPreset)
-    )
+function buildAnalysisSamples(draws: readonly DrawRow[]) {
+  const allTimeSamples = ANALYSIS_PRIZE_TYPES.map((prizeType) =>
+    buildAnalysisSample(draws, prizeType, "ALL_TIME")
   );
   const monthSamples = ANALYSIS_PRIZE_TYPES.flatMap((prizeType) =>
-    MONTHS.map((month) =>
-      buildWindowSample(draws, prizeType, "MONTH", ANALYSIS_WINDOW_PRESET, month)
-    )
+    MONTHS.map((month) => buildAnalysisSample(draws, prizeType, "MONTH", month))
   );
 
   return [...allTimeSamples, ...monthSamples];
 }
 
-function buildWindowSample(
+function buildAnalysisSample(
   draws: readonly DrawRow[],
   prizeType: AnalysisPrizeType,
   scope: "ALL_TIME" | "MONTH",
-  windowPreset: WindowPreset,
   month?: number
 ) {
-  const sampleDraws = selectSampleDraws(draws, prizeType, scope, windowPreset, month);
+  const sampleDraws = selectSampleDraws(draws, prizeType, scope, month);
   const expectedRowsPerDraw = getExpectedRowsPerDrawForAnalysisPrize(prizeType);
   const validPrizeCounts = sampleDraws.map(
     (draw) => filterValidAnalysisPrizes(draw.prizes, prizeType).length
@@ -361,25 +349,21 @@ function buildWindowSample(
     prizeType,
     sampleDrawCount: sampleDraws.length,
     samplePrizeCount: sum(validPrizeCounts),
-    scope,
-    windowPreset,
-    windowSize: sampleDraws.length
+    scope
   };
 }
 
 function buildHeatmapMatrixDiagnostics(draws: readonly DrawRow[]) {
   return CALENDAR_DIAGNOSTIC_PRIZE_TYPES.flatMap((prizeType) =>
-    WINDOW_PRESETS.flatMap((windowPreset) =>
-      MATRIX_DIAGNOSTIC_SCOPES.flatMap((scope) => {
-        if (scope === "MONTH") {
-          return MATRIX_DIAGNOSTIC_MONTHS.map((month) =>
-            buildHeatmapDiagnosticCell(draws, prizeType, scope, windowPreset, month)
-          );
-        }
+    MATRIX_DIAGNOSTIC_SCOPES.flatMap((scope) => {
+      if (scope === "MONTH") {
+        return MATRIX_DIAGNOSTIC_MONTHS.map((month) =>
+          buildHeatmapDiagnosticCell(draws, prizeType, scope, month)
+        );
+      }
 
-        return [buildHeatmapDiagnosticCell(draws, prizeType, scope, windowPreset)];
-      })
-    )
+      return [buildHeatmapDiagnosticCell(draws, prizeType, scope)];
+    })
   );
 }
 
@@ -387,10 +371,9 @@ function buildHeatmapDiagnosticCell(
   draws: readonly DrawRow[],
   prizeType: AnalysisPrizeType,
   scope: "ALL_TIME" | "MONTH",
-  windowPreset: WindowPreset,
   month?: number
 ) {
-  const sampleDraws = selectSampleDraws(draws, prizeType, scope, windowPreset, month);
+  const sampleDraws = selectSampleDraws(draws, prizeType, scope, month);
   const numberLength = getAnalysisPrizeNumberLength(prizeType);
   const heatmapRows = buildHeatmapRows(sampleDraws, prizeType, numberLength);
 
@@ -403,8 +386,7 @@ function buildHeatmapDiagnosticCell(
     month: month ?? null,
     prizeType,
     sampleDrawCount: sampleDraws.length,
-    scope,
-    windowPreset
+    scope
   };
 }
 
@@ -414,7 +396,7 @@ function buildHeatmapMatrixWarnings(diagnostics: ReturnType<typeof buildHeatmapM
   for (const diagnostic of diagnostics) {
     if (diagnostic.eventCountMismatchCount > 0) {
       warnings.push(
-        `heatmap matrix ${diagnostic.prizeType} ${diagnostic.scope} month=${diagnostic.month ?? "ALL"} window=${diagnostic.windowPreset}: ${diagnostic.eventCountMismatchCount} position rows with eventCount mismatch.`
+        `heatmap matrix ${diagnostic.prizeType} ${diagnostic.scope} month=${diagnostic.month ?? "ALL"}: ${diagnostic.eventCountMismatchCount} position rows with eventCount mismatch.`
       );
     }
   }
@@ -426,17 +408,15 @@ function buildNumberStatsMatrixDiagnostics(draws: readonly DrawRow[]) {
   const prizeTypes = ["TWO_DIGIT", "THREE_DIGIT", "PRIZE5", "SIX_DIGIT_ALL"] as const;
 
   return prizeTypes.flatMap((prizeType) =>
-    WINDOW_PRESETS.flatMap((windowPreset) =>
-      MATRIX_DIAGNOSTIC_SCOPES.flatMap((scope) => {
-        if (scope === "MONTH") {
-          return MATRIX_DIAGNOSTIC_MONTHS.map((month) =>
-            buildNumberStatsMatrixCell(draws, prizeType, scope, windowPreset, month)
-          );
-        }
+    MATRIX_DIAGNOSTIC_SCOPES.flatMap((scope) => {
+      if (scope === "MONTH") {
+        return MATRIX_DIAGNOSTIC_MONTHS.map((month) =>
+          buildNumberStatsMatrixCell(draws, prizeType, scope, month)
+        );
+      }
 
-        return [buildNumberStatsMatrixCell(draws, prizeType, scope, windowPreset)];
-      })
-    )
+      return [buildNumberStatsMatrixCell(draws, prizeType, scope)];
+    })
   );
 }
 
@@ -444,10 +424,9 @@ function buildNumberStatsMatrixCell(
   draws: readonly DrawRow[],
   prizeType: (typeof ANALYSIS_PRIZE_TYPES)[number],
   scope: "ALL_TIME" | "MONTH",
-  windowPreset: WindowPreset,
   month?: number
 ) {
-  const sampleDraws = selectSampleDraws(draws, prizeType, scope, windowPreset, month);
+  const sampleDraws = selectSampleDraws(draws, prizeType, scope, month);
   const samplePrizes = sampleDraws.flatMap((draw) =>
     filterValidAnalysisPrizes(draw.prizes, prizeType)
   );
@@ -461,8 +440,7 @@ function buildNumberStatsMatrixCell(
     prizeType,
     sampleDrawCount,
     samplePrizeCount,
-    scope,
-    windowPreset
+    scope
   };
 }
 
@@ -613,7 +591,7 @@ function buildModuleAudit() {
 
 function buildCalendarHeatmapDiagnostics(draws: readonly DrawRow[]) {
   return CALENDAR_DIAGNOSTIC_PRIZE_TYPES.map((prizeType) => {
-    const sampleDraws = selectSampleDraws(draws, prizeType, "ALL_TIME", ANALYSIS_WINDOW_PRESET);
+    const sampleDraws = selectSampleDraws(draws, prizeType, "ALL_TIME");
     const numberLength = getAnalysisPrizeNumberLength(prizeType);
     const rowsPerDraw = sampleDraws.map(
       (draw) => filterValidAnalysisPrizes(draw.prizes, prizeType).length
@@ -629,8 +607,7 @@ function buildCalendarHeatmapDiagnostics(draws: readonly DrawRow[]) {
       maxRowsPerDraw: Math.max(0, ...rowsPerDraw),
       minRowsPerDraw: rowsPerDraw.length > 0 ? Math.min(...rowsPerDraw) : 0,
       prizeType,
-      sampleDrawCount: sampleDraws.length,
-      windowPreset: ANALYSIS_WINDOW_PRESET
+      sampleDrawCount: sampleDraws.length
     };
   });
 }
@@ -655,7 +632,7 @@ function buildCalendarHeatmapWarnings(
 
 function buildNumberStatsDiagnostics(draws: readonly DrawRow[]) {
   return CALENDAR_DIAGNOSTIC_PRIZE_TYPES.map((prizeType) => {
-    const sampleDraws = selectSampleDraws(draws, prizeType, "ALL_TIME", ANALYSIS_WINDOW_PRESET);
+    const sampleDraws = selectSampleDraws(draws, prizeType, "ALL_TIME");
     const samplePrizes = sampleDraws.flatMap((draw) =>
       filterValidAnalysisPrizes(draw.prizes, prizeType)
     );
@@ -695,8 +672,7 @@ function buildNumberStatsDiagnostics(draws: readonly DrawRow[]) {
       prizeType,
       sampleDrawCount,
       samplePrizeCount,
-      topDrawDenominatorInflationExamples: rows,
-      windowPreset: ANALYSIS_WINDOW_PRESET
+      topDrawDenominatorInflationExamples: rows
     };
   });
 }
@@ -743,30 +719,24 @@ function buildSnapshotCoverage(snapshots: readonly SnapshotRow[]) {
 }
 
 export function buildExpectedSnapshotContextKeys() {
-  return ANALYSIS_PRIZE_TYPES.flatMap((prizeType) =>
-    WINDOW_PRESETS.flatMap((windowPreset) => [
-      getAnalysisContextKey(createAnalysisContext({ prizeType, scope: "ALL_TIME", windowPreset })),
-      ...MONTHS.map((month) =>
-        getAnalysisContextKey(
-          createAnalysisContext({ month, prizeType, scope: "MONTH", windowPreset })
-        )
-      )
-    ])
-  );
+  return ANALYSIS_PRIZE_TYPES.flatMap((prizeType) => [
+    getAnalysisContextKey(createAnalysisContext({ prizeType, scope: "ALL_TIME" })),
+    ...MONTHS.map((month) =>
+      getAnalysisContextKey(createAnalysisContext({ month, prizeType, scope: "MONTH" }))
+    )
+  ]);
 }
 
 function selectSampleDraws(
   draws: readonly DrawRow[],
   prizeType: AnalysisPrizeType,
   scope: "ALL_TIME" | "MONTH",
-  windowPreset: WindowPreset,
   month?: number
 ) {
   const context = createAnalysisContext({
     month: scope === "MONTH" ? (month as AnalysisMonth) : undefined,
     prizeType,
-    scope,
-    windowPreset
+    scope
   });
 
   return selectEligibleDraws(draws, context).sort(

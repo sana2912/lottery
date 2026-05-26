@@ -106,9 +106,7 @@ export function toApiMonthlyInsight(insight: MonthlyInsightDtoInput): ApiMonthly
       position: positionInsight.position
     })),
     sampleSize: insight.sampleSize,
-    summary: insight.summary,
-    windowPreset: insight.windowPreset,
-    windowSize: insight.windowSize
+    summary: insight.summary
   };
 }
 

@@ -25,14 +25,11 @@ export const SIX_DIGIT_SOURCE_PRIZE_TYPES = [
   "PRIZE5"
 ] as const;
 
-/** Single analysis window: full eligible sample in scope (no draw cap). */
-export const ANALYSIS_WINDOW_PRESET = "ALL" as const;
 export const ANALYSIS_SCOPES = ["ALL_TIME", "MONTH"] as const;
 export const ANALYSIS_MONTHS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as const;
 
 export type AnalysisPrizeType = (typeof ANALYSIS_PRIZE_TYPES)[number];
 export type AnalysisSourcePrizeType = Exclude<AnalysisPrizeType, "SIX_DIGIT_ALL">;
-export type AnalysisWindowPreset = typeof ANALYSIS_WINDOW_PRESET;
 export type AnalysisScope = (typeof ANALYSIS_SCOPES)[number];
 export type AnalysisMonth = (typeof ANALYSIS_MONTHS)[number];
 
@@ -45,20 +42,17 @@ export type AnalysisContext = {
   numberLength: 2 | 3 | 6;
   prizeType: AnalysisPrizeType;
   scope: AnalysisScope;
-  windowPreset: AnalysisWindowPreset;
 };
 
 export type AnalysisContextInput = Partial<
   Pick<AnalysisContext, "engineVersion" | "lotteryType" | "month" | "scope" | "year">
 > & {
   prizeType: string;
-  windowPreset?: string;
 };
 
 export function createAnalysisContext(input: AnalysisContextInput): AnalysisContext {
   const prizeType = parseAnalysisPrizeType(input.prizeType);
   const scope = parseAnalysisScope(input.scope ?? "ALL_TIME");
-  const windowPreset = parseAnalysisWindowPreset(input.windowPreset);
   const month = scope === "MONTH" ? parseAnalysisMonth(input.month) : undefined;
   const year =
     scope === "MONTH" && input.year !== undefined ? parseAnalysisYear(input.year) : undefined;
@@ -70,8 +64,7 @@ export function createAnalysisContext(input: AnalysisContextInput): AnalysisCont
     year,
     numberLength: getAnalysisPrizeNumberLength(prizeType),
     prizeType,
-    scope,
-    windowPreset
+    scope
   };
 }
 
@@ -87,8 +80,7 @@ export function getAnalysisContextKey(context: AnalysisContext) {
       ? context.year !== undefined
         ? String(context.year)
         : "ALL_YEARS"
-      : "ALL_YEARS",
-    context.windowPreset
+      : "ALL_YEARS"
   ].join("|");
 }
 
@@ -125,10 +117,6 @@ export function isAnalysisPrizeType(value: string): value is AnalysisPrizeType {
   return ANALYSIS_PRIZE_TYPES.includes(value as AnalysisPrizeType);
 }
 
-export function isAnalysisWindowPreset(value: string): value is AnalysisWindowPreset {
-  return value === ANALYSIS_WINDOW_PRESET;
-}
-
 export function isAnalysisScope(value: string): value is AnalysisScope {
   return ANALYSIS_SCOPES.includes(value as AnalysisScope);
 }
@@ -140,16 +128,6 @@ function parseAnalysisPrizeType(value: string): AnalysisPrizeType {
 
   throw new Error(
     `Invalid analysis prizeType "${value}". Supported values: ${ANALYSIS_PRIZE_TYPES.join(", ")}`
-  );
-}
-
-function parseAnalysisWindowPreset(value: string | undefined): AnalysisWindowPreset {
-  if (value === undefined || value === ANALYSIS_WINDOW_PRESET) {
-    return ANALYSIS_WINDOW_PRESET;
-  }
-
-  throw new Error(
-    `Invalid analysis windowPreset "${value}". Only "${ANALYSIS_WINDOW_PRESET}" is supported (no draw cap).`
   );
 }
 

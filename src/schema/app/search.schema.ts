@@ -18,6 +18,7 @@ export const searchPrizeHitSchema = z.object({
 });
 
 export const searchStatHitSchema = z.object({
+  drawCount: z.number().int().nonnegative(),
   frequencyPercent: z.number(),
   hitCount: z.number().int().nonnegative(),
   lastSeenDrawDate: z.string().optional(),
@@ -25,8 +26,7 @@ export const searchStatHitSchema = z.object({
   number: z.string(),
   prizeType: analysisPrizeTypeSchema,
   samplePrizeCount: z.number().int().nonnegative().optional(),
-  trendScore: z.number(),
-  windowSize: z.number().int().positive()
+  trendScore: z.number()
 });
 
 export const searchReadModelSchema = z.object({

@@ -33,7 +33,7 @@ describe("page rendering", () => {
       const twoDigitMarkup = renderToStaticMarkup(
         await AnalyticsPage({
           pageData: { model: analyticsModel(2, "TWO_DIGIT"), state: "ready" },
-          searchParams: { numberLength: "2", prizeType: "TWO_DIGIT", windowSize: "30" }
+          searchParams: { numberLength: "2", prizeType: "TWO_DIGIT" }
         })
       );
 
@@ -51,7 +51,7 @@ describe("page rendering", () => {
       const threeDigitMarkup = renderToStaticMarkup(
         await AnalyticsPage({
           pageData: { model: analyticsModel(3, "THREE_FRONT"), state: "ready" },
-          searchParams: { numberLength: "3", prizeType: "THREE_FRONT", windowSize: "60" }
+          searchParams: { numberLength: "3", prizeType: "THREE_FRONT" }
         })
       );
 
@@ -69,7 +69,7 @@ describe("page rendering", () => {
       const sixDigitMarkup = renderToStaticMarkup(
         await AnalyticsPage({
           pageData: { model: analyticsModel(6, "FIRST"), state: "ready" },
-          searchParams: { numberLength: "6", prizeType: "FIRST", windowSize: "120" }
+          searchParams: { numberLength: "6", prizeType: "FIRST" }
         })
       );
 
@@ -212,8 +212,7 @@ function digitStatsForPosition(position: number, prizeType: string) {
     missingDrawCount: index,
     position,
     prizeType,
-    trendDirection: index === 0 ? ("up" as const) : ("flat" as const),
-    windowSize: 30
+    trendDirection: index === 0 ? ("up" as const) : ("flat" as const)
   }));
 }
 
@@ -231,8 +230,7 @@ function numberStat(number: string, numberLength: 2 | 3 | 6, prizeType: string, 
     numberLength,
     patternFlags: ["has_repeat" as const, "mid_sum" as const],
     prizeType,
-    trendScore: 50 - rank,
-    windowSize: 30
+    trendScore: 50 - rank
   };
 }
 
@@ -301,9 +299,7 @@ function calendarModel() {
         prizeType: "FIRST" as const,
         sampleSize: 8,
         scope: "MONTH" as const,
-        summary: "April has 8 historical draws in sample.",
-        windowPreset: "ALL" as const,
-        windowSize: 8
+        summary: "April has 8 historical draws in sample."
       }
     ],
     nextDraw: {

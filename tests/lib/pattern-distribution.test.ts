@@ -22,8 +22,7 @@ describe("pattern-distribution", () => {
         numberLength: 6,
         patternFlags: ["has_repeat", "balanced_odd_even"],
         prizeType: "FIRST",
-        trendScore: 0,
-        windowSize: 50
+        trendScore: 0
       }
     ];
     const items = buildPatternDistributionItems(

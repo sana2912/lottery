@@ -26,8 +26,7 @@ export async function compareNumbers(input: CompareRequest) {
     prizeType: input.prizeType,
     q: input.q,
     scope: "ALL_TIME",
-    startDate: input.startDate,
-    windowPreset: "ALL"
+    startDate: input.startDate
   } as const;
   const snapshotStats = await getAnalysisSnapshotNumberStatsForNumbers(
     statsQuery,
@@ -111,8 +110,7 @@ function createEmptyNumberStat({
     patternFlags: getPatternFlags(number),
     prizeType: input.prizeType ?? "TWO_DIGIT",
     samplePrizeCount: sampleStat?.samplePrizeCount ?? sampleStat?.drawCount ?? 0,
-    trendScore: 0,
-    windowSize: input.windowSize
+    trendScore: 0
   };
 }
 

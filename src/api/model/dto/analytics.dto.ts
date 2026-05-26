@@ -63,8 +63,7 @@ export function toApiDigitStat(stat: DigitStatDtoInput): ApiDigitStat {
     position: stat.position,
     prizeType: stat.prizeType,
     sampleEventCount: stat.sampleEventCount,
-    trendDirection: stat.trendDirection,
-    windowSize: stat.windowSize
+    trendDirection: stat.trendDirection
   };
 }
 
@@ -88,8 +87,7 @@ export function toApiNumberStat(stat: NumberStatDtoInput): ApiNumberStat {
     patternFlags: [...stat.patternFlags],
     prizeType: stat.prizeType,
     samplePrizeCount: stat.samplePrizeCount,
-    trendScore: stat.trendScore,
-    windowSize: stat.windowSize
+    trendScore: stat.trendScore
   };
 }
 

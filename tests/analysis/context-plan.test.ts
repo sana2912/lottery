@@ -27,6 +27,6 @@ describe("listAnalysisContexts", () => {
     expect(contexts).toHaveLength(1);
     expect(contexts[0]?.month).toBe(5);
     expect(contexts[0]?.year).toBeUndefined();
-    expect(contexts[0]?.windowPreset).toBe("ALL");
+    expect(contexts[0]?.scope).toBe("MONTH");
   });
 });

@@ -72,8 +72,7 @@ describe("dashboard.service", () => {
       page: 1,
       pageSize: 20,
       prizeType: "TWO_DIGIT",
-      scope: "ALL_TIME",
-      windowPreset: "ALL"
+      scope: "ALL_TIME"
     });
     expect(dashboardReadModelSchema.parse(model)).toEqual(model);
     expect(model.latestDraw.primaryPrize).toEqual({
@@ -157,7 +156,6 @@ function numberStat(
     numberLength: 2,
     patternFlags: [],
     prizeType: "TWO_DIGIT",
-    trendScore,
-    windowSize: 120
+    trendScore
   };
 }

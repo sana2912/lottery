@@ -134,8 +134,6 @@ async function loadSnapshots(prisma: ReturnType<typeof getPrisma>): Promise<Scop
       "prizeType",
       "scope",
       "month",
-      "windowPreset",
-      "windowSize",
       "sampleDrawCount",
       "samplePrizeCount",
       "invalidPrizeCount",
@@ -144,7 +142,7 @@ async function loadSnapshots(prisma: ReturnType<typeof getPrisma>): Promise<Scop
       "endDrawDate",
       "computedAt"
     FROM "analysis_snapshot_runs"
-    ORDER BY "prizeType" ASC, "scope" ASC, "month" ASC NULLS FIRST, "windowPreset" ASC
+    ORDER BY "prizeType" ASC, "scope" ASC, "month" ASC NULLS FIRST
   `;
 }
 

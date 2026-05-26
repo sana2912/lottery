@@ -1,7 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
   ANALYSIS_PRIZE_TYPES,
-  ANALYSIS_WINDOW_PRESET,
   createAnalysisContext,
   getAnalysisContextKey,
   getAnalysisPrizeNumberLength
@@ -23,9 +22,6 @@ describe("analysis context", () => {
     expect(() => createAnalysisContext({ prizeType: "FIRST_PRIZE" })).toThrow(
       "Invalid analysis prizeType"
     );
-    expect(() => createAnalysisContext({ prizeType: "TWO_DIGIT", windowPreset: "50" })).toThrow(
-      'Invalid analysis windowPreset "50"'
-    );
   });
 
   test("builds distinct keys for all-time and month-across-years", () => {
@@ -46,8 +42,9 @@ describe("analysis context", () => {
     });
 
     expect(getAnalysisContextKey(allTime)).not.toEqual(getAnalysisContextKey(mayAllYears));
-    expect(getAnalysisContextKey(mayAllYears)).toContain("MONTH|5|ALL_YEARS|ALL");
-    expect(getAnalysisContextKey(may2026)).toContain("MONTH|5|2026|ALL");
+    expect(getAnalysisContextKey(mayAllYears)).toContain("MONTH|5|ALL_YEARS");
+    expect(getAnalysisContextKey(mayAllYears)).not.toMatch(/\|ALL$/);
+    expect(getAnalysisContextKey(may2026)).toContain("MONTH|5|2026");
   });
 
   test("requires month for monthly scope; year is optional", () => {
@@ -89,7 +86,6 @@ describe("analysis context", () => {
       numberLength: 2,
       prizeType: "TWO_DIGIT",
       scope: "MONTH",
-      windowPreset: ANALYSIS_WINDOW_PRESET,
       year: undefined
     });
     expect(
@@ -97,8 +93,7 @@ describe("analysis context", () => {
         lotteryType: "THAI_GOVERNMENT",
         page: 1,
         pageSize: 20,
-        prizeType: "OTHER" as never,
-        windowPreset: "ALL"
+        prizeType: "OTHER" as never
       })
     ).toBeNull();
     expect(
@@ -107,8 +102,7 @@ describe("analysis context", () => {
         numberLength: 6,
         page: 1,
         pageSize: 20,
-        prizeType: "TWO_DIGIT",
-        windowPreset: "ALL"
+        prizeType: "TWO_DIGIT"
       })
     ).toBeNull();
     expect(
@@ -123,12 +117,34 @@ describe("analysis context", () => {
     expect(
       getAnalysisContextForFilterQuery({
         lotteryType: "THAI_GOVERNMENT",
+        month: 5,
         page: 1,
         pageSize: 20,
         prizeType: "TWO_DIGIT",
-        windowPreset: "50"
+        scope: "MONTH",
+        windowPreset: "50",
+        year: 2026
       } as unknown as Parameters<typeof getAnalysisContextForFilterQuery>[0])
-    ).toBeNull();
+    ).toMatchObject({
+      month: 5,
+      numberLength: 2,
+      prizeType: "TWO_DIGIT",
+      scope: "MONTH",
+      year: undefined
+    });
+    expect(
+      getAnalysisContextForFilterQuery({
+        lotteryType: "THAI_GOVERNMENT",
+        page: 1,
+        pageSize: 20,
+        prizeType: "TWO_DIGIT",
+        windowSize: 50
+      } as unknown as Parameters<typeof getAnalysisContextForFilterQuery>[0])
+    ).toMatchObject({
+      numberLength: 2,
+      prizeType: "TWO_DIGIT",
+      scope: "ALL_TIME"
+    });
   });
 
   test("maps calendar heatmap queries to monthly snapshot contexts by selected prize type", () => {
@@ -146,17 +162,20 @@ describe("analysis context", () => {
       numberLength: 6,
       prizeType: "PRIZE5",
       scope: "MONTH",
-      windowPreset: ANALYSIS_WINDOW_PRESET,
       year: undefined
     });
     expect(
       getAnalysisContextForCalendarQuery(
         {
-          prizeType: "TWO_DIGIT",
-          windowPreset: "50"
+          prizeType: "TWO_DIGIT"
         } as unknown as Parameters<typeof getAnalysisContextForCalendarQuery>[0],
         new Date("2026-05-12T00:00:00.000Z")
       )
-    ).toBeNull();
+    ).toMatchObject({
+      month: 5,
+      numberLength: 2,
+      prizeType: "TWO_DIGIT",
+      scope: "MONTH"
+    });
   });
 });

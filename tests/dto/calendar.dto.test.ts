@@ -59,8 +59,7 @@ describe("calendar.dto", () => {
         }
       ],
       sampleSize: 8,
-      summary: "April sample leans toward odd-ending numbers.",
-      windowSize: 24
+      summary: "April sample leans toward odd-ending numbers."
     };
     const insight = toApiMonthlyInsight({ ...insightInput, hidden: "skip" } as never);
 

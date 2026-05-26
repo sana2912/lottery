@@ -34,7 +34,6 @@ export interface ApiDigitStat {
   prizeType: string;
   digit: string;
   position?: number;
-  windowSize: number;
   drawCount: number;
   hitCount: number;
   frequencyPercent: number;
@@ -52,7 +51,6 @@ export interface ApiNumberStat {
   numberLength: number;
   lotteryType: string;
   prizeType: string;
-  windowSize: number;
   drawCount: number;
   hitCount: number;
   frequencyPercent: number;

@@ -1,13 +1,11 @@
 import {
   ANALYSIS_ENGINE_VERSION,
-  ANALYSIS_WINDOW_PRESET,
   type AnalysisContext,
   type AnalysisMonth,
   createAnalysisContext,
   getAnalysisContextKey,
   getAnalysisPrizeNumberLength,
-  isAnalysisPrizeType,
-  isAnalysisWindowPreset
+  isAnalysisPrizeType
 } from "@/api/service/analysis-snapshot/analysis-context";
 import type { AnalysisCalendarHeatmapReadModel } from "@/api/service/analysis-snapshot/calendar-heatmap-read-model";
 import { getPrisma } from "@/api/service/prisma";
@@ -31,7 +29,6 @@ type AnalysisSnapshotRow = {
   invalidPrizeCount: number;
   sampleDrawCount: number;
   samplePrizeCount: number;
-  windowSize: number | null;
 };
 
 type AnalysisSnapshotAnalyticsRow = {
@@ -39,14 +36,12 @@ type AnalysisSnapshotAnalyticsRow = {
   analyticsReadModel: unknown;
   sampleDrawCount: number;
   samplePrizeCount: number;
-  windowSize: number | null;
 };
 
 type AnalysisSnapshotStatRunRow = {
   runId: string;
   sampleDrawCount: number;
   samplePrizeCount: number;
-  windowSize: number | null;
 };
 
 type AnalysisSnapshotDigitRow = {
@@ -86,14 +81,12 @@ type AnalysisSnapshotPatternRow = {
   patternReadModel: unknown;
   sampleDrawCount: number;
   samplePrizeCount: number;
-  windowSize: number | null;
 };
 
 export type AnalysisSnapshotNumberStatsLookup = {
   sampleDrawCount: number;
   samplePrizeCount: number;
   stats: ApiNumberStat[];
-  windowSize: number;
 };
 
 const SLOW_SNAPSHOT_LOOKUP_MS = 500;
@@ -233,8 +226,7 @@ export async function getAnalysisSnapshotNumberStatsForNumbers(
   return {
     sampleDrawCount: snapshot.sampleDrawCount,
     samplePrizeCount: snapshot.samplePrizeCount,
-    stats: rows.map((row) => toApiNumberStat(row, snapshot)),
-    windowSize: snapshot.windowSize ?? snapshot.sampleDrawCount
+    stats: rows.map((row) => toApiNumberStat(row, snapshot))
   };
 }
 
@@ -294,7 +286,6 @@ export async function getAnalysisSnapshotPatternReadModel(
     return null;
   }
 
-  const expectedWindowSize = snapshot.windowSize ?? snapshot.sampleDrawCount;
   const generatedAt = snapshot.computedAt.toISOString();
 
   return {
@@ -304,9 +295,7 @@ export async function getAnalysisSnapshotPatternReadModel(
       numberLength: context.numberLength,
       prizeType: context.prizeType,
       scope: context.scope,
-      year: context.year,
-      windowPreset: context.windowPreset,
-      windowSize: expectedWindowSize
+      year: context.year
     },
     generatedAt,
     pattern: patternReadModel,
@@ -364,10 +353,6 @@ export async function getAnalysisSnapshotCalendarReadModel(query: CalendarHeatma
 }
 
 export function getAnalysisContextForFilterQuery(query: FilterContext): AnalysisContext | null {
-  if (query.windowPreset && !isAnalysisWindowPreset(query.windowPreset)) {
-    return null;
-  }
-
   const normalized = normalizeProductAnalysisQuery(query);
 
   if (!normalized.prizeType || !isAnalysisPrizeType(normalized.prizeType)) {
@@ -392,8 +377,7 @@ export function getAnalysisContextForFilterQuery(query: FilterContext): Analysis
     lotteryType: normalized.lotteryType,
     month: normalized.month as AnalysisMonth | undefined,
     prizeType: normalized.prizeType,
-    scope: normalized.scope,
-    windowPreset: ANALYSIS_WINDOW_PRESET
+    scope: normalized.scope
   });
 }
 
@@ -408,18 +392,13 @@ export function getAnalysisContextForCalendarQuery(
     return null;
   }
 
-  if (query.windowPreset && !isAnalysisWindowPreset(query.windowPreset)) {
-    return null;
-  }
-
   const month =
     scope === "MONTH" ? ((query.month ?? now.getUTCMonth() + 1) as AnalysisMonth) : undefined;
 
   return createAnalysisContext({
     month,
     prizeType,
-    scope,
-    windowPreset: ANALYSIS_WINDOW_PRESET
+    scope
   });
 }
 
@@ -435,8 +414,7 @@ async function getAnalysisSnapshotAnalyticsRow(
         "analyticsReadModel",
         pg_column_size("analyticsReadModel")::int AS "analyticsReadModelBytes",
         "sampleDrawCount",
-        "samplePrizeCount",
-        "windowSize"
+        "samplePrizeCount"
       FROM "analysis_snapshot_runs"
       WHERE
         "contextKey" = ${contextKey}
@@ -474,8 +452,7 @@ async function getAnalysisSnapshotStatRunRowUncached(
           SELECT
             "_id"::text AS "runId",
             "sampleDrawCount",
-            "samplePrizeCount",
-            "windowSize"
+            "samplePrizeCount"
           FROM "analysis_snapshot_runs"
           WHERE
             "contextKey" = ${contextKey}
@@ -590,7 +567,6 @@ async function getAnalysisSnapshotPatternRow(
         pg_column_size("patternReadModel")::int AS "patternReadModelBytes",
         "sampleDrawCount",
         "samplePrizeCount",
-        "windowSize",
         "computedAt"
       FROM "analysis_snapshot_runs"
       WHERE
@@ -616,8 +592,7 @@ async function getAnalysisSnapshot(context: AnalysisContext): Promise<AnalysisSn
         pg_column_size("calendarReadModel")::int AS "calendarReadModelBytes",
         "sampleDrawCount",
         "samplePrizeCount",
-        "invalidPrizeCount",
-        "windowSize"
+        "invalidPrizeCount"
       FROM "analysis_snapshot_runs"
       WHERE
         "contextKey" = ${contextKey}
@@ -647,21 +622,14 @@ function isAnalyticsSnapshotMetadataCurrent(
   model: ApiAnalyticsReadModel,
   snapshot: AnalysisSnapshotAnalyticsRow
 ) {
-  const expectedWindowSize = snapshot.windowSize ?? snapshot.sampleDrawCount;
-
   return (
-    snapshot.windowSize === snapshot.sampleDrawCount &&
     model.summary.drawCount === snapshot.sampleDrawCount &&
     model.summary.prizeCount === snapshot.samplePrizeCount &&
     (snapshot.samplePrizeCount === 0 || model.numberStats.length > 0) &&
-    model.digitStats.every(
-      (stat) =>
-        stat.drawCount === snapshot.sampleDrawCount && stat.windowSize === expectedWindowSize
-    ) &&
+    model.digitStats.every((stat) => stat.drawCount === snapshot.sampleDrawCount) &&
     model.numberStats.every(
       (stat) =>
         stat.drawCount === snapshot.sampleDrawCount &&
-        stat.windowSize === expectedWindowSize &&
         stat.samplePrizeCount === snapshot.samplePrizeCount
     )
   );
@@ -670,7 +638,7 @@ function isAnalyticsSnapshotMetadataCurrent(
 function isStatSnapshotCurrent(
   snapshot: AnalysisSnapshotStatRunRow | null
 ): snapshot is AnalysisSnapshotStatRunRow {
-  return Boolean(snapshot && snapshot.windowSize === snapshot.sampleDrawCount);
+  return Boolean(snapshot);
 }
 
 function isDerivedRowsCurrent(
@@ -692,7 +660,7 @@ function areFilteredRowsCurrent(
 
 function toApiDigitStat(
   row: AnalysisSnapshotDigitRow,
-  snapshot: AnalysisSnapshotStatRunRow
+  _snapshot: AnalysisSnapshotStatRunRow
 ): ApiDigitStat {
   return {
     computedAt: normalizeDateString(row.computedAt),
@@ -708,8 +676,7 @@ function toApiDigitStat(
     position: row.position ?? undefined,
     prizeType: row.prizeType,
     sampleEventCount: getSampleEventCount(row.hitCount, row.frequencyPercent),
-    trendDirection: row.trendDirection,
-    windowSize: snapshot.windowSize ?? snapshot.sampleDrawCount
+    trendDirection: row.trendDirection
   };
 }
 
@@ -734,8 +701,7 @@ function toApiNumberStat(
     patternFlags: toPatternFlags(row.patternFlags),
     prizeType: row.prizeType,
     samplePrizeCount: snapshot.samplePrizeCount,
-    trendScore: row.trendScore,
-    windowSize: snapshot.windowSize ?? snapshot.sampleDrawCount
+    trendScore: row.trendScore
   };
 }
 
@@ -744,7 +710,6 @@ function isCalendarSnapshotMetadataCurrent(
   snapshot: AnalysisSnapshotRow
 ) {
   return (
-    snapshot.windowSize === snapshot.sampleDrawCount &&
     model.drawCount === snapshot.sampleDrawCount &&
     model.invalidPrizeCount === snapshot.invalidPrizeCount &&
     model.prizeCount === snapshot.samplePrizeCount &&
@@ -756,10 +721,7 @@ function isPatternSnapshotMetadataCurrent(
   model: ApiPatternsReadModel["pattern"],
   snapshot: AnalysisSnapshotPatternRow
 ) {
-  return (
-    snapshot.windowSize === snapshot.sampleDrawCount &&
-    model.sampleSize === snapshot.samplePrizeCount
-  );
+  return model.sampleSize === snapshot.samplePrizeCount;
 }
 
 async function dedupeInFlight<T>(key: string, operation: () => Promise<T>): Promise<T> {

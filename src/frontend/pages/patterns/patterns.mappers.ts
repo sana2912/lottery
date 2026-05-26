@@ -166,8 +166,7 @@ export function toPatternsAnalyticsQuery(query: PatternPageQuery): FilterContext
     page: 1,
     pageSize: 100,
     prizeType: query.prizeType,
-    scope: query.scope,
-    windowPreset: "ALL"
+    scope: query.scope
   });
 }
 

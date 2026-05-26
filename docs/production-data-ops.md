@@ -137,7 +137,7 @@ Analysis sample (v8):
 
 - **ALL_TIME** — every eligible draw with matching prize types up to now (no draw cap).
 - **MONTH** — `EXTRACT(MONTH)` on `drawDate`; month-across-all-years, no year dimension in product/compute.
-- **`windowPreset`** — always `ALL`; `windowSize` in snapshot rows equals `sampleDrawCount`.
+- **Analysis snapshot metadata** — store `sampleDrawCount` and `samplePrizeCount` directly; no window dimension in the context key or stored rows.
 - **Prediction/backtest `windowSize`** — training draw count only; not the analysis sample.
 
 Optional static code scan (no database):

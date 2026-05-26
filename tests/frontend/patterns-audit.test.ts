@@ -120,8 +120,7 @@ describe("patterns page audit", () => {
     const prizeType = "THREE_FRONT";
     const apiStats = calculateNumberStats(fixtures.THREE_FRONT, {
       computedAt,
-      drawCount: 2,
-      windowSize: 120
+      drawCount: 2
     });
     const analytics = toApiAnalyticsReadModel(apiStats, 2);
     const pattern = buildAnalysisPatternReadModel(analytics);
@@ -130,9 +129,7 @@ describe("patterns page audit", () => {
         lotteryType: "THAI_GOVERNMENT",
         numberLength: 3,
         prizeType,
-        scope: "ALL_TIME",
-        windowPreset: "ALL",
-        windowSize: 2
+        scope: "ALL_TIME"
       },
       generatedAt: analytics.generatedAt,
       pattern,
@@ -213,8 +210,7 @@ function patternIdToFlag(id: string): NumberShapeFlag {
 function buildAnalyticsModel(prizeType: keyof typeof fixtures): AnalyticsReadModel {
   const apiStats = calculateNumberStats(fixtures[prizeType], {
     computedAt,
-    drawCount: 2,
-    windowSize: 120
+    drawCount: 2
   });
 
   return {
@@ -234,8 +230,8 @@ function buildAnalyticsModel(prizeType: keyof typeof fixtures): AnalyticsReadMod
       numberLength: stat.numberLength,
       patternFlags: [...stat.patternFlags],
       prizeType: stat.prizeType,
-      trendScore: stat.trendScore,
-      windowSize: stat.windowSize
+      samplePrizeCount: stat.samplePrizeCount,
+      trendScore: stat.trendScore
     })),
     patternSummaries: summarizePatterns(apiStats, 2).map((summary) => ({
       frequencyPercent: summary.frequencyPercent,

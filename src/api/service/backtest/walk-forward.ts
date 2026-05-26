@@ -71,8 +71,7 @@ export function runWalkForwardBacktest({
     const drawCount = new Set(historyPrizes.map((prize) => prize.drawId)).size;
     const digitStats = calculateDigitStats(extractDigitEvents(historyPrizes), {
       computedAt: normalizeDate(targetDraw.drawDate),
-      drawCount,
-      windowSize
+      drawCount
     });
     const generatedCandidates = buildPositionPredictionResults({
       count: candidateCount,

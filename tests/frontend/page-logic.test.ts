@@ -56,8 +56,7 @@ describe("frontend logic helpers", () => {
         patternFlags: [],
         position: index,
         prizeType: "TWO_DIGIT",
-        trendDirection: "flat",
-        windowSize: 120
+        trendDirection: "flat"
       })),
       generatedAt: "2026-04-29T00:00:00.000Z",
       numberStats: Array.from({ length: 9 }, (_, index) => ({
@@ -74,8 +73,7 @@ describe("frontend logic helpers", () => {
         numberLength: 2,
         patternFlags: [],
         prizeType: "TWO_DIGIT",
-        trendScore: 10 - index,
-        windowSize: 120
+        trendScore: 10 - index
       })),
       patternSummaries: [],
       source: "api",
@@ -126,8 +124,7 @@ describe("frontend logic helpers", () => {
           page: 1,
           pageSize: 20,
           prizeType: "SIX_DIGIT_ALL",
-          scope: "ALL_TIME",
-          windowPreset: "ALL"
+          scope: "ALL_TIME"
         }
       ).context.numberLength
     ).toBe(6);
@@ -431,8 +428,7 @@ describe("frontend logic helpers", () => {
     expect(toPatternsAnalyticsQuery(firstQuery)).toMatchObject({
       numberLength: 6,
       prizeType: "FIRST",
-      scope: "ALL_TIME",
-      windowPreset: "ALL"
+      scope: "ALL_TIME"
     });
     expect(firstModel.prizeLabel).toBe("FIRST");
     expect(firstModel.numberLengthLabel).toBe("6 digits");
@@ -493,9 +489,7 @@ describe("frontend logic helpers", () => {
           lotteryType: "THAI_GOVERNMENT",
           numberLength: 6,
           prizeType: "SIX_DIGIT_ALL",
-          scope: "ALL_TIME",
-          windowPreset: "ALL",
-          windowSize: 10
+          scope: "ALL_TIME"
         },
         generatedAt: "2026-04-29T00:00:00.000Z",
         pattern: {
@@ -712,8 +706,7 @@ describe("frontend logic helpers", () => {
     ).toEqual({
       month: 5,
       prizeType: "FIRST",
-      scope: "MONTH",
-      windowPreset: "ALL"
+      scope: "MONTH"
     });
     expect(
       getDaysUntilNextDraw(
@@ -775,7 +768,6 @@ function patternStat(
     numberLength,
     patternFlags: [],
     prizeType,
-    trendScore: hitCount,
-    windowSize: 120
+    trendScore: hitCount
   };
 }

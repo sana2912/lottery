@@ -77,6 +77,7 @@ describe("frontend query/mappers", () => {
 
     expect(parsed.lotteryType).toBe("THAI_GOVERNMENT");
     expect(parsed.page).toBe(1);
+    expect("windowSize" in (parsed as Record<string, unknown>)).toBe(false);
   });
 
   test("buildAnalyticsHref keeps clean URLs when no query overrides are set", () => {
@@ -92,7 +93,7 @@ describe("frontend query/mappers", () => {
 
     expect(parsed.numberLength).toBe(6);
     expect(parsed.prizeType).toBe("SIX_DIGIT_ALL");
-    expect(parsed.windowPreset).toBe("ALL");
+    expect(parsed.scope).toBe("ALL_TIME");
   });
 
   test("parseResultsSearchParams accepts URLSearchParams", () => {

@@ -47,8 +47,7 @@ describe("pattern-playground", () => {
       page: 1,
       pageSize: 100,
       prizeType: "TWO_DIGIT",
-      scope: "ALL_TIME",
-      windowPreset: "ALL"
+      scope: "ALL_TIME"
     });
     expect(sixDigitAll.numberLength).toBe(6);
     expect(sixDigitAll.prizeType).toBe("SIX_DIGIT_ALL");
@@ -67,9 +66,7 @@ function createPatternSnapshot(): PatternsApiReadModel {
       lotteryType: "THAI_GOVERNMENT",
       numberLength: 2,
       prizeType: "TWO_DIGIT",
-      scope: "ALL_TIME",
-      windowPreset: "ALL",
-      windowSize: 4
+      scope: "ALL_TIME"
     },
     generatedAt: "2026-04-28T00:00:00.000Z",
     pattern: {

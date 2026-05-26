@@ -98,10 +98,6 @@ export const calendarContent = {
     prizeType: {
       label: "Prize type",
       placeholder: "Prize type"
-    },
-    windowSize: {
-      label: "Sample size",
-      placeholder: "Sample size"
     }
   },
   heatmap: {

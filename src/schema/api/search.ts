@@ -29,6 +29,7 @@ export interface ApiSearchPrizeHit {
 }
 
 export interface ApiSearchStatHit {
+  drawCount: number;
   frequencyPercent: number;
   hitCount: number;
   lastSeenDrawDate?: string;
@@ -37,7 +38,6 @@ export interface ApiSearchStatHit {
   prizeType: ApiSearchStatHitPrizeType;
   samplePrizeCount?: number;
   trendScore: number;
-  windowSize: number;
 }
 
 export interface ApiSearchReadModel {

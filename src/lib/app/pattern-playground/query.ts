@@ -18,7 +18,6 @@ export function toPatternStatsQueryForPrize(prizeType: PatternStatsPrizeType): F
     page: 1,
     pageSize: 100,
     prizeType,
-    scope: "ALL_TIME",
-    windowPreset: "ALL"
+    scope: "ALL_TIME"
   });
 }
