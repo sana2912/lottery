@@ -44,7 +44,6 @@ model LotteryDraw {
   publishedAt     DateTime?
   metadata        Json?
   prizes          LotteryPrize[]
-  backtestResults BacktestResult[]
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
@@ -241,52 +240,4 @@ model AnalysisCalendarHeatmap {
   @@index([runId])
   @@index([lotteryType, prizeType, scope, month, position, digit], map: "analysis_heatmap_cell_idx")
   @@map("analysis_calendar_heatmaps")
-}
-
-model BacktestRun {
-  id                String           @id @default(uuid(7)) @map("_id") @db.Uuid
-  strategyId        String
-  strategyName      String
-  params            Json?
-  lotteryType       LotteryType
-  prizeType         LotteryPrizeType
-  numberLength      Int
-  startDrawDate     DateTime
-  endDrawDate       DateTime
-  candidateCount    Int
-  hitRate           Float
-  longestMissStreak Int
-  averageHitRank    Float?
-  coverage          Int
-  computedAt        DateTime
-  version           String
-  results           BacktestResult[]
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
-
-  @@index([strategyId])
-  @@index([lotteryType, prizeType])
-  @@index([computedAt])
-  @@map("backtest_runs")
-}
-
-model BacktestResult {
-  id               String      @id @default(uuid(7)) @map("_id") @db.Uuid
-  runId            String      @db.Uuid
-  run              BacktestRun @relation(fields: [runId], references: [id], onDelete: Cascade)
-  drawId           String      @db.Uuid
-  draw             LotteryDraw @relation(fields: [drawId], references: [id])
-  drawDate         DateTime
-  generatedNumbers String[]
-  actualNumbers    String[]
-  isHit            Boolean
-  hitNumbers       String[]
-  rankOfHit        Int?
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
-
-  @@index([runId])
-  @@index([runId, drawDate])
-  @@index([drawId])
-  @@map("backtest_results")
 }

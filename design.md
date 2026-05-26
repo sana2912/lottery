@@ -13,6 +13,7 @@ The visual system may use a restrained linear-glass treatment. This should feel 
 Use a warm stone base with restrained red as the brand color. Teal, amber, purple, and semantic colors support insight states. Avoid red/gold-heavy casino pairings, excessive gradients, or loud lottery styling.
 
 For glass treatment:
+
 - favor soft white or smoke-tinted translucent surfaces
 - use thin highlight borders and restrained backdrop blur
 - use linear gradients more than radial glow
@@ -91,9 +92,6 @@ For glass treatment:
 
 --prediction: #9333ea;
 --prediction-soft: #faf5ff;
-
---backtest: #0f766e;
---backtest-soft: #ccfbf1;
 ```
 
 ### App Alias Tokens
@@ -163,11 +161,11 @@ Use the app aliases in composed UI when they improve readability or match an exi
 --radius: 0rem;
 
 --font-display:
-  "IBM Plex Sans", "Helvetica Neue", Helvetica, Arial, ui-sans-serif,
-  system-ui, sans-serif;
+  "IBM Plex Sans", "Helvetica Neue", Helvetica, Arial, ui-sans-serif, system-ui,
+  sans-serif;
 --font-ui:
-  "IBM Plex Sans", "Helvetica Neue", Helvetica, Arial, ui-sans-serif,
-  system-ui, sans-serif;
+  "IBM Plex Sans", "Helvetica Neue", Helvetica, Arial, ui-sans-serif, system-ui,
+  sans-serif;
 ```
 
 ### Dark Theme
@@ -231,9 +229,6 @@ Use the app aliases in composed UI when they improve readability or match an exi
 
   --prediction: #c084fc;
   --prediction-soft: #3b0764;
-
-  --backtest: #2dd4bf;
-  --backtest-soft: #134e4a;
 }
 ```
 
@@ -272,7 +267,7 @@ Use the app aliases in composed UI when they improve readability or match an exi
 Support semantic variants:
 
 - `hot`, `cold`, `overdue`
-- `prediction`, `backtest`
+- `prediction`
 - `success`, `warning`, `danger`, `muted`
 
 Badges should be square soft labels with readable contrast. Avoid loud casino-like colors.
@@ -307,109 +302,3 @@ Badges should be square soft labels with readable contrast. Avoid loud casino-li
 - Use friendly, product-like copy.
 - Explain what is missing and provide one clear next action.
 - Avoid blame or dead-end states.
-
-## Page Usage Rules
-
-### Dashboard
-
-- Use white cards on the warm stone background.
-- Main CTA uses primary red.
-- Latest draw card may use primary-soft.
-- Hot, cold, and overdue cards use their semantic colors.
-- Hero and shell-adjacent cards can use the clearest linear-glass treatment in the app, as long as metrics stay immediately scannable.
-
-### Results
-
-- Should feel like the source of truth.
-- Use mostly neutral cards.
-- Verified badge uses success.
-- Partial or imported badge uses warning.
-- Prize numbers should be clear, large, and may use monospace.
-
-### Analytics
-
-- Bar charts use primary.
-- Heatmaps use a primary-soft to primary scale.
-- Labels use muted text.
-
-### Patterns
-
-- Slightly more playful than Analytics, but still trustworthy.
-- Odd/even, high/low, double, and sequence patterns should use chips or badges.
-- Pattern insight is descriptive, not predictive.
-
-### Prediction Lab
-
-- Use prediction purple as the feature accent.
-- Avoid wording like "guaranteed", "sure win", or "AI knows".
-- Use wording like "signal", "score", "historical tendency", and "reason".
-- Score breakdown colors:
-  - Hot: hot red
-  - Overdue: overdue amber
-  - Position: primary red
-  - Pattern: prediction purple
-  - Pair: secondary teal
-- Every prediction result must have explanation space.
-
-### Backtest
-
-- Use backtest teal as accent.
-- Hit uses success.
-- Miss uses danger.
-- Random baseline uses muted.
-- Longest miss streak uses warning.
-- Layout should feel serious and audit-friendly.
-
-### Compare
-
-- Use neutral table/card bases.
-- Use colored metric bars.
-- Strongest signal can have a soft success border.
-- Avoid aggressive "winner/loser" language.
-
-### Calendar
-
-- Countdown card uses primary and accent.
-- Next draw should be visually highlighted.
-- Past draws are muted.
-- Monthly insights use teal and orange soft colors.
-- Always show sample-size or uncertainty copy for monthly insights.
-
-### Time Machine
-
-- Full-bleed static CSS starfield is ambiance only; the center draw board is the source of truth.
-- The board shell stays mounted; prize numbers and metadata update instantly per draw (no digit transitions until the UI redesign).
-- Prize numbers are grouped by type in sections; รางวัลที่ 1 (FIRST) is the hero block; all eligible types are visible without hiding rows in a scroll-only table.
-- Compare highlights exact hits across all prize types; near miss applies only to รางวัลที่ 1 (FIRST) at distance 1 (highlight only, no popup).
-- Exact hits enqueue a static reward banner one at a time (draw label, year, prize type, ticket, research points).
-- HUD stays minimal: tickets, score, speed, pause/replay, and a link to the draw detail page.
-- Copy stays research and educational; label points as research score only, never money.
-
-## Copywriting Rules
-
-Prefer:
-
-- analysis
-- signal
-- score
-- historical data
-- trend
-- confidence
-- reason
-
-Avoid:
-
-- guaranteed
-- แม่นแน่นอน
-- เลขล็อก
-- ต้องซื้อ
-- sure win
-
-Thai/English mixed copy is okay, but keep it clear, calm, and product-like.
-
-## Responsive Rules
-
-- Cards stack cleanly on mobile.
-- Filters wrap or collapse instead of overflowing.
-- Text must fit inside controls and metric cards.
-- Preserve chart/table readability with horizontal scrolling when needed.

@@ -1,10 +1,4 @@
-export type ApiDashboardMetricTone =
-  | "default"
-  | "hot"
-  | "cold"
-  | "overdue"
-  | "prediction"
-  | "backtest";
+export type ApiDashboardMetricTone = "default" | "hot" | "cold" | "overdue" | "prediction";
 
 export interface ApiDashboardHero {
   eyebrow: string;

@@ -70,7 +70,7 @@ export const searchQuerySchema = drawRangeQuerySchema.merge(paginationQuerySchem
 
 export const lotteryFilterContextSchema = drawRangeQuerySchema.merge(paginationQuerySchema).extend({
   q: z.string().trim().optional(),
-  /** Training/scoring window for compare, backtest, prediction — not analysis snapshot scope. */
+  /** Training/scoring window for compare and prediction — not analysis snapshot scope. */
   windowSize: z.coerce.number().int().min(1).max(2000).optional().default(120),
   scope: analysisScopeSchema.optional(),
   numberLength: z.coerce.number().pipe(numberLengthSchema).optional()

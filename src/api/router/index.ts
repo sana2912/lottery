@@ -1,13 +1,11 @@
 import { Elysia } from "elysia";
 import { analyticsRouter } from "@/api/router/analytics.router";
-import { backtestRouter } from "@/api/router/backtest.router";
 import { calendarRouter } from "@/api/router/calendar.router";
 import { compareRouter } from "@/api/router/compare.router";
 import { dashboardRouter } from "@/api/router/dashboard.router";
 import { drawRouter } from "@/api/router/draw.router";
 import { patternsRouter } from "@/api/router/patterns.router";
 import { predictionRouter } from "@/api/router/prediction.router";
-import { searchRouter } from "@/api/router/search.router";
 import { timeMachineRouter } from "@/api/router/time-machine.router";
 import { ANALYSIS_ENGINE_VERSION } from "@/api/service/analysis-snapshot/analysis-context";
 
@@ -22,10 +20,8 @@ export function createApiRouter() {
     .use(analyticsRouter)
     .use(patternsRouter)
     .use(predictionRouter)
-    .use(backtestRouter)
     .use(compareRouter)
     .use(calendarRouter)
     .use(dashboardRouter)
-    .use(searchRouter)
     .use(timeMachineRouter);
 }

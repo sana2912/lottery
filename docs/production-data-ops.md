@@ -67,7 +67,6 @@ bun run db:audit
 - latest draw date and source status
 - draw source-status distribution
 - prediction run count
-- backtest run count
 - analysis snapshot run count and latest `computedAt`
 - analysis digit/number/pattern/calendar row counts
 
@@ -138,7 +137,7 @@ Analysis sample (v8):
 - **ALL_TIME** — every eligible draw with matching prize types up to now (no draw cap).
 - **MONTH** — `EXTRACT(MONTH)` on `drawDate`; month-across-all-years, no year dimension in product/compute.
 - **Analysis snapshot metadata** — store `sampleDrawCount` and `samplePrizeCount` directly; no window dimension in the context key or stored rows.
-- **Prediction/backtest `windowSize`** — training draw count only; not the analysis sample.
+- **Prediction `windowSize`** — training draw count only; not the analysis sample.
 
 Optional static code scan (no database):
 

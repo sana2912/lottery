@@ -5,8 +5,7 @@ export const dashboardMetricToneSchema = z.enum([
   "hot",
   "cold",
   "overdue",
-  "prediction",
-  "backtest"
+  "prediction"
 ]);
 
 const dashboardPrizeSchema = z.object({

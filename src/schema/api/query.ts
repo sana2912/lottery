@@ -37,10 +37,6 @@ export interface ApiWindowQuery extends ApiLotteryQuery {
   numberLength?: ApiNumberLength;
 }
 
-export interface ApiSearchQuery extends ApiDrawRangeQuery, ApiPaginationQuery {
-  q?: string;
-}
-
 export interface ApiFilterContext extends ApiDrawRangeQuery, ApiPaginationQuery, ApiWindowQuery {
   q?: string;
 }

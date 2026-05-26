@@ -133,16 +133,12 @@ describe("page rendering", () => {
   );
 
   test(
-    "renders initial client page shells for prediction lab and backtest",
+    "renders initial client page shell for prediction lab",
     async () => {
-      const { BacktestPage } = await import("@/frontend/pages/backtest");
       const { PredictionLabPage } = await import("@/frontend/pages/prediction-lab");
 
-      const backtestMarkup = renderToStaticMarkup(createElement(BacktestPage));
       const predictionMarkup = renderToStaticMarkup(createElement(PredictionLabPage));
 
-      expect(backtestMarkup).toContain("Calculation window");
-      expect(backtestMarkup).toContain("Generated target draws");
       expect(predictionMarkup).toContain("Prize type");
       expect(predictionMarkup).toContain("Derived length");
     },

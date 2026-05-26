@@ -13,7 +13,7 @@ LotteryPrize rows
   -> Digit events
   -> Digit stats / Number stats / Shape flags
   -> Analytics read model
-  -> Prediction / Compare / Pattern / Calendar / Backtest
+  -> Prediction / Compare / Pattern / Calendar
   -> UI cards, tables, heatmaps, explanations
 ```
 
@@ -31,16 +31,12 @@ LotteryPrize rows
 
 `windowSize`
 
-จำนวนงวดย้อนหลังที่ใช้คำนวณสำหรับ prediction / compare / backtest เช่น `120` แปลว่าใช้ 120 งวดล่าสุดเป็นข้อมูลตั้งต้น ไม่ใช่จำนวนเลขที่จะ generate  
+จำนวนงวดย้อนหลังที่ใช้คำนวณสำหรับ prediction / compare เช่น `120` แปลว่าใช้ 120 งวดล่าสุดเป็นข้อมูลตั้งต้น ไม่ใช่จำนวนเลขที่จะ generate  
 analysis snapshot ไม่มี `windowSize` แล้ว และใช้ full eligible sample ตาม context พร้อมเก็บ `sampleDrawCount` / `samplePrizeCount`
 
 `candidateCount`
 
 จำนวนเลขที่อยากให้ระบบ generate เช่น `5` แปลว่าเอา top 5 candidates
-
-`targetDrawCount`
-
-ใช้ใน backtest เท่านั้น แปลว่าต้องการย้อนทดสอบกี่งวด เช่น ทดสอบ 30 งวดล่าสุด
 
 `prizeType`
 
@@ -977,103 +973,7 @@ patternFlags = shape flags จากตัวเลขนั้น
 
 รวม scoreBreakdown ทุก candidate แล้วดูว่า field ไหนรวมสูงสุด เช่น hot, overdue, pattern
 
-## 11. Backtest
-
-ไฟล์หลัก:
-
-`src/api/service/backtest/walk-forward.ts:43`
-
-หน้าที่:
-
-ทดสอบย้อนหลังแบบ walk-forward
-
-แปลแบบบ้าน ๆ:
-
-ระบบย้อนเวลาไปทีละงวด แล้วทายงวดนั้นโดยใช้เฉพาะข้อมูลก่อนหน้างวดนั้น ห้ามแอบเห็นผลจริงล่วงหน้า
-
-flow:
-
-```text
-sort draws จากเก่าไปใหม่
-เลือก targetDraws ตาม targetDrawCount
-สำหรับแต่ละ target draw:
-  historyDraws = งวดก่อนหน้า target draw ตาม windowSize
-  สร้าง digitStats จาก historyDraws
-  generate candidate numbers
-  เทียบกับ actualNumbers ของ target draw
-  ถ้าตรง = hit
-```
-
-ตัวแปรสำคัญ:
-
-```text
-windowSize = จำนวนงวดก่อนหน้า target draw ที่ใช้คำนวณ
-targetDrawCount = จำนวนงวดที่อยากย้อนทดสอบ
-candidateCount = จำนวนเลขที่ generate ต่อหนึ่งงวด
-```
-
-### hit / miss
-
-```text
-hitNumbers = generatedNumbers ที่อยู่ใน actualNumbers
-isHit = hitNumbers.length > 0
-rankOfHit = ลำดับของเลขที่ถูกใน generatedNumbers
-```
-
-### explanation payload
-
-ไฟล์:
-
-`src/api/service/backtest/walk-forward.ts:142`
-
-ถ้า row นั้น hit ระบบแนบคำอธิบายว่า:
-
-```text
-ใช้ window กี่งวด
-ใช้ strategy อะไร
-เลขที่ generate แต่ละตัวได้ score เท่าไร
-breakdown ของแต่ละเลขคืออะไร
-position breakdown เป็นยังไง
-```
-
-### summary
-
-ไฟล์:
-
-`src/api/service/backtest/walk-forward.ts:184`
-
-ผลรวมของ backtest มี:
-
-```text
-hitRate = จำนวน row ที่ hit / จำนวน row ทั้งหมด * 100
-averageHitRank = ค่าเฉลี่ย rank ของเลขที่ hit
-longestMissStreak = miss ติดกันยาวสุดกี่งวด
-expectedRandomHitRate = ถ้าสุ่มมั่ว โอกาส hit ควรประมาณเท่าไร
-liftVsRandom = hitRate - expectedRandomHitRate
-```
-
-### expectedRandomHitRate
-
-ไฟล์:
-
-`src/api/service/backtest/walk-forward.ts:204`, `src/api/service/backtest/walk-forward.ts:221`
-
-แนวคิด:
-
-ถ้า generate 5 เลขจากเลข 2 หลักทั้งหมด 100 แบบ และ actual มี 1 เลข โอกาสสุ่มโดนไม่ใช่ 50% แต่ประมาณ 5%
-
-สูตรแบบแนวคิด:
-
-```text
-universeSize = 10 ^ numberLength
-generatedCount = จำนวนเลขที่ระบบ generate แบบไม่ซ้ำ
-actualCount = จำนวนเลขจริงในงวดนั้น
-
-คำนวณโอกาส miss ทุกตัวก่อน
-randomHitProbability = 1 - missProbability
-```
-
-## 12. Patterns Page
+## 11. Patterns Page
 
 ไฟล์หลัก:
 
@@ -1101,17 +1001,20 @@ query default:
 
 ```text
 prizeType default = TWO_DIGIT
-windowSize default = 30
+scope default = ALL_TIME
+month default = undefined
 ```
 
-ส่ง query ไป analytics:
+ส่ง query ไป patterns API / analysis sample:
 
 `src/frontend/pages/patterns/patterns.mappers.ts:211`
 
 ```text
-numberLength = getPrizeNumberLength(prizeType)
 prizeType = selected prizeType
-windowSize = selected windowSize
+scope = selected scope
+month = selected month เมื่อ scope = MONTH
+numberLength = getPrizeNumberLength(prizeType)
+sample = resolveAnalysisSample(context) ผ่าน snapshot หรือ on-demand fallback
 ```
 
 overview card:
@@ -1141,7 +1044,7 @@ averageUniqueDigits
 digitSums
 ```
 
-## 13. Calendar Monthly Heatmap
+## 12. Calendar Monthly Heatmap
 
 ไฟล์หลัก:
 
@@ -1218,7 +1121,7 @@ code: `assignWithinRowVisualTones` ใน `position-heatmap.ts`
 - `appearanceCount` = จำนวน**งวด**ที่ digit ปรากฏอย่างน้อย 1 ครั้ง
 - `missingRounds`, `score`, `lift`, `expectedRatePercent` = ใช้ภายใน engine / หน้าอื่น
 
-## 14. Analysis Snapshot Engine
+## 13. Analysis Snapshot Engine
 
 ไฟล์หลัก:
 
@@ -1289,7 +1192,7 @@ bun run db:compute-analysis -- --prizeType=TWO_DIGIT --scope=ALL_TIME
 bun run db:compute-analysis -- --prizeType=FIRST --scope=MONTH --month=5
 ```
 
-## 15. Dashboard
+## 14. Dashboard
 
 ไฟล์หลัก:
 
@@ -1320,37 +1223,7 @@ code:
 
 `src/api/service/dashboard.service.ts:44`, `src/api/service/dashboard.service.ts:61`, `src/api/service/dashboard.service.ts:70`
 
-## 16. Search
-
-ไฟล์หลัก:
-
-`src/api/service/search.service.ts:18`
-
-หน้าที่:
-
-ค้นหาข้อมูล draw, prize, stats
-
-stats window คงที่:
-
-`src/api/service/search.service.ts:7`
-
-```text
-SEARCH_STATS_WINDOW_SIZE = 120
-```
-
-search stats:
-
-`src/api/service/search.service.ts:156`
-
-แปล:
-
-ถ้าค้นเลข 2 หลัก จะไปดู stats ของ TWO_DIGIT
-
-ถ้าค้นเลข 3 หลัก จะไปดู stats ของ THREE_DIGIT / THREE_FRONT / THREE_BACK
-
-ถ้าค้นเลข 6 หลัก จะไปดู stats ของ FIRST / PRIZE2 / PRIZE3 / PRIZE4 / PRIZE5
-
-## 17. Dependency Map
+## 15. Dependency Map
 
 ภาพรวม dependency:
 
@@ -1372,26 +1245,20 @@ lib/app/number-shape
 analytics.service
   -> prediction.service
   -> compare.service
-  -> search.service
   -> dashboard.service
   -> patterns page data
 
 prediction/position-engine
   -> prediction.service
-  -> backtest/walk-forward
 
 prediction/scoring-engine
   -> compare.service
-
-backtest/walk-forward
-  -> backtest.service
-  -> backtest page
 
 calendar.service
   -> calendar page
 ```
 
-## 18. ข้อควรระวังในการอ่านผล
+## 16. ข้อควรระวังในการอ่านผล
 
 `frequencyPercent` ไม่ใช่ probability ที่งวดหน้าจะออก
 
@@ -1413,7 +1280,7 @@ calendar.service
 
 เพราะ universe ใหญ่มาก เช่น 000000-999999 มี 1,000,000 แบบ การซ้ำตรง ๆ จึงน้อยมากเมื่อเทียบกับเลข 2 หลักที่มีแค่ 100 แบบ
 
-## 19. ตัวอย่าง end-to-end
+## 17. ตัวอย่าง end-to-end
 
 สมมุติ user เปิด Prediction Lab:
 

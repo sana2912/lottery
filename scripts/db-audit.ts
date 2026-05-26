@@ -10,7 +10,6 @@ async function main() {
       drawCount,
       prizeCount,
       predictionRunCount,
-      backtestRunCount,
       latestDraw,
       sourceStatusRows,
       analysisRunCount,
@@ -23,7 +22,6 @@ async function main() {
       prisma.lotteryDraw.count(),
       prisma.lotteryPrize.count(),
       prisma.predictionRun.count(),
-      prisma.backtestRun.count(),
       prisma.lotteryDraw.findFirst({
         orderBy: { drawDate: "desc" },
         select: {
@@ -66,7 +64,6 @@ async function main() {
       `Latest draw: ${latestDrawSummary}`,
       `Source status counts: ${sourceStatusSummary}`,
       `Prediction runs: ${predictionRunCount}`,
-      `Backtest runs: ${backtestRunCount}`,
       `Analysis snapshot runs: ${analysisRunCount}${formatComputedAtSuffix(latestAnalysisSnapshot?.computedAt)}`,
       `Analysis digit stats: ${analysisDigitStatCount}`,
       `Analysis number stats: ${analysisNumberStatCount}`,

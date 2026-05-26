@@ -4,11 +4,6 @@ import type {
   ApiNumberStat,
   ApiPatternSummary
 } from "@/schema/api/analytics";
-import type {
-  ApiBacktestHistoryResponse,
-  ApiBacktestReadModel,
-  ApiBacktestRequest
-} from "@/schema/api/backtest";
 import type { ApiCalendarReadModel } from "@/schema/api/calendar";
 import type { ApiCompareReadModel, ApiCompareRequest } from "@/schema/api/compare";
 import type { ApiDashboardReadModel } from "@/schema/api/dashboard";
@@ -21,11 +16,6 @@ import type {
   NumberStat,
   PatternSummary
 } from "@/schema/app/analytics.schema";
-import type {
-  BacktestHistoryResponse,
-  BacktestReadModel,
-  BacktestRequest
-} from "@/schema/app/backtest.schema";
 import type { CalendarReadModel } from "@/schema/app/calendar.schema";
 import type { CompareReadModel, CompareRequest } from "@/schema/app/compare.schema";
 import type { DashboardReadModel } from "@/schema/app/dashboard.schema";
@@ -45,12 +35,6 @@ type _AnalyticsReadModelContract = Assert<IsExact<AnalyticsReadModel, ApiAnalyti
 type _DigitStatContract = Assert<IsExact<DigitStat, ApiDigitStat>>;
 type _NumberStatContract = Assert<IsExact<NumberStat, ApiNumberStat>>;
 type _PatternSummaryContract = Assert<IsExact<PatternSummary, ApiPatternSummary>>;
-
-type _BacktestReadModelContract = Assert<IsExact<BacktestReadModel, ApiBacktestReadModel>>;
-type _BacktestHistoryResponseContract = Assert<
-  IsExact<BacktestHistoryResponse, ApiBacktestHistoryResponse>
->;
-type _BacktestRequestContract = Assert<IsExtends<BacktestRequest, ApiBacktestRequest>>;
 
 type _CalendarReadModelContract = Assert<IsExact<CalendarReadModel, ApiCalendarReadModel>>;
 

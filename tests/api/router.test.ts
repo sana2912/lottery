@@ -1,24 +1,17 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { createApiRouter } from "@/api/router";
 import { analyticsService } from "@/api/service/analytics.service";
-import { backtestService } from "@/api/service/backtest.service";
 import { calendarService } from "@/api/service/calendar.service";
 import { compareService } from "@/api/service/compare.service";
 import { dashboardService } from "@/api/service/dashboard.service";
 import { drawService } from "@/api/service/draw.service";
 import { predictionService } from "@/api/service/prediction.service";
-import { searchService } from "@/api/service/search.service";
 import { analyticsReadModelSchema } from "@/schema/app/analytics.schema";
-import {
-  backtestHistoryResponseSchema,
-  backtestReadModelSchema
-} from "@/schema/app/backtest.schema";
 import { calendarReadModelSchema } from "@/schema/app/calendar.schema";
 import { compareReadModelSchema } from "@/schema/app/compare.schema";
 import { dashboardReadModelSchema } from "@/schema/app/dashboard.schema";
 import { drawDetailResponseSchema, drawListResponseSchema } from "@/schema/app/draw.schema";
 import { predictionRequestSchema, predictionResponseSchema } from "@/schema/app/prediction.schema";
-import { searchReadModelSchema } from "@/schema/app/search.schema";
 
 const mutableDrawService = drawService as {
   getDrawById: typeof drawService.getDrawById;
@@ -34,14 +27,6 @@ const mutablePredictionService = predictionService as {
   getLatestPrediction: typeof predictionService.getLatestPrediction;
   getPredictionById: typeof predictionService.getPredictionById;
 };
-const mutableSearchService = searchService as {
-  search: typeof searchService.search;
-};
-const mutableBacktestService = backtestService as {
-  getBacktestById: typeof backtestService.getBacktestById;
-  listBacktests: typeof backtestService.listBacktests;
-  runBacktest: typeof backtestService.runBacktest;
-};
 const mutableCompareService = compareService as {
   compareNumbers: typeof compareService.compareNumbers;
 };
@@ -54,20 +39,16 @@ const mutableDashboardService = dashboardService as {
 
 const originalServices = {
   analyticsReadModel: analyticsService.getAnalyticsReadModel,
-  backtestById: backtestService.getBacktestById,
   calendarReadModel: calendarService.getCalendarReadModel,
   compareNumbers: compareService.compareNumbers,
   dashboardReadModel: dashboardService.getDashboardReadModel,
   digitStats: analyticsService.getDigitStats,
   drawById: drawService.getDrawById,
   draws: drawService.getDraws,
-  listBacktests: backtestService.listBacktests,
   numberStats: analyticsService.getNumberStats,
   predictionGenerate: predictionService.generate,
   predictionById: predictionService.getPredictionById,
-  predictionLatest: predictionService.getLatestPrediction,
-  runBacktest: backtestService.runBacktest,
-  search: searchService.search
+  predictionLatest: predictionService.getLatestPrediction
 } as const;
 
 afterEach(() => {
@@ -79,10 +60,6 @@ afterEach(() => {
   mutablePredictionService.generate = originalServices.predictionGenerate;
   mutablePredictionService.getLatestPrediction = originalServices.predictionLatest;
   mutablePredictionService.getPredictionById = originalServices.predictionById;
-  mutableSearchService.search = originalServices.search;
-  mutableBacktestService.getBacktestById = originalServices.backtestById;
-  mutableBacktestService.listBacktests = originalServices.listBacktests;
-  mutableBacktestService.runBacktest = originalServices.runBacktest;
   mutableCompareService.compareNumbers = originalServices.compareNumbers;
   mutableCalendarService.getCalendarReadModel = originalServices.calendarReadModel;
   mutableDashboardService.getDashboardReadModel = originalServices.dashboardReadModel;
@@ -222,7 +199,6 @@ describe("api router", () => {
           numberLength: "2",
           prizeType: "TWO_DIGIT",
           strategyId: "balanced",
-          targetDrawCount: "30",
           windowSize: "120"
         }),
         headers: {
@@ -249,85 +225,6 @@ describe("api router", () => {
       windowSize: 120
     });
     expect(predictionResponseSchema.parse(await postResponse.json())).toBeTruthy();
-  });
-
-  test("search route validates query and returns grouped results", async () => {
-    let receivedQuery: unknown;
-
-    mutableSearchService.search = async (query) => {
-      receivedQuery = query;
-      return searchReadModelSchema.parse(searchReadModel());
-    };
-
-    const response = await request("/api/search?q=09&page=2&pageSize=5");
-
-    expect(receivedQuery).toEqual({
-      endDate: undefined,
-      lotteryType: "THAI_GOVERNMENT",
-      month: undefined,
-      page: 2,
-      pageSize: 5,
-      q: "09",
-      startDate: undefined,
-      year: undefined
-    });
-    expect(searchReadModelSchema.parse(await response.json())).toBeTruthy();
-  });
-
-  test("backtest routes validate body and support list/detail/404", async () => {
-    let receivedBody: unknown;
-
-    mutableBacktestService.listBacktests = async () =>
-      backtestHistoryResponseSchema.parse(backtestHistoryResponse());
-    mutableBacktestService.getBacktestById = async (id) =>
-      id === "missing" ? null : backtestReadModelSchema.parse(backtestReadModel(id));
-    mutableBacktestService.runBacktest = async (input) => {
-      receivedBody = input;
-      return backtestReadModelSchema.parse(backtestReadModel("run-1"));
-    };
-
-    const [listResponse, detailResponse, missingResponse, postResponse] = await Promise.all([
-      request("/api/backtests"),
-      request("/api/backtests/run-1"),
-      request("/api/backtests/missing"),
-      request("/api/backtests", {
-        body: JSON.stringify({
-          candidateCount: "5",
-          numberLength: "2",
-          prizeType: "TWO_DIGIT",
-          strategyId: "balanced",
-          windowSize: "120"
-        }),
-        headers: { "content-type": "application/json" },
-        method: "POST"
-      })
-    ]);
-
-    expect(receivedBody).toEqual({
-      candidateCount: 5,
-      endDate: undefined,
-      lotteryType: "THAI_GOVERNMENT",
-      month: undefined,
-      numberLength: 2,
-      page: 1,
-      pageSize: 20,
-      params: {},
-      prizeType: "TWO_DIGIT",
-      q: undefined,
-      startDate: undefined,
-      strategyId: "balanced",
-      targetDrawCount: 30,
-      windowSize: 120,
-      year: undefined
-    });
-    expect(backtestHistoryResponseSchema.parse(await listResponse.json())).toBeTruthy();
-    expect(backtestReadModelSchema.parse(await detailResponse.json())).toBeTruthy();
-    expect(missingResponse.status).toBe(404);
-    expect(await missingResponse.json()).toEqual({
-      error: "Not found",
-      message: "Backtest run not found"
-    });
-    expect(backtestReadModelSchema.parse(await postResponse.json())).toBeTruthy();
   });
 
   test("compare route validates body and returns schema-valid response", async () => {
@@ -561,67 +458,6 @@ function predictionResponse(input: {
   };
 }
 
-function backtestReadModel(id: string) {
-  return {
-    generatedAt: "2026-04-29T00:00:00.000Z",
-    results: [
-      {
-        actualNumbers: ["09"],
-        drawDate: "2026-04-16T00:00:00.000Z",
-        drawId: "draw-1",
-        generatedNumbers: ["09", "11"],
-        hitNumbers: ["09"],
-        id: "result-1",
-        isHit: true,
-        rankOfHit: 1,
-        runId: id
-      }
-    ],
-    run: {
-      averageHitRank: 1,
-      candidateCount: 5,
-      computedAt: "2026-04-29T00:00:00.000Z",
-      coverage: 1,
-      endDrawDate: "2026-04-16T00:00:00.000Z",
-      hitRate: 100,
-      id,
-      longestMissStreak: 0,
-      lotteryType: "THAI_GOVERNMENT",
-      numberLength: 2,
-      params: {},
-      prizeType: "TWO_DIGIT",
-      startDrawDate: "2026-04-16T00:00:00.000Z",
-      strategyId: "balanced",
-      strategyName: "Balanced",
-      version: "prediction-engine-v1"
-    },
-    source: "api" as const
-  };
-}
-
-function backtestHistoryResponse() {
-  return {
-    generatedAt: "2026-04-29T00:00:00.000Z",
-    items: [
-      {
-        candidateCount: 5,
-        computedAt: "2026-04-29T00:00:00.000Z",
-        coverage: 1,
-        hitRate: 100,
-        id: "run-1",
-        longestMissStreak: 0,
-        lotteryType: "THAI_GOVERNMENT",
-        numberLength: 2,
-        prizeType: "TWO_DIGIT",
-        strategyId: "balanced",
-        strategyName: "Balanced",
-        version: "prediction-engine-v1"
-      }
-    ],
-    source: "api" as const
-  };
-}
-
 function compareReadModel() {
   return {
     candidates: [
@@ -775,47 +611,6 @@ function dashboardReadModel() {
         tone: "hot" as const
       }
     ],
-    source: "api" as const
-  };
-}
-
-function searchReadModel() {
-  return {
-    generatedAt: "2026-04-29T00:00:00.000Z",
-    groups: {
-      draws: [
-        {
-          drawDate: "2026-04-16T00:00:00.000Z",
-          drawNo: "08/2026",
-          id: "draw-1",
-          sourceStatus: "VERIFIED" as const
-        }
-      ],
-      prizes: [
-        {
-          drawDate: "2026-04-16T00:00:00.000Z",
-          drawId: "draw-1",
-          drawNo: "08/2026",
-          id: "prize-1",
-          number: "09",
-          prizeType: "TWO_DIGIT" as const
-        }
-      ],
-      stats: [
-        {
-          drawCount: 120,
-          frequencyPercent: 12.5,
-          hitCount: 3,
-          lastSeenDrawDate: "2026-04-16T00:00:00.000Z",
-          missingDrawCount: 2,
-          number: "09",
-          prizeType: "TWO_DIGIT" as const,
-          trendScore: 50,
-          samplePrizeCount: 3
-        }
-      ]
-    },
-    q: "09",
     source: "api" as const
   };
 }

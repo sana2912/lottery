@@ -4,7 +4,6 @@ import { Menu, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { MobileNavigation, Sidebar } from "@/frontend/components/navigation/Sidebar";
-import { Input } from "@/frontend/primitives";
 import { appConfig } from "@/lib/app/constants";
 import { userNavigation } from "@/lib/app/navigation";
 
@@ -40,13 +39,11 @@ export function AppShell({ children }: AppShellProps) {
                 {appConfig.name}
               </p>
               <p className="truncate text-sm text-[var(--color-text-secondary)]">
-                สถิติและสัญญาณจากงวดย้อนหลัง — ตีความคะแนนเป็นสัญญาณเชิงประวัติศาสตร์
+                สถิติและสัญญาณจากงวดย้อนหลัง - ตีความคะแนนเป็นสัญญาณเชิงประวัติศาสตร์
               </p>
             </div>
 
-            <div className="hidden w-full max-w-xs md:block">
-              <Input placeholder="ค้นหางวด เลข หรือแท็ก" />
-            </div>
+            <div className="hidden w-full max-w-xs md:block" />
           </div>
 
           <MobileNavigation

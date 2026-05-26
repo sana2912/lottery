@@ -46,7 +46,7 @@ When changing analytics sample, snapshot, calendar heatmap, or audit scripts:
 1. **One contract** — update `docs/calculate.md` §2 in the same change; do not add a third sample path (snapshot / on-demand / separate cap).
 2. **Parity** — extend `tests/analysis/analysis-pipeline-parity.test.ts` or `tests/analysis/compute-scope-audit.test.ts` so snapshot, on-demand, and `eligible-sample` replay agree for the touched context.
 3. **Audit** — `scripts/lib/compute-scope-audit.ts` must import eligibility from `eligible-sample.ts` (aligned with `sample-resolver.ts` SQL).
-4. **Terminology** — `windowSize` in analysis = stored `sampleDrawCount`; prediction/backtest `windowSize` = training draw count (different domain).
+4. **Terminology** — `windowSize` in analysis = stored `sampleDrawCount`; prediction `windowSize` = training draw count (different domain).
 5. **Close the loop** — ask the human to run `db:compute-analysis` + `db:audit:scope` after snapshot payload changes; fix sample/snapshot before UI patches.
 
 ## Runtime
@@ -78,7 +78,7 @@ When changing analytics sample, snapshot, calendar heatmap, or audit scripts:
 
 ## API
 
-Elysia via `src/app/api/[[...route]]/route.ts` → `src/api/index.ts`. Routes: `/api/draws`, `/analytics`, `/predictions`, `/watchlist`, `/backtests`, `/compare`, `/calendar`.
+Elysia via `src/app/api/[[...route]]/route.ts` → `src/api/index.ts`. Routes: `/api/draws`, `/analytics`, `/predictions`, `/watchlist`, `/compare`, `/calendar`.
 
 ## Database (agents)
 

@@ -1,6 +1,5 @@
 import { describe, expect, test } from "bun:test";
 import CalendarRoute from "@/app/(user)/calendar/page";
-import SearchRoute from "@/app/(user)/search/page";
 import AnalyticsRoute from "@/frontend/pages/analytics/route";
 import CompareRoute from "@/frontend/pages/compare/route";
 import ResultsRoute from "@/frontend/pages/results/route";
@@ -52,11 +51,6 @@ describe("route wrappers", () => {
     expect((element as { props: { searchParams?: unknown } }).props.searchParams).toEqual({
       q: "foo"
     });
-  });
-
-  test("SearchRoute supports optional searchParams", async () => {
-    const element = await SearchRoute({});
-    assertReactElement(element);
   });
 
   test("TimeMachineRoute renders the page wrapper", async () => {

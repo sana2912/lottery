@@ -30,13 +30,13 @@
   "metrics": [
     {
       "label": "Product feature pages",
-      "value": "8",
+      "value": "7",
       "hint": "One route per primary product surface."
     },
     {
       "label": "Mock draw coverage",
       "value": "1,250",
-      "hint": "Simulated draw count used by analytics and backtest surfaces."
+      "hint": "Simulated draw count used by analytics surfaces."
     },
     {
       "label": "API-ready modules",
@@ -93,14 +93,6 @@
       "icon": "prediction"
     },
     {
-      "id": "backtest",
-      "title": "Backtest",
-      "href": "/backtest",
-      "description": "Test strategy performance with hit rate, miss streak, and persisted run history.",
-      "status": "Compare",
-      "icon": "backtest"
-    },
-    {
       "id": "compare",
       "title": "Compare",
       "href": "/compare",
@@ -137,7 +129,7 @@
   "trustPanel": {
     "label": "Responsible prediction",
     "title": "Candidate numbers need reasons, not implied guarantees",
-    "description": "Every score in the dashboard should be explained as a historical signal derived from frequency, recency, position support, and backtest context, with a clear limitation statement alongside it.",
-    "confirmation": "Mock-first, API-ready, user-facing only"
+    "description": "Every score in the dashboard should be explained as a historical signal derived from frequency, recency, position support, and context, with a clear limitation statement alongside it.",
+    "confirmation": "API-ready, user-facing only"
   }
 }

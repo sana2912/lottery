@@ -68,9 +68,6 @@
   --prediction: #9333ea;
   --prediction-soft: #faf5ff;
 
-  --backtest: #0f766e;
-  --backtest-soft: #ccfbf1;
-
   /* App backgrounds */
   --color-bg-app: var(--background);
   --color-bg-canvas: var(--card);
@@ -257,9 +254,6 @@
 
   --prediction: #c084fc;
   --prediction-soft: #3b0764;
-
-  --backtest: #2dd4bf;
-  --backtest-soft: #134e4a;
 
   --color-bg-app: var(--background);
   --color-bg-canvas: var(--card);

@@ -2,7 +2,6 @@ import {
   BarChart3,
   CalendarDays,
   FlaskConical,
-  Gauge,
   LayoutDashboard,
   Scale,
   Search,
@@ -14,7 +13,6 @@ export { default as homeContent } from "@/frontend/pages/home/home.mock.json";
 
 export const homeFeatureIconMap = {
   analytics: BarChart3,
-  backtest: Gauge,
   calendar: CalendarDays,
   compare: Scale,
   dashboard: LayoutDashboard,

@@ -507,16 +507,6 @@ function buildModuleAudit() {
       surfaces: ["watchlist enrichment"]
     },
     {
-      crossPrizeRawCompare: true,
-      metricUnit: "mixed prize-row stats",
-      module: "search",
-      onDemandFallback: true,
-      primaryDenominator: "samplePrizeCount per prizeType",
-      rawHitCountRanking: false,
-      risk: "high",
-      surfaces: ["6-digit stat search"]
-    },
-    {
       crossPrizeRawCompare: false,
       metricUnit: "prize-row + digit-event",
       module: "analytics",
@@ -565,16 +555,6 @@ function buildModuleAudit() {
       rawHitCountRanking: false,
       risk: "low",
       surfaces: ["compare ranking"]
-    },
-    {
-      crossPrizeRawCompare: false,
-      metricUnit: "walk-forward hit rate",
-      module: "backtest",
-      onDemandFallback: false,
-      primaryDenominator: "universeSize",
-      rawHitCountRanking: false,
-      risk: "low",
-      surfaces: ["backtest"]
     },
     {
       crossPrizeRawCompare: false,
