@@ -21,21 +21,7 @@ type MobileNavigationProps = Readonly<
 
 export function Sidebar({ items, pathname }: SidebarProps) {
   return (
-    <aside className="hidden min-h-screen w-[280px] border-r border-[var(--color-border-inverse-soft)] bg-[image:linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0)),var(--color-bg-sidebar)] px-5 py-6 text-[var(--color-text-inverse)] shadow-[inset_-1px_0_0_rgba(255,255,255,0.02)] lg:flex lg:flex-col">
-      <div className="mb-8 rounded-none border border-[var(--color-border-inverse-softer)] bg-[var(--color-bg-glass-dark)] p-5 shadow-[var(--shadow-glass-strong)] backdrop-blur-xl">
-        <p className="text-[11px] font-bold uppercase tracking-normal text-[var(--color-text-inverse-soft)]">
-          Lottery Intelligence
-        </p>
-        <h1 className="mt-3 text-2xl font-bold leading-tight">
-          ผลสลากย้อนหลัง
-          <br />
-          ในหน้าจอที่พร้อมใช้งาน
-        </h1>
-        <p className="mt-3 text-sm leading-6 text-[var(--color-text-inverse-muted)]">
-          ข้อมูลจากฐานงวดจริง วิเคราะห์ตามประเภทรางวัลและช่วงงวดที่เลือก
-        </p>
-      </div>
-
+    <aside className="hidden w-[280px] shrink-0 border-r border-[var(--color-border-inverse-soft)] bg-[image:linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0)),var(--color-bg-sidebar)] px-5 py-6 text-[var(--color-text-inverse)] shadow-[inset_-1px_0_0_rgba(255,255,255,0.02)] lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col lg:self-start lg:overflow-y-auto">
       <nav className="space-y-1">
         {items.map((item) => {
           const isActive = pathname === item.href;

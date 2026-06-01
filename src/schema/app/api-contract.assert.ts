@@ -8,6 +8,10 @@ import type { ApiCalendarReadModel } from "@/schema/api/calendar";
 import type { ApiCompareReadModel, ApiCompareRequest } from "@/schema/api/compare";
 import type { ApiDashboardReadModel } from "@/schema/api/dashboard";
 import type { ApiDrawDetailResponse, ApiDrawListResponse } from "@/schema/api/draw";
+import type {
+  ApiLotterySurvivalRoundRequest,
+  ApiLotterySurvivalRoundResponse
+} from "@/schema/api/lottery-survival";
 import type { ApiPredictionRequest, ApiPredictionResponse } from "@/schema/api/prediction";
 import type { ApiResultsReadModel } from "@/schema/api/results";
 import type {
@@ -20,6 +24,10 @@ import type { CalendarReadModel } from "@/schema/app/calendar.schema";
 import type { CompareReadModel, CompareRequest } from "@/schema/app/compare.schema";
 import type { DashboardReadModel } from "@/schema/app/dashboard.schema";
 import type { DrawDetailResponse, DrawListResponse } from "@/schema/app/draw.schema";
+import type {
+  LotterySurvivalRoundRequest,
+  LotterySurvivalRoundResponse
+} from "@/schema/app/lottery-survival.schema";
 import type { PredictionRequest, PredictionResponse } from "@/schema/app/prediction.schema";
 import type { ResultsReadModel } from "@/schema/app/results.schema";
 
@@ -45,6 +53,13 @@ type _DashboardReadModelContract = Assert<IsExact<DashboardReadModel, ApiDashboa
 
 type _DrawListResponseContract = Assert<IsExact<DrawListResponse, ApiDrawListResponse>>;
 type _DrawDetailResponseContract = Assert<IsExact<DrawDetailResponse, ApiDrawDetailResponse>>;
+
+type _LotterySurvivalResponseContract = Assert<
+  IsExact<LotterySurvivalRoundResponse, ApiLotterySurvivalRoundResponse>
+>;
+type _LotterySurvivalRequestContract = Assert<
+  IsExtends<LotterySurvivalRoundRequest, ApiLotterySurvivalRoundRequest>
+>;
 
 type _PredictionResponseContract = Assert<IsExact<PredictionResponse, ApiPredictionResponse>>;
 type _PredictionRequestContract = Assert<

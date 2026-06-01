@@ -6,5 +6,6 @@ export const userNavigation = [
   { href: "/prediction-lab", label: "ห้องทดลองทำนาย" },
   { href: "/compare", label: "เปรียบเทียบ" },
   { href: "/time-machine", label: "เครื่องเวลา" },
+  { href: "/lottery-survival", label: "Survival 800K" },
   { href: "/calendar", label: "ปฏิทิน" }
 ] as const;

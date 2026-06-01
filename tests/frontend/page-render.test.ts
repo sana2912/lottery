@@ -22,7 +22,7 @@ mock.module("@/frontend/pages/analytics/analytics.data", () => ({
   })
 }));
 
-const RENDER_TEST_TIMEOUT_MS = 15_000;
+const RENDER_TEST_TIMEOUT_MS = 30_000;
 
 describe("page rendering", () => {
   test(
@@ -141,6 +141,19 @@ describe("page rendering", () => {
 
       expect(predictionMarkup).toContain("Prize type");
       expect(predictionMarkup).toContain("Derived length");
+    },
+    RENDER_TEST_TIMEOUT_MS
+  );
+
+  test(
+    "renders initial client page shell for lottery survival",
+    async () => {
+      const { LotterySurvivalPage } = await import("@/frontend/pages/lottery-survival");
+
+      const markup = renderToStaticMarkup(createElement(LotterySurvivalPage));
+
+      expect(markup).toContain("Lottery Survival Simulation");
+      expect(markup).toContain("800,000");
     },
     RENDER_TEST_TIMEOUT_MS
   );

@@ -4,6 +4,7 @@ import { calendarRouter } from "@/api/router/calendar.router";
 import { compareRouter } from "@/api/router/compare.router";
 import { dashboardRouter } from "@/api/router/dashboard.router";
 import { drawRouter } from "@/api/router/draw.router";
+import { lotterySurvivalRouter } from "@/api/router/lottery-survival.router";
 import { patternsRouter } from "@/api/router/patterns.router";
 import { predictionRouter } from "@/api/router/prediction.router";
 import { timeMachineRouter } from "@/api/router/time-machine.router";
@@ -23,5 +24,6 @@ export function createApiRouter() {
     .use(compareRouter)
     .use(calendarRouter)
     .use(dashboardRouter)
+    .use(lotterySurvivalRouter)
     .use(timeMachineRouter);
 }

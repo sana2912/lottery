@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import CalendarRoute from "@/app/(user)/calendar/page";
+import LotterySurvivalRoute from "@/app/(user)/lottery-survival/page";
 import AnalyticsRoute from "@/frontend/pages/analytics/route";
 import CompareRoute from "@/frontend/pages/compare/route";
 import ResultsRoute from "@/frontend/pages/results/route";
@@ -55,6 +56,11 @@ describe("route wrappers", () => {
 
   test("TimeMachineRoute renders the page wrapper", async () => {
     const element = await TimeMachineRoute();
+    assertReactElement(element);
+  });
+
+  test("LotterySurvivalRoute renders the page wrapper", async () => {
+    const element = await LotterySurvivalRoute();
     assertReactElement(element);
   });
 });
