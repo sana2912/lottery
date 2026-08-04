@@ -1,5 +1,0 @@
-ALTER TYPE "LotteryPrizeType" ADD VALUE 'THREE_DIGIT';
-ALTER TYPE "LotteryPrizeType" ADD VALUE 'PRIZE2';
-ALTER TYPE "LotteryPrizeType" ADD VALUE 'PRIZE3';
-ALTER TYPE "LotteryPrizeType" ADD VALUE 'PRIZE4';
-ALTER TYPE "LotteryPrizeType" ADD VALUE 'PRIZE5';

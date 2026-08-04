@@ -6,6 +6,5 @@ export const apiRoutes = {
   draws: "/api/draws",
   lotterySurvivalRounds: "/api/lottery-survival/rounds",
   patterns: "/api/patterns",
-  predictions: "/api/predictions",
-  timeMachineSimulations: "/api/time-machine/simulations"
+  predictions: "/api/predictions"
 } as const;

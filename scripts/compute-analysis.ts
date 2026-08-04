@@ -14,6 +14,7 @@ import {
   listAllTimeAnalysisContexts,
   listAnalysisContexts
 } from "@/api/service/analysis-snapshot/context-plan";
+import { assertAnalysisSnapshotSchemaReady } from "./lib/assert-analysis-snapshot-schema";
 
 type ComputeAnalysisOptions = {
   month?: AnalysisMonth;
@@ -26,6 +27,7 @@ async function main() {
   const contexts = buildComputePlan(options);
 
   assertFullComputePlan(contexts, options);
+  await assertAnalysisSnapshotSchemaReady();
 
   const expected = getExpectedAnalysisContextCount();
 

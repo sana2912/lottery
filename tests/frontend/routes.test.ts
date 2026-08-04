@@ -4,7 +4,6 @@ import LotterySurvivalRoute from "@/app/(user)/lottery-survival/page";
 import AnalyticsRoute from "@/frontend/pages/analytics/route";
 import CompareRoute from "@/frontend/pages/compare/route";
 import ResultsRoute from "@/frontend/pages/results/route";
-import TimeMachineRoute from "@/frontend/pages/time-machine/route";
 
 function assertReactElement(value: unknown) {
   expect(value).toBeTruthy();
@@ -52,11 +51,6 @@ describe("route wrappers", () => {
     expect((element as { props: { searchParams?: unknown } }).props.searchParams).toEqual({
       q: "foo"
     });
-  });
-
-  test("TimeMachineRoute renders the page wrapper", async () => {
-    const element = await TimeMachineRoute();
-    assertReactElement(element);
   });
 
   test("LotterySurvivalRoute renders the page wrapper", async () => {

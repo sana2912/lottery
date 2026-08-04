@@ -18,3 +18,4 @@ ref
 .env.development
 .env.production
 tsconfig.tsbuildinfo
+secret_key.txt

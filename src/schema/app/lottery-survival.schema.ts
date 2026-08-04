@@ -1,6 +1,6 @@
 import { z } from "zod";
+import { prizeSegmentSchema } from "@/schema/app/prize-segment.schema";
 import { lotteryPrizeTypeSchema, lotteryTypeSchema } from "@/schema/app/query.schema";
-import { timeMachineSegmentSchema } from "@/schema/app/time-machine.schema";
 
 const sixDigitTicketSchema = z
   .string()
@@ -106,7 +106,7 @@ export const lotterySurvivalHitSchema = z.object({
   prizeNumber: z.string(),
   prizeType: lotteryPrizeTypeSchema,
   quantity: z.number().int().positive(),
-  segment: timeMachineSegmentSchema,
+  segment: prizeSegmentSchema,
   ticket: z.string(),
   totalPrize: z.number().int().nonnegative()
 });

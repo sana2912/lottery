@@ -1,11 +1,8 @@
+import { compareTicketToPrize, isEligiblePrizeType } from "@/api/service/lottery/prize-comparison";
 import {
   getLotterySurvivalPrizeLabel,
   getLotterySurvivalPrizePayout
 } from "@/api/service/lottery-survival/constants";
-import {
-  compareTicketToPrize,
-  isEligiblePrizeType
-} from "@/api/service/time-machine/prize-comparison";
 import type {
   LotterySurvivalHit,
   LotterySurvivalNearMiss,

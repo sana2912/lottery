@@ -1,10 +1,10 @@
 import type { LotteryPrizeType } from "@/generated/prisma/enums";
-import type { TimeMachineSegment } from "@/schema/app/time-machine.schema";
+import type { PrizeSegment } from "@/schema/app/prize-segment.schema";
 
 export type PrizeComparisonRule = {
   comparisonLength: number;
   prizeTypes: readonly LotteryPrizeType[];
-  segment: TimeMachineSegment;
+  segment: PrizeSegment;
 };
 
 export const ELIGIBLE_PRIZE_TYPES = [
@@ -64,7 +64,7 @@ export function getComparisonRule(prizeType: string): PrizeComparisonRule | unde
   );
 }
 
-export function extractTicketSegment(ticket: string, segment: TimeMachineSegment): string {
+export function extractTicketSegment(ticket: string, segment: PrizeSegment): string {
   switch (segment) {
     case "full6":
       return ticket;
@@ -98,7 +98,7 @@ export type SegmentComparisonResult = {
   matchedDigits: number;
   matchedPositions: number[];
   prizeSegment: string;
-  segment: TimeMachineSegment;
+  segment: PrizeSegment;
   ticketSegment: string;
 };
 
@@ -134,7 +134,7 @@ export function compareTicketToPrize(input: {
 function getMatchedPositions(
   ticketSegment: string,
   prizeSegment: string,
-  segment: TimeMachineSegment
+  segment: PrizeSegment
 ): number[] {
   const positions: number[] = [];
 

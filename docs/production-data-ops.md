@@ -13,7 +13,7 @@ Use this runbook when you need to:
 
 ## Local Bootstrap
 
-Run these commands in order against `.env.development`:
+Run these commands in order against `.env.example`:
 
 ```bash
 bun run db:migrate
@@ -74,7 +74,7 @@ Use it after every seed/import or stats recompute step. If counts are unexpected
 
 ## Production Sequence
 
-Production should use platform-managed environment variables, especially `DATABASE_URL`. Do not commit `.env.production` to the repository.
+Production should use the checked-in `.env.example` script configuration or platform-managed environment variables for deployed runtime secrets. Do not commit real production secrets.
 
 GHCR Docker deploy checklist: [`deploy-ghcr.md`](deploy-ghcr.md).
 
@@ -89,30 +89,24 @@ Recommended sequence:
 
 ## Production Command Notes
 
-This repo already includes:
+This repo uses one script set for every environment. Edit `.env.example` to point at the intended database before running commands.
+
+Common database commands:
 
 ```bash
-bun run db:migrate:prod
-bun run db:push:prod
-bun run db:studio:prod
+bun run db:migrate
+bun run db:push
+bun run db:studio
+bun run db:refresh
 ```
 
-These commands rely on `scripts/run-with-env.ts`. Use that helper only with a secure env file outside version control, or run equivalent commands in an environment where `DATABASE_URL` is already injected by the platform.
-
-For production data refresh in a shell where `DATABASE_URL` is already injected, the practical command sequence is:
+For production data refresh after `.env.example` points at the production database, run:
 
 ```bash
-bun run db:migrate:prod
-bun scripts/compute-analysis.ts
-bun scripts/db-audit.ts
+bun run db:compute-analysis
+bun run db:audit
 ```
 
-If you need to use a secure env file outside version control, use `scripts/run-with-env.ts` instead of committing `.env.production`:
-
-```bash
-bun run scripts/run-with-env.ts <secure-env-file> -- bun scripts/compute-analysis.ts
-bun run scripts/run-with-env.ts <secure-env-file> -- bun scripts/db-audit.ts
-```
 
 ## Deep calculation audits (optional)
 

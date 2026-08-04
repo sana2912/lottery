@@ -1,5 +1,5 @@
+import type { ApiPrizeSegment } from "@/schema/api/prize-segment";
 import type { ApiLotteryPrizeType, ApiLotteryType } from "@/schema/api/query";
-import type { ApiTimeMachineSegment } from "@/schema/api/time-machine";
 
 export type ApiLotterySurvivalStrategy = "favorite" | "pattern" | "patternFavorite" | "random";
 
@@ -57,7 +57,7 @@ export interface ApiLotterySurvivalHit {
   prizeNumber: string;
   prizeType: ApiLotteryPrizeType;
   quantity: number;
-  segment: ApiTimeMachineSegment;
+  segment: ApiPrizeSegment;
   ticket: string;
   totalPrize: number;
 }

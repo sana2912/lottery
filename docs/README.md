@@ -49,7 +49,7 @@ Agents working in this repo should read `AGENTS.md`. Any UI or UI feature work m
 
 ## Security And Environment
 
-- Local development uses plaintext `.env.development`.
+- Local development scripts load `.env.example`.
 - `.env.example` documents safe placeholder values.
 - Production environment variables are provided by the hosting platform, such as Render environment variables.
 - Do not commit real production secrets.

@@ -1,8 +1,0 @@
--- RenameIndex
-ALTER INDEX IF EXISTS "digit_stat_snapshots_lotteryType_prizeType_windowSize_computedA" RENAME TO "digit_stat_snapshots_lotteryType_prizeType_windowSize_compu_idx";
-
--- RenameIndex
-ALTER INDEX IF EXISTS "digit_stat_snapshots_lotteryType_prizeType_windowSize_digit_pos" RENAME TO "digit_stat_snapshots_lotteryType_prizeType_windowSize_digit_idx";
-
--- RenameIndex
-ALTER INDEX IF EXISTS "number_stat_snapshots_lotteryType_prizeType_windowSize_computed" RENAME TO "number_stat_snapshots_lotteryType_prizeType_windowSize_comp_idx";
